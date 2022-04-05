@@ -1,0 +1,4 @@
+#ifdef KLEE
+ 	klee_make_symbolic(info, sizeof(struct genl_info), "genl_info");
+#endif
+	init_genl_msg(AOT_argv[1], info);

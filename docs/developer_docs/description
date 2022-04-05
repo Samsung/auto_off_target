@@ -1,0 +1,97 @@
+I. Initialization step 
+
+1.Initialize database
+    self.db -dbjson database
+
+2. Create following maps
+    self.fnmap - functions by name (nonunique)
+    self.fnidmap - functions by id
+    self.fdnmap - function declarations by name (nonunique)
+    self.fdmap - function declarations by id
+    self.unmap - unresolved functions by name (nonunique)
+    self.umap unresolved functions by id
+
+    self.typemap - types by id
+    self.globalsidmap - globals by id
+    self.srcidmap - sourcename by id
+
+3. Find functions in special categories
+    self.known_funcs_ids - ids of known functions (libc and stubs)
+    self.lib_funcs_ids - ids of defined stub functions
+    self.static_funcs_map - file ids where given static function declaration is present
+    self.builtin_funcs_ids - ids of builtin functions
+    self.all_funcs_with_asm - ids of functions containing asm
+
+4. Find type in special categories
+    self.identiacl_typedefs - typedef ids for each typedefed type id
+    self.impilict_types - ids of implicit types
+    self.dup_types - ids of duplicates of type with given id (no qualifiers)
+    self.internal_types - id of type containing type with given id
+
+
+II. Generation step
+
+5. Find ids of target functions
+    function_ids - ids of target functions
+    self.functions - ids of all recursively referenced functions, with known functions filtered out
+
+6. Find all dependent globals, types and functions
+    self.globals - ids of all required globals
+    all_types - ids of all required types
+    internal_defs - ids of types defined within globals and types
+    6.1 Call _discover_functions_and_globals with self.functions, self.globals, all_types and internal_defs
+        6.1.1 Call _get_global_types with functions global_types and internal_defs
+            globals_ids - ids of globals referenced in functions
+            globalTypes - ids of types of globals
+            global_type_decls - ids of types defined within globals' definitions 
+            globals_refs - ids of types referenced by globals
+            global_defs_str - declaration string for global (possibly with added extern)
+            global_defs_strings - definition strings for globals (extern removed)
+            global_fwd_str - map of global_decl_str for each global
+            globals_from_inits - ids of new globals referenced in already found globals
+            - update with valuse from globals_from_init, without globals_ids, global_refs, global_defs_strings
+            - add global_refs values to globalTypes
+            6.1.1.1 Call _get_types_recursive with globalTypes, global_types and internal_defs
+                all_types - ids of all types recursively dependent on globalTypes
+                all_types_data - data for types from all_types
+                _internal_defs_single - types defined in a given type
+                refs - ids of types referenced by given type
+                refs_types - data for types from refs
+                deps - referenced types for each type
+                self.deps_cache - refs and internal defs info for each type
+                sorted - toposorted deps without builtin or internal types
+                returns sorted
+            globalTypes = sortd
+            - internal_defs updated with defs from types
+            returns globalTypes, global_fwd_str, global_defs_strings, globals_ids
+        g_types = globalTypes - ids of all types required for self.functions
+        globals_ids - ids of all globals require for self.functions
+        global_fwd_strnig - declarations of globals
+        g_str - definitions of globals
+        types - types referenced in functions with recursive depenencies
+        - added g_types to types
+        types - ids of all types recursively referenced by globals and function_ids
+        - update globals_ids with globals referenced in types from types
+        - update globals_ids by recursive references of globals in other globals
+        g_funcs - new functions referenced in globals and types
+        - update self.globals with globals_ids
+        - update all_types with types
+        - recurively call _discover_functions_and_globals on g_funcs until no new functions are found
+
+7. Perorm cutoff on found functions, globals and types
+    7.1 Call _get_function_stats with function_ids and self.functions
+    self.internal_funcs - ids of functions which will be generated
+    self.external_funcs - ids of functions which won't be generated
+    internals - copy of self.internal_funcs
+    - clear self.globals and all_types
+    7.2 Call _discover_functions_and_globals with internals, self.globals, all_types and internal_defs
+
+8. Determine files to generate
+    self.static_and_inline_funcs - file ids where static function is present for each static function
+    files - list of functions and globals for each file id
+    static_files - list of target static functions for each file
+    static_functions - file containing target static function
+    stub_files - list of external functions for each file id
+    - fix inline static 
+
+9. Generate files

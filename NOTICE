@@ -1,0 +1,22 @@
+Auto Off-Target
+Copyright 2022 Samsung Electronics
+
+This product includes software developed at
+Mobile Security Group, Samsung Research R&D Warsaw (https://www.samsung.com/).
+
+The Initial Developer of some parts of src/aot_lib.c, 
+is Todd C. Miller.
+Copyright 1998 Todd C. Miller <Todd.Miller@courtesan.com>.
+
+The Initial Developer of Interval Trees in src/resources/internal_tree_generic.h
+is Michel Lespinasse.
+Copyright 2012 Michel Lespinasse <walken@google.com>.
+
+The Initial Developer of Red Black Trees in 
+src/resources/rbtree_augmented.h
+src/resources/rbtree.c
+src/resources/rbtree.h
+is Andrea Arcangeli, David Woodhouse and Michael Lespinasse.
+Copyright 1999 Andrea Arcangeli <andrea@suse.de>
+Copyright 2002 David Woodhouse <dwmw2@infradead.org>
+Copyright 2012 Michel Lespinasse <walken@google.com>

@@ -1,0 +1,11 @@
+    FILE* f = fopen(AOT_argv[1], "rb");
+    fseek(f, 0L, SEEK_END);
+    size_t filesize = ftell(f);
+    fseek(f, 0L, SEEK_SET);
+    printf(\"file size is %ld\\n\", filesize);
+
+    count = (filesize > 4096) ? 4096 : filesize;
+    fread(buf, sizeof(unsigned char), count, f);\n\n
+#ifdef KLEE
+    klee_make_symbolic(buf, count, "buf");
+#endif

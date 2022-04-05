@@ -1,0 +1,6 @@
+    for (int i=1; i<AOT_argc; ++i) {
+        if (!__strcmp(AOT_argv[i],"--verify-struct-layout")) {
+            verify_structure_layout();
+            return 0;
+        }
+    }

@@ -1,0 +1,58 @@
+/* Auto off-target PoC
+
+ Copyright Samsung Electronics
+ Samsung Mobile Security Team @ Samsung R&D Poland
+*/ 
+
+#include <sanitizer/dfsan_interface.h>
+#include <stdio.h>
+#include <string.h>
+
+/* This file contains the callbacks needed for catching DFSAN events.
+   The callbacks are based on the code presented in the test suite of DFSAN under <llvm_src>/compiler-rt/test/dfsan/".
+   The file is compiled _without_ dfsan instrumentation to avoid recursive instrumentation. */
+
+#define OP_STORE "store"
+#define OP_LOAD  "load"
+#define OP_CMP   "cmp"
+#define OP_TRANSFER "transfer"
+
+
+extern FILE* aot_dfsan_logf;
+
+/* Utility functions */
+void dump_stack_trace(const char* op) {
+  char buf[4096];
+  dfsan_sprint_stack_trace(buf, sizeof(buf));
+  fprintf(aot_dfsan_logf, "[AoT DFSAN] OP: %s\n%s\n", op, buf);
+  fflush(aot_dfsan_logf);
+}
+
+/* Callbacks */
+void __dfsan_store_callback(dfsan_label l, void* addr) {
+  if (!l) return;
+
+  //fprintf(stderr, "Label %u stored\n", l);
+  dump_stack_trace(OP_STORE);
+}
+
+void __dfsan_load_callback(dfsan_label l, void* addr) {
+  if (!l) return;
+
+  //fprintf(stderr, "Label %u loaded\n", l);
+  dump_stack_trace(OP_LOAD);
+}
+
+void __dfsan_mem_transfer_callback(dfsan_label *l, size_t len) {
+  if (!l) return;
+
+  //fprintf(stderr, "Label %u copied to memory\n", l[0]);
+  //dump_stack_trace(OP_TRANSFER);
+}
+
+void __dfsan_cmp_callback(dfsan_label l) {
+  if (!l) return;
+
+  //fprintf(stderr, "Label %u used in a branch\n", l);
+  dump_stack_trace(OP_CMP);
+}

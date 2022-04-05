@@ -1,0 +1,8 @@
+*tar.gz
+*.diff
+*.json
+*.pyc
+*.swm
+*.swo
+*.swp
+*.zip

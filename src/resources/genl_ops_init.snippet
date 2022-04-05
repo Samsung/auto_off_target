@@ -1,0 +1,44 @@
+/* ----------------------------- */
+/*        genl_ops init          */
+/* ----------------------------- */
+extern void* nlfuzz_attrs(char*); // function from nlfuzz lib
+
+void init_genl_msg(char* filename, struct genl_info* info) {
+	char* buffer = (char*)nlfuzz_attrs(filename);
+	info->attrs = buffer;
+
+	struct net_device* nd = malloc(sizeof(struct net_device));
+	memset(nd, 0, sizeof(struct net_device));
+	struct wireless_dev* wd = malloc(sizeof(struct wireless_dev));
+	memset(wd, 0, sizeof(struct wireless_dev));
+
+/*
+    // need to pick proper wd->iftype
+
+    NL80211_IFTYPE_UNSPECIFIED
+    NL80211_IFTYPE_ADHOC
+    NL80211_IFTYPE_STATION
+    NL80211_IFTYPE_AP
+    NL80211_IFTYPE_AP_VLAN
+    NL80211_IFTYPE_WDS
+    NL80211_IFTYPE_MONITOR
+    NL80211_IFTYPE_MESH_POINT
+    NL80211_IFTYPE_P2P_CLIENT
+    NL80211_IFTYPE_P2P_GO
+    NL80211_IFTYPE_P2P_DEVICE
+    NL80211_IFTYPE_OCB
+    NL80211_IFTYPE_NAN
+*/
+
+	wd->iftype = NL80211_IFTYPE_UNSPECIFIED;
+	nd->ieee80211_ptr = wd;
+	info->user_ptr[1] = nd;
+
+	struct cfg80211_registered_device* rd = malloc(sizeof(struct cfg80211_registered_device));
+	memset(rd, 0, sizeof(struct cfg80211_registered_device));
+	info->user_ptr[0] = rd;
+    struct cfg80211_ops* cfgops = malloc(sizeof(*rd->ops));
+	memset(cfgops, 0, sizeof(*rd->ops));
+	cfgops->external_auth = 0xAAAA;
+	rd->ops = cfgops;
+}

@@ -1,0 +1,13 @@
+Potential issues/refactoring:
+- unused self.srcnmap
+- unnecessary line "self.static_funcs_map[f["id"]] = set()"
+- can internal_types for given id have more than one outer type?
+- basedirs seems to be unused at the moment
+- functions _filter_out_known_functions and _filter_out_builtin_fucntions seem unnecessary
+- line globals_ids |= self._get_globals_from_types(g_types) is unnecessary
+
+- all_funcs_with_asm_copy is maybe not the best solution for adding asm to recursive query
+- when dropping pointers what about double pointers/arrays
+- _adjust_varlen_decl - is this ever the case?
+- section_header parameter is unnecessary in _get_global_types
+- matching keywords as strings may lead to unintended matches

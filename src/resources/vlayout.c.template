@@ -1,0 +1,76 @@
+/* Auto off-target PoC
+
+ Copyright Samsung Electronics
+ Samsung Mobile Security Team @ Samsung R&D Poland
+*/ 
+
+
+#include <stdio.h>
+#include <stddef.h>
+#include "aot.h"
+
+int __strcmp(const char* s1, const char* s2) {
+    while(*s1 && (*s1 == *s2))
+    {
+        s1++;
+        s2++;
+    }
+    return *(const unsigned char*)s1 - *(const unsigned char*)s2;
+}
+
+#define VERIFY_OFFSET(FLNAME,FLSIZE)    \
+    do {    \
+        printf(" offsetof(%%s,%%s): %%zu  vs %%zu : ",__container_type_name,#FLNAME,offsetof(__container_type,FLNAME),(size_t)FLSIZE);    \
+        if (offsetof(__container_type,FLNAME)==(size_t)FLSIZE) printf("OK\n"); else { __err_layout++; printf("FAIL\n"); }   \
+    } while(0); \
+
+#define VERIFY_STRUCT(FLTYPE,FLSIZE,...)   \
+    do {    \
+        typedef struct FLTYPE __container_type; \
+        static char __container_type_name[4096];    \
+        snprintf(__container_type_name,4096,"struct %%s",#FLTYPE);   \
+        static int __err_layout = 0; \
+        printf("## %%s\n",__container_type_name);   \
+        printf("sizeof(%%s): %%zu  vs %%zu : ",__container_type_name,sizeof(struct FLTYPE),(size_t)FLSIZE);   \
+        if (sizeof(struct FLTYPE)==(size_t)FLSIZE) printf("OK\n"); else { __err_layout++; printf("FAIL\n"); }   \
+        __VA_ARGS__ \
+        if (__err_layout<=0) __ok_count++; else __fail_count++; \
+        printf("\n");   \
+    } while(0); \
+
+#define VERIFY_UNION(FLTYPE,FLSIZE,...)   \
+    do {    \
+        typedef union FLTYPE __container_type; \
+        static char __container_type_name[4096];    \
+        snprintf(__container_type_name,4096,"union %%s",#FLTYPE);   \
+        static int __err_layout = 0; \
+        printf("## %%s\n",__container_type_name);   \
+        printf("sizeof(%%s): %%zu  vs %%zu : ",__container_type_name,sizeof(union FLTYPE),(size_t)FLSIZE);   \
+        if (sizeof(union FLTYPE)==(size_t)FLSIZE) printf("OK\n"); else { __err_layout++; printf("FAIL\n"); }   \
+        __VA_ARGS__ \
+        if (__err_layout<=0) __ok_count++; else __fail_count++; \
+        printf("\n");   \
+    } while(0); \
+
+#define VERIFY_STRUCT_TYPE(FLTYPE,FLSIZE,...)   \
+    do {    \
+        typedef FLTYPE __container_type; \
+        static const char* __container_type_name = #FLTYPE; \
+        static int __err_layout = 0; \
+        printf("## %%s\n",__container_type_name);   \
+        printf("sizeof(%%s): %%zu  vs %%zu : ",__container_type_name,sizeof(FLTYPE),(size_t)FLSIZE);   \
+        if (sizeof(FLTYPE)==(size_t)FLSIZE) printf("OK\n"); else { __err_layout++; printf("FAIL\n"); }   \
+        __VA_ARGS__ \
+        if (__err_layout<=0) __ok_count++; else __fail_count++; \
+        printf("\n");   \
+    } while(0); \
+
+void verify_structure_layout(void) {
+
+    size_t __ok_count = 0;
+    size_t __fail_count = 0;
+
+%s
+    printf("## Summary:\n");
+    printf("Verified %%zu struct layouts (%%zu OK, %%zu FAILED)\n",__ok_count+__fail_count,__ok_count,__fail_count);
+}
