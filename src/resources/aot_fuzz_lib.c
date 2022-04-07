@@ -271,12 +271,14 @@ unsigned long long get_fuzz_data_bitfield(unsigned int bitcount, const char* nam
 }
 
 void aot_tag_memory(void* ptr, unsigned long size, int tag) {
-	#ifdef KLEE
+	#if 0
+    #ifdef KLEE
     void* objtagptr = find_in_map(ptr);
     if (!objtagptr) // pointer not found in the map
         objtagptr = ptr;
 	klee_tag_object(objtagptr, tag);
 	#endif
+    #endif
 
     #ifdef DFSAN
     // at this point, we are only interested to know if data is tainted or not

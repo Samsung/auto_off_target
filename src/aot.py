@@ -243,6 +243,7 @@ class Generator:
         self.generated_stubs = 0
 
         self.ptr_init_size = 1  # when initializing pointers use this a the number of objects
+        self.array_init_max_size = 32 # when initializing arrays use this a an upper limimit
         # to create
         self.fpointer_stubs = []
         self.void_pointers = {}
@@ -665,7 +666,179 @@ class Generator:
                 index += 1
 
         logging.info(f"We have found {count} structs with some info on array sizes")
-       
+
+    def _generate_constraints_check(self, var_name, size_constraints):
+        str = ""
+        if "min_val" in size_constraints:                                            
+            str += f"if ({var_name} < {size_constraints['min_val']})" + "{\n"
+            str += f"\t{var_name} = {size_constraints['min_val']};\n"
+            str += "}\n"
+        if "max_val" in size_constraints:                                            
+            str += f"if ({var_name} > {size_constraints['max_val']})" + "{\n"
+            str += f"\t{var_name} %= {size_constraints['max_val']};\n"
+            str += f"\t{var_name} += 1;\n"
+            str += "}\n"
+        return str
+
+    # use member_type_info to get the right member init ordering for a record type       
+    # return a list consisting of member indices to generate init for
+    def _get_members_order(self, t):
+        ret = []
+        size_constraints = []
+        if t['class'] != 'record':
+            return None, None
+        ret = [i for i in range(len(t['refnames']))]
+        size_constraints = [ {} for i in range(len(t['refnames'])) ]
+
+        t_id = t['id']
+
+        if t_id not in self.member_usage_info:
+            return ret,size_constraints
+        
+        fields_no = len(t['refnames'])
+        for i in range(fields_no):
+            field_name = t['refnames'][i]
+            
+            if field_name == "__!attribute__" or field_name == "__!anonrecord__" or \
+                field_name == "__!recorddecl__" or field_name == "__!anonenum__":
+                    continue
+        
+            is_in_use = self._is_member_in_use(t, t['str'], i)
+            if is_in_use:
+                # now we know that the member is in use, let's check if we have some info for it
+                usage_info = self.member_usage_info[t_id][i]
+                if len(usage_info) == 0:
+                    continue
+
+                # we have some usage info for this member
+                size_member_index = None
+                match = False
+                if "name_size" in usage_info:
+                    if len(usage_info["name_size"]) == 1:
+                        size_member_index = next(iter(usage_info["name_size"]))
+                        match = True
+                    else:
+                        # we have more than 1 candidates, let's see if 
+                        # some additional info could help
+                        # first, we check if the same member is a single member for member_idx
+                        if "member_idx" in usage_info and len(usage_info["member_idx"]) == 1:
+                            for m in usage_info["name_size"]:
+                                item = next(iter(usage_info["member_idx"]))                                
+                                if item[0] == t_id and m == item[1]:
+                                    size_member_index = m
+                                    match = True
+                                    break
+                        # if no single match found, also check "member_size"
+                        if not match and "member_size" in usage_info and len(usage_info["member_size"]) == 1:
+                            for m in usage_info["name_size"]:
+                                item = next(iter(usage_info["member_size"]))                                
+                                if item[0] == t_id and m == item[1]:
+                                    size_member_index = m
+                                    match = True
+                                    break
+                    if match:
+                        # either a single name_size or multiple name_size but a single
+                        # member_idx or a single member_size that matches one of the name_size ones
+                        size_constraints[i]['size_member'] = size_member_index
+                        if size_member_index not in size_constraints:
+                            size_constraints[size_member_index] = {}
+                        # since we use one member as a size for another, the value range needs to be meaningful
+                        size_constraints[size_member_index]["min_val"] = 1
+                        if "max_val" not in size_constraints[size_member_index]:
+                            max_val = self.array_init_max_size
+                            if "value" in usage_info:
+                                val = usage_info["value"]
+                                if val > 0:
+                                    if val != max_val:
+                                        # leverage the fact that we noticed array reference at a concrete offset 
+                                        max_val = val
+                            size_constraints[size_member_index]["max_val"] = max_val
+                        size_member_index = [ size_member_index ]
+                        
+                    else:
+                        size_member_index = usage_info["name_size"]
+                    match = True
+
+                if match is False and "member_idx" in usage_info:
+                    item = usage_info["member_idx"]
+                    if len(item) == 1:
+                        item = next(iter(item))
+                        if t_id == item[0]: 
+                            size_member_index = item[1]
+                            size_constraints[i]["size_member_idx"] = size_member_index
+                            if size_member_index not in size_constraints:
+                                size_constraints[size_member_index] = {}
+                            # since we use one member as a size for another, the value range needs to be meaningful                        
+                            size_constraints[size_member_index]["min_val"] = 1
+                            if "max_val" not in size_constraints[size_member_index]:
+                                max_val = self.array_init_max_size
+                                if "value" in usage_info:
+                                    val = usage_info["value"]
+                                    if val > 0:
+                                        if val != max_val:
+                                            #leverage the fact that we noticed array reference at a concrete offset 
+                                            max_val = val
+                                size_constraints[size_member_index]["max_val"] = max_val
+                            size_member_index = [ size_member_index ]
+
+                            match = True
+
+                if match is False and "member_size" in usage_info:
+                    item = usage_info["member_size"]
+                    if len(item) == 1:
+                        item = next(iter(item))
+                        if t_id == item[0]: 
+                            size_member_index = item[1]
+                            size_constraints[i]["size_member_idx"] = size_member_index
+                            if size_member_index not in size_constraints:
+                                size_constraints[size_member_index] = {}
+                            # since we use one member as a size for another, the value range needs to be meaningful                        
+                            size_constraints[size_member_index]["min_val"] = 1
+                            if "max_val" not in size_constraints[size_member_index]:
+                                max_val = self.array_init_max_size
+                                if "value" in usage_info:
+                                    val = usage_info["value"]
+                                    if val > 0:
+                                        if val != max_val:
+                                            #leverage the fact that we noticed array reference at a concrete offset 
+                                            max_val = val
+                                size_constraints[size_member_index]["max_val"] = max_val
+                            size_member_index = [ size_member_index ]
+
+                            match = True
+
+                if match is False and "value" in usage_info:
+                    val = usage_info["value"]
+                    if (val < 0):
+                        val = -val
+                    if val != 0:
+                        # val would be the largest const index used on an array + 1 (so it's array size)
+                        size_constraints[i]["size_value"] = val
+
+                if size_member_index is not None:
+                    current_index = i
+                    for sm_index in size_member_index:
+                        if sm_index > current_index:
+                            # swap members such that the size member is initialized before the buffer member
+                            ret[current_index] = sm_index
+                            ret[sm_index] = current_index
+                            logging.info(f"Swapping members {current_index} and {sm_index} in type {t['str']}")                
+                            current_index = sm_index
+
+                if "index" in usage_info:
+                    logging.info(f"Index detected in usage info for member {field_name}")
+                    max_val = -1
+                    if "max_val" in size_constraints[i]:
+                        max_val = size_constraints[i]["max_val"]
+                    if (max_val == -1) or ((usage_info["index"] - 1) < max_val):
+                        # the 'index' member is collected based on a const-size array reference
+                        # therefore if one exists, we are certain that the value is no greater than the size - 1
+                        size_constraints[i]["max_val"] = usage_info["index"] - 1 
+                        
+                        if "min_val" not in size_constraints: 
+                            size_constraints[i]["min_val"] = 0
+
+        return ret, size_constraints
 
     def _is_size_type(self, t):
         ints = {'char', 'signed char', 'unsigned char', 'short', 'unsigned short', 'int', 'unsigned int',
@@ -692,39 +865,56 @@ class Generator:
                 if lhs["kind"] == "local" and lhs["id"] == local_id and deref["ord"] < ord:
                     matching_derefs.append(deref)
         return matching_derefs
+    
+    def _is_pointer_like_type(self,t):
+        t = self._get_typedef_dst(t)
+        # normal pointer
+        if t["class"] == "pointer":
+            return True
+        # address held in 64 int
+        if self._is_size_type(t) and t["size"] == 64:
+            return True
+        return False
 
     # function generates usage info for record members
     # we are looking for struct types with pointer members and try to find the corresponding
     # member with the same type that may represent the pointer's size
+    # The extra info we collect:
+    # 
+    # for pointer-like members:
+    # - ['name_size']  : other struct members that can represent size -> detected by name, e.g., s->array <=> s->array_size
+    # - ['member_idx'] : other struct members that can represent size -> detected by index use, e.g., s->array[s->member]
+    # - ['value']      :constant sizes -> detected by the use of const indices, e.g., s->array[20]
+    # - ['member_size']: other struct members taht can represent size -> detected by comparison, e.g. for (; s->index < 10; ), if (s->index <= 9)
+    # for size-like members:
+    # - ['index']      : upper limit for members used as an index in a const array (any), e.g. array[s->index], where array is of size 20
     def _generate_member_size_info(self, funcs, types):
         logging.info(f"will generate size info for {len(funcs)} funcs and {len(types)} types")
         
         for func in funcs:
             logging.info(f"processing {func['name']}")
-            for deref in func["derefs"]:
+            derefs = func["derefs"]
+            for deref in derefs:
                 # get info from 'array' kind derefs, ignore complicated cases
                 if deref["kind"] == "array" and deref["basecnt"] == 1:
-                    # we're intereted in member usage only
                     base_offsetref = deref["offsetrefs"][0]
+                    # info for array members
                     if base_offsetref["kind"] == "member":
-                        member_deref = func["derefs"][base_offsetref["id"]]
+                        member_deref = derefs[base_offsetref["id"]]
                         record_type = self._get_record_type(self.typemap[member_deref["type"][-1]])
                         record_id = record_type["id"]
                         member_id = member_deref["member"][-1]
                         member_type = self.typemap[record_type["refs"][member_id]]
                         member_type = self._get_typedef_dst(member_type)
                         # we only care about poiners
-                        if member_type["class"] == "pointer":
+                        if self._is_pointer_like_type(member_type):
                             # add info about member usage (implicit by existence)
-                            if record_type["id"] not in self.member_usage_info:
+                            if record_id not in self.member_usage_info:
                                 self.member_usage_info[record_id] = [{} for k in record_type["refs"]]
                             member_data = self.member_usage_info[record_id][member_id]
 
                             # add info about potential size
                             if deref["offset"] != 0:
-                                if "kind" not in member_data:
-                                    member_data["kind"] = set()
-                                member_data["kind"].add("value")
                                 if "value" not in member_data:
                                     member_data["value"] = deref["offset"]+1
                                 else:
@@ -733,25 +923,84 @@ class Generator:
                             for index_offsetref in deref["offsetrefs"][1:]:
                                 # same base member index
                                 if index_offsetref["kind"] == "member":
-                                    size_deref = func["derefs"][index_offsetref["id"]]
+                                    size_deref = derefs[index_offsetref["id"]]
                                     size_record_type = self._get_record_type(self.typemap[size_deref["type"][-1]])
-                                    if record_type == size_record_type:
-                                        size_member_id = size_deref["member"][-1]
-                                        size_member_type = self.typemap[record_type["refs"][size_member_id]]
-                                        size_member_type = self._get_typedef_dst(size_member_type)
-                                        if self._is_size_type(size_member_type):
-                                            if "kind" not in member_data:
-                                                member_data["kind"] = set()
-                                            member_data["kind"].add("member_idx")
-                                            if "member_idx" not in member_data:
-                                                member_data["member_idx"] = set()
-                                            member_data["member_idx"].add(size_member_id)
-                                if index_offsetref["kind"] == "local":
-                                    matching_derefs = self._find_local_init_or_assign(index_offsetref["id"], deref["ord"], func)
-                                    for mderef in matching_derefs:
-                                        for offsetref in mderef["offsetrefs"]:
-                                            # TODO
-                                            pass
+                                    size_record_id = size_record_type["id"]
+                                    size_member_id = size_deref["member"][-1]
+                                    size_member_type = self.typemap[size_record_type["refs"][size_member_id]]
+                                    size_member_type = self._get_typedef_dst(size_member_type)
+                                    if self._is_size_type(size_member_type):
+                                        if "member_idx" not in member_data:
+                                            member_data["member_idx"] = set()
+                                        member_data["member_idx"].add((size_record_id,size_member_id))
+                            # add info about potential size member
+                            if len(deref["offsetrefs"]) == 2:
+                                index_offsetref = deref["offsetrefs"][1]
+                                item = next(cs for cs in func["csmap"] if cs["id"] == deref["csid"])
+                                if "cf" in item and item["cf"] in ["do","while","for","if"]:
+                                    # find condition
+                                    for cderef in derefs:
+                                        if cderef["kind"] == "cond" and cderef["offset"] == deref["csid"]:
+                                            if len(cderef["offsetrefs"]) == 1 and cderef["offsetrefs"][0]["kind"] == "logic":
+                                                lderef = derefs[cderef["offsetrefs"][0]["id"]]
+                                                if lderef["offset"] in [10,12,15] and len(lderef["offsetrefs"]) == 2:
+                                                    if index_offsetref == lderef["offsetrefs"][0]:
+                                                        size_offsetref = lderef["offsetrefs"][1]
+                                                        if size_offsetref["kind"] == "integer":
+                                                            size = size_offsetref["id"]
+                                                            if lderef["offset"] == 12:
+                                                                size+=1
+                                                            if "value" not in member_data:
+                                                                 member_data["value"] = size
+                                                            else:
+                                                                member_data["value"] = max(member_data["value"], size)
+                                                        if size_offsetref["kind"] == "member":
+                                                            size_deref = derefs[size_offsetref["id"]]
+                                                            size_record_type = self._get_record_type(self.typemap[size_deref["type"][-1]])
+                                                            size_record_id = size_record_type["id"]
+                                                            size_member_id = size_deref["member"][-1]
+                                                            size_member_type = self.typemap[size_record_type["refs"][size_member_id]]
+                                                            size_member_type = self._get_typedef_dst(size_member_type)
+                                                            if self._is_size_type(size_member_type):
+                                                                if "member_size" not in member_data:
+                                                                    member_data["member_size"] = set()
+                                                                member_data["member_size"].add((size_record_id,size_member_id))
+                # add info about members as index to const arrays
+                if deref["kind"] == "array" and deref["basecnt"] == 1 and len(deref["offsetrefs"]) == 2:
+                    base_offsetref = deref["offsetrefs"][0]
+                    index_offsetref = deref["offsetrefs"][1]
+                    if index_offsetref["kind"] == "member":
+                        # try find array size
+                        size = 0
+                        if base_offsetref["kind"] == "member":
+                            base_deref = derefs[base_offsetref["id"]]
+                            base_record_type = self._get_record_type(self.typemap[base_deref["type"][-1]])
+                            base_member_id = base_deref["member"][-1]
+                            base_member_type = self._get_typedef_dst(self.typemap[base_record_type["refs"][base_member_id]])
+                            if base_member_type["class"] == "const_array":
+                                size = self._get_const_array_size(base_member_type)
+                        elif base_offsetref["kind"] == "global":
+                            global_deref = self.globalsidmap[base_offsetref["id"]]
+                            global_type = self._get_typedef_dst(self.typemap[global_deref["type"]])
+                            if global_type["class"] == "const_array":
+                                size = self._get_const_array_size(global_type)
+                        elif base_offsetref["kind"] == "local":
+                            local_deref = func["locals"][base_offsetref["id"]]
+                            local_type = self._get_typedef_dst(self.typemap[local_deref["type"]])
+                            if local_type["class"] == "const_array":
+                                size = self._get_const_array_size(local_type)
+                        if size != 0:
+                            # add size info
+                            index_deref = derefs[index_offsetref["id"]]
+                            index_record_type = self._get_record_type(self.typemap[index_deref["type"][-1]])
+                            index_record_id = index_record_type["id"]
+                            index_member_id = index_deref["member"][-1]
+                            if index_record_id not in self.member_usage_info:
+                                self.member_usage_info[index_record_id] = [{} for k in index_record_type["refs"]]
+                            index_data = self.member_usage_info[index_record_id][index_member_id]
+                            if "index" in index_data:
+                                index_data["index"] = max(size,index_data["index"])
+                            index_data["index"] = size
         
         for _t in types:
             t = self._get_record_type(_t)
@@ -761,11 +1010,10 @@ class Generator:
                 record_type = t                
                 record_id = t["id"]
 
-                for member_id in range(len(record_type["refnames"])):
+                for member_id in range(len(record_type["refs"])):
                     m_t = self.typemap[record_type["refs"][member_id]]
-                    m_t = self._get_typedef_dst(m_t)
                     # looking for a pointer struct members
-                    if m_t["class"] == "pointer":
+                    if self._is_pointer_like_type(m_t):
                          
                         if record_id not in self.member_usage_info:
                             self.member_usage_info[record_id] = [{} for k in record_type["refs"]]
@@ -773,7 +1021,6 @@ class Generator:
 
                         if "name_size" not in member_data:
                             sizecount = 0
-                            count = 0
                             sizes = []
                             sizematch = ["size", "len", "num", "count", "sz", "n_", "cnt", "length"]
                             for size_member_id in range(len(record_type["refs"])):
@@ -786,19 +1033,15 @@ class Generator:
                                         for match in sizematch:
                                             if match in size_name.replace(member_name,'').lower():
                                                 sizecount+=1
-                                                count+=1
                                                 sizes.append(size_member_id)
                                                 break
                             # TODO: solve priority instead of adding all maybe
                             if sizecount > 1:
                                 pass
                             if len(sizes) > 0:
-                                if "kind" not in member_data:
-                                    member_data["kind"] = set()
-                                member_data["kind"].add("name_size")
-                                member_data["name_size"] = [] 
-                                member_data["name_size"].extend(sizes)
-
+                                member_data["name_size"] = set()
+                                member_data["name_size"] |= set(sizes)
+                                
     #--------------------------------------------------------------------------
 
 
@@ -1926,7 +2169,7 @@ class Generator:
         types = set(self._get_types_in_funcs(functions, tmp))
         tmp |= internal_defs
         types |= set(g_types)
-
+            
         # types can reference globals too (e.g. via construct like typeof(global_var))
         globals_ids |= self._get_globals_from_types(g_types)
         globals_ids |= self._get_globals_from_types(types)
@@ -2804,20 +3047,24 @@ class Generator:
 
         # once we know all the internal functions, let's gather some info on pointer sizes
         _funcs = set()
-        _funcs |= self.internal_funcs
+        _funcs |= self.internal_funcs    
+        _funcs |= set(self.static_and_inline_funcs.keys())
         _funcs.difference_update(self.external_funcs)
         _funcs = self._filter_out_known_functions(_funcs)
         _funcs = self._filter_out_builtin_functions(_funcs)
-        _funcs = self.fnidmap.get_many(_funcs)
         _types = set()
         _types |= all_types
-        if len(_types) == 0:
-            logging.info("all types is empty")
-            sys.exit(1)
+        _types |= internal_defs
+        _internal_defs = set()
+
+        _t, _d = self._get_types_recursive(_types, internal_defs=_internal_defs)
+        _types |= set(_t)
+        _types |= _internal_defs
+        _funcs = self.fnidmap.get_many(_funcs)
         _types = self._remove_duplicated_types(_types)
         _types = self.typemap.get_many(_types)        
         self._generate_member_size_info(_funcs, _types)
-        self._print_member_size_info()
+        #self._print_member_size_info()
         # for each file, get the types needed by the functions in that file/
         # generate a corresponding source file
         sources = []
@@ -3253,6 +3500,7 @@ class Generator:
         tmp = "\n#### STATS ####\n"
         tmp += "Files count: AOT_FILES_COUNT: {}\n".format(len(self.stats))
         self.all_types = self._remove_duplicated_types(self.all_types)
+
         tmp += "Types count: AOT_TYPES_COUNT: {}\n".format(len(self.all_types))
         struct_types = 0
         t_no_dups = self.typemap.get_many(self.all_types)
@@ -3496,10 +3744,10 @@ class Generator:
         if type["class"] == "incomplete_array" and type["size"] == 0:
             return 0
 
-        tmp_type = type["refs"][0]
-        tmp_size = self.typemap[tmp_type]["size"] // 8
-        if tmp_size != 0:
-            return (type["size"] // 8) // tmp_size
+        elem_type = type["refs"][0]
+        elem_size = self.typemap[elem_type]["size"]
+        if elem_size != 0:
+            return type["size"] // elem_size
         else:
             return 0
         
@@ -3516,7 +3764,7 @@ class Generator:
     # name = var, type = struct A*
     # code: struct A* var = (struct A*)malloc(sizeof(struct A*));
     def _generate_var_init(self, name, type, res_var, pointers, level=0, skip_init=False, known_type_names=None, cast_str=None, new_types=None,
-                           entity_name=None, init_obj=None, fuse=None, fid=None, var_size=1):
+                           entity_name=None, init_obj=None, fuse=None, fid=None, count=None):
         # in case of typedefs we need to get the first non-typedef type as a point of
         # reference
 
@@ -3754,7 +4002,11 @@ class Generator:
                         name_change = True
                 elif "incomplete_array" == cl:
                     is_array = True
-                loop_count = self.ptr_init_size
+
+                if count is None:
+                    loop_count = self.ptr_init_size
+                else:
+                    loop_count = count
                 
                 null_terminate = False
                 user_init = False
@@ -4099,7 +4351,7 @@ class Generator:
                             addsize = 128
     
                         cnt = loop_count    
-                        if addsize != 0:
+                        if count is None and addsize != 0:
                             cnt = loop_count + addsize
 
                         tagged_var_name = 0
@@ -4117,11 +4369,10 @@ class Generator:
                         else:
                             str += "aot_memory_init_ptr(&{}, {}, {} /* count */, {} /* fuzz */, {});\n".format(                                
                                 name, multiplier, cnt, fuzz, tagged_var_name)
-                        if addsize and not null_terminate:                                                        
-                            lastindex = loop_count + addsize - 1
+                        if addsize and not null_terminate:                                                                                    
                             # use intermediate var to get around const pointers
                             str += f"tmpname = {name};\n"
-                            str += f"tmpname[{lastindex}] = '\\0';\n"
+                            str += f"tmpname[{cnt} - 1] = '\\0';\n"
 
 
                         if null_terminate:
@@ -4352,7 +4603,7 @@ class Generator:
                     # assuming an array has only one ref
                     member_type = type["refs"][0]
                     member_type = self.typemap[member_type]
-                    if loop_count > 1 or cl == "const_array" or cl == "incomplete_array":
+                    if (count is None and loop_count > 1) or cl == "const_array" or cl == "incomplete_array":
                         # please note that the loop_count could only be > 0 for an incomplete array if it 
                         # was artificially increased in AoT; normally the size of such array in db.json would be 0
                         str += f"for (int {index} = 0; {index} < {loop_count}; {index}++) ""{\n"
@@ -4366,7 +4617,7 @@ class Generator:
                         skip = True
 
                     tmp_name = ""
-                    if loop_count > 1 or cl == "const_array" or cl == "incomplete_array":
+                    if (count is None and loop_count > 1) or cl == "const_array" or cl == "incomplete_array":
                         tmp_name = f"{name}[{index}]"
                     else:
                         tmp_name = name
@@ -4407,7 +4658,6 @@ class Generator:
                             deref_str = "."
                         # inside the record we will have to find out which of the members
                         # have to be initialized
-                        fields_no = len(type["refnames"])
 
                         tmp_name = name
                         if name_change:
@@ -4444,17 +4694,24 @@ class Generator:
                             str_tmp += "};\n"
                             str += str_tmp
 
-                        if _t_id in self.member_usage_info:
-                            logging.info(f"Discovered that type {type['str']} is present in the size info data")
-                            # ok, so we are operating on a record type (a structure) about which we have some additional data
-                            # the main type of data we have is about the relationship between pointers inside the struct
-                            # and the corresponding array sizes (which might be constant or represented by other struct members, e.g.buf <-> buf_size)
-                            # what we have to do is to analyze which data we have, order the init of
-                            # struct members accordingly and make sure the right size constraints are used during the initialization
-                            pass 
+                        # if _t_id in self.member_usage_info:
+                        #     logging.info(f"Discovered that type {type['str']} is present in the size info data")
+                        #     # ok, so we are operating on a record type (a structure) about which we have some additional data
+                        #     # the main type of data we have is about the relationship between pointers inside the struct
+                        #     # and the corresponding array sizes (which might be constant or represented by other struct members, e.g.buf <-> buf_size)
+                        #     # what we have to do is to analyze which data we have, order the init of
+                        #     # struct members accordingly and make sure the right size constraints are used during the initialization
+                        #     _member_info = self.member_usage_info[_t_id]
+                        #     for i in range(len(_member_info)):
+                        #         if len(_member_info[i]):
+                        #             logging.info(f"We have some data for {type['refnames'][i]} member")
+                        
+                        members_order, size_constraints = self._get_members_order(type)
+                        member_to_name = {}
+                        for i in members_order:
 
-                        for i in range(fields_no):
                             field_name = type["refnames"][i]
+
                             #is_typedecl = False
                             # if i in type["decls"]:
                             #    # some of the members are type declarations, so we skip them as there is
@@ -4468,19 +4725,8 @@ class Generator:
                                 # record definitions can be skipped
                                 continue
 
-                            is_in_use = True
-                            # let's check if the field is used
-                            if type['id'] not in self.used_types_data:
-                                is_in_use = False
-                            elif "usedrefs" in type: 
-                                # TODO: remove size check
-                                if i < len(type["usedrefs"]) and -1 == type["usedrefs"][i]:
-                                    logging.info(
-                                        f"Detected that field {field_name} in {tmp_name} is not used")
-                                    is_in_use = False
-                                if i >= len(type["usedrefs"]):
-                                    logging.warning(
-                                        f"Unable to check if {field_name} is used or not")
+                            is_in_use = self._is_member_in_use(type, tmp_name, i)
+                            
                             if is_in_use:
                                 tmp_tid = type["refs"][i]
                                 obj = init_obj
@@ -4512,6 +4758,21 @@ class Generator:
                                     tmp_name = f"(({cast_str}){tmp_name})"
                                     cast_str = None
 
+                                count = None
+                                size_member_used = False                                
+                                if len(size_constraints[i]) > 0:
+                                    if "size_member" in size_constraints[i]:
+                                        _member = size_constraints[i]["size_member"]
+                                        if _member in member_to_name:
+                                            count = member_to_name[_member]
+                                            size_member_used = True
+                                    elif "size_member_idx" in size_constraints[i]:
+                                        _member = size_constraints[i]["size_member_idx"]
+                                        if "max_val" in size_constraints[_member]:
+                                            count = size_constraints[_member]["max_val"] + 1
+                                    elif "size_value" in size_constraints[i]:
+                                        count = size_constraints[i]["size_value"]
+
                                 if i in bitfields:
                                     continue
                                 else:
@@ -4527,6 +4788,7 @@ class Generator:
                                         skip = True
                                     if not single_init:
                                         logging.info("variant a")
+                                        member_to_name[i] = f"{tmp_name}{deref_str}{field_name}"                                                                           
                                         str_tmp, alloc_tmp = self._generate_var_init(f"{tmp_name}{deref_str}{field_name}",
                                                                                      tmp_t,
                                                                                      res_var,
@@ -4537,8 +4799,12 @@ class Generator:
                                                                                      cast_str=cast_str,
                                                                                      new_types=new_types,
                                                                                      init_obj=obj,
-                                                                                     fuse=fuse)
+                                                                                     fuse=fuse,
+                                                                                     count=count)
+                                        if size_member_used:
+                                            str += "// smart init: using one struct member as a size of another\n"
                                         str += str_tmp
+                                        str += self._generate_constraints_check(f"{tmp_name}{deref_str}{field_name}", size_constraints[i])
 
                                     if entry is not None:
                                         logging.info("variant b")
@@ -4571,10 +4837,17 @@ class Generator:
                                                                                          cast_str=typename,
                                                                                          new_types=new_types,
                                                                                          init_obj=obj,
-                                                                                         fuse=fuse)
+                                                                                         fuse=fuse,
+                                                                                         count=count)
                                             if not single_init:
                                                 variant = f"variant {variant_num}"
                                                 variant_num += 1
+                                            else:
+                                                member_to_name[i] = f"{tmp_name}{deref_str}{field_name}"
+                                            if size_member_used:
+                                                str_tmp = f"// smart init: using one struct member as a size of another\n{str_tmp}"
+                                            str_tmp += self._generate_constraints_check(f"{tmp_name}{deref_str}{field_name}", size_constraints[i])
+
                                             str_tmp = f"\n// smart init (b) {variant}: we've found that this pointer var is casted to another type: {typename}\n{str_tmp}"
                                             #logging.info(str_tmp)
                                             if not single_init:
@@ -4601,7 +4874,7 @@ class Generator:
             str = str.replace("\n", f"\n{prefix}")
             str = str[:-(2*level)]
 
-        if is_array and go_deeper and (loop_count > 1 or cl == "const_array" or cl == "incomplete_array"):
+        if is_array and go_deeper and ((count is None and loop_count > 1) or cl == "const_array" or cl == "incomplete_array"):
             str += f"{prefix}""}\n"  # close the for loop
 
         return str, alloc
@@ -6028,6 +6301,31 @@ class Generator:
             return True
 
         return False
+
+    # -------------------------------------------------------------------------
+
+    # return True if a struct member is in use, False otherwise
+    def _is_member_in_use(self, type, type_name, member_idx):
+        if type["class"] != "record":
+            return True
+
+        is_in_use = True
+        field_name = type["refnames"][member_idx]
+
+        # let's check if the field is used
+        if type['id'] not in self.used_types_data:
+            is_in_use = False
+        elif "usedrefs" in type: 
+            # TODO: remove size check
+            if member_idx < len(type["usedrefs"]) and -1 == type["usedrefs"][member_idx]:
+                logging.info(
+                    f"Detected that field {field_name} in {type_name} is not used")
+                is_in_use = False
+            if member_idx >= len(type["usedrefs"]):
+                logging.warning(
+                    f"Unable to check if {field_name} is used or not")
+        
+        return is_in_use
 
     # -------------------------------------------------------------------------
 
@@ -8452,7 +8750,7 @@ def main():
                         level=logging.INFO, format=FORMAT, datefmt='%Y-%m-%d %H:%M:%S')
     # https://stackoverflow.com/questions/13733552/logger-configuration-to-log-to-file-and-print-to-stdout
     format = logging.Formatter(FORMAT)
-    streamlog = logging.StreamHandler()
+    streamlog = logging.StreamHandler(sys.stdout)
     streamlog.setFormatter(format)
     logging.getLogger().addHandler(streamlog)
 
@@ -8577,13 +8875,14 @@ def main():
     parser.add_argument("--debug-analyze-types", action='store_true', default=False,
                         help=f"Analyze record types")
 
-
+    
     args = parser.parse_args()
+    retcode = 0
     gen = Generator(logname)
 
     if False == gen.init(args, db_frontend):
         shutil.move(logname, f"{args.output_dir}/{Generator.LOGFILE}")
-        sys.exit(-1)
+        sys.exit(1)
 
     logging.info(f"AOT_OUTPUT_DIR|{gen.out_dir}|")
 
@@ -8608,6 +8907,7 @@ def main():
     # move the log to the output dir
     shutil.move(logname, f"{args.output_dir}/{Generator.LOGFILE}")
 
+    sys.exit(retcode)
 
 if __name__ == "__main__":
     main()

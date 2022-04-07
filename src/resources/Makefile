@@ -80,7 +80,12 @@ dfsan: $(obj)
 .PHONY: afl
 afl: export AFL_USE_ASAN=1
 #afl: export AFL_HARDEN=1
-afl: COMP=afl-clang-fast -DAFL -w
+ifeq ($(shell which afl-clang-lto),)
+afl: COMP=afl-clang-fast
+else
+afl: COMP=afl-clang-lto
+endif
+afl: COMP+=-DAFL -w
 afl: $(obj)
 	$(COMP) $(CFLAGS) -o $@ $^
 

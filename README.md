@@ -72,6 +72,7 @@ echo "{ \"BASserver\": \"https://localhost\" }" > cfg.json
 cp ${AOT_DIR}/src/known_functions .
 cp ${AOT_DIR}/src/lib_functions .
 cp ${AOT_DIR}/src/always_include .
+export PYTHONPATH=${PYTHONPATH}:${CAS_DIR}
 ```
 
 Let's create a data init file for our function and store it as ```init.json```. This file will cause AoT to allocate 4096 bytes for the ```args``` parameter, null-terminate the buffer and mark it fuzzable. 
