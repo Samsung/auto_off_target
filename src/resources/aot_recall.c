@@ -69,13 +69,13 @@ struct FL_file_field {
 
 // User interface
 struct FL_data {
-    unsigned long long dst;
-    unsigned long long src;
+    void* dst;
+    void* src;
     size_t size;
     char* data;
 };
 struct FL_args {
-    unsigned long long ptr;
+    void* ptr;
     char name[32];
 };
 struct FL_other {
@@ -234,6 +234,8 @@ static int fl_load(struct FL_content* content) {
             dataCnt++;
         }
     }
+
+    return 0;
 }
 
 int fl_add(void* dst, void* src, unsigned long long size, void* data) {
@@ -251,7 +253,7 @@ int fl_add(void* dst, void* src, unsigned long long size, void* data) {
     if(file == NULL)
         return 0;   // Exit gracefully when file is not opened
 
-    AOT_RECALL_INFO("dst = %p, src=%p, size = %lu\n", dst, src, size);
+    AOT_RECALL_INFO("dst = %p, src=%p, size = %llu", dst, src, size);
 
     if(size <= 16)
         memcpy(field.data.data, data, size);
@@ -290,7 +292,7 @@ int fl_save_arg(void* ptr, const char* name) {
 
     strncpy(field.arg.name, name, sizeof(field.arg.name));
 
-    AOT_RECALL_INFO("ptr = %p, name=%s\n", ptr, name);
+    AOT_RECALL_INFO("ptr = %p, name=%s", ptr, name);
     ret = fwrite(&field, sizeof(field), 1, file);
     if(!ret) {
         AOT_RECALL_ERR("failed to write arg to FL file (%d)%s", errno, strerror(errno));
@@ -315,7 +317,7 @@ int fl_save_other(int type, const char* value) {
     if(file == NULL)
         return 0;
 
-    AOT_RECALL_INFO("type = %d, value=%p\n", type, value);
+    AOT_RECALL_INFO("type = %d, value=%p", type, value);
     ret = fwrite(&field, sizeof(field), 1, file);
     if(!ret) {
         AOT_RECALL_ERR("failed to write param to FL file (%d)%s", errno, strerror(errno));
@@ -411,7 +413,7 @@ static void addPtr(void* orig, void* ptr) {
 #define CHECK_INPUT_ARGS(MIN)           \
         do {                            \
             if(content->argsLen < MIN) {    \
-                AOT_RECALL_ERR("failed to execute read syscall - to few arguments in recall file (min=%d, got=%d)", \
+                AOT_RECALL_ERR("failed to execute read syscall - to few arguments in recall file (min=%d, got=%zu)", \
                      MIN, content->argsLen);    \
                 return -1;  \
             }   \
@@ -562,7 +564,7 @@ static int poc_call_ioctl(struct FL_content* content, int fd) {
     struct FL_args* arg_cmd = &content->args[content->argsLen - 2];
     struct FL_args* arg_arg = &content->args[content->argsLen - 1];
     int cmd = *(int*) getPtr(arg_cmd->ptr);
-    void* arg = getPtr(arg_arg->ptr);
+    void* arg = (void*) getPtr(arg_arg->ptr);
 
     AOT_RECALL_INFO("executing: ioctl(fd=%d, cmd=%x, arg=%p) ...", fd, cmd, arg);
     fflush(stdout); fflush(stderr);

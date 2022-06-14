@@ -11,8 +11,12 @@ function log {
 }
 function compile_fail {
     target=$1
-    log "Command 'make $target' failed. Please check $target""_build.log for details."
-    log "The off-target code needs to compile first before we can proceed to testing." 
+    logfile="$target""_build.log"
+    log "Command 'make $target' failed. Please check $logfile for details."
+    log "The off-target code needs to compile first before we can proceed to testing."
+    log "==== Build errors: ===="
+    errors=`grep "error:" $logfile`
+    log "$errors"
     exit 1
 }
 

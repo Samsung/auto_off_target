@@ -72,15 +72,17 @@ class AotDbCollectionItem():
 
     def find(self, match_to_field, value):
         results = []
-        for item in self.db[self.name]:
-            if item[match_to_field] == value:
-                results.append(item)
+        if self.name in self.db:
+            for item in self.db[self.name]:
+                if item[match_to_field] == value:
+                    results.append(item)
         return results
 
     def find_one(self, match_to_field, value):
-        for item in self.db[self.name]:
-            if item[match_to_field] == value:
-                return item
+        if self.name in self.db:
+            for item in self.db[self.name]:
+                if item[match_to_field] == value:
+                    return item
         return None 
 
 # This class makes it possible to dynamically create DB queries to for a given

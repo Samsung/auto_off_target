@@ -543,9 +543,13 @@ class Generator:
             if f is None:
                 logging.error(f"unable to find a function for id {f_id}")
             name = f['name']
-            file = os.path.basename(f['location'])
+            if "abs_location" in f and len(f["abs_location"]) > 0:
+                file = os.path.basename(f['abs_location'])
+            else:
+                file = os.path.basename(f['location'])
             index = file.find(":")
-            file = file[:index]
+            if -1 != index:
+                file = file[:index]
             logging.info(f"AOT_RANDOM_FUNC: {f_id}")
             
 
@@ -558,10 +562,14 @@ class Generator:
             f = self.fnidmap[f_id]
             if f:
                 name = f['name']
-                #file = os.path.basename(f['location'])
-                file = f['location']
+                if "abs_location" in f and len(f["abs_location"]) > 0:
+                    file = f['abs_location']
+                else:
+                    file = f['location']
+                
                 index = file.find(":")
-                file = file[:index]
+                if -1 != index:
+                    file = file[:index]
                 logging.info(f"AOT_UNIQUE_NAME: {name}@{file}")
             else:
                 fails += 1
@@ -1136,7 +1144,7 @@ class Generator:
         if self.import_json:
             collections = ["funcs", "types", "globals", "sources", "funcdecls", "unresolvedfuncs"]
             fields = ["id", "name", "fid", "refs", "usedrefs", "decls", "class", "types", "calls", "funrefs", "fids", "globalrefs",
-            "linkage", "body", "funcdecls", "hash", "implicit", "location", "declbody", "inline", "str", "type", "size", 
+            "linkage", "body", "funcdecls", "hash", "implicit", "location", "abs_location", "declbody", "inline", "str", "type", "size", 
             "hasinit", "derefs", "union", "def", "unpreprocessed_body", "refnames", "bitfields", "locals", "signature"]
             for c in collections:
                 for f in fields:
@@ -1763,15 +1771,20 @@ class Generator:
             # if fids not present for some reason, we still have fid
             srcs.append(self.srcidmap[fid])
 
-        loc = function["location"]
+        if "abs_location" in function and len(function["abs_location"]) > 0:
+            loc = function["abs_location"]
+        else:
+            loc = function["location"]
         if self.source_root is not None and self.source_root and len(self.source_root) > 0:
             if loc.startswith("./"): 
                 loc = self.source_root + loc[1:]
             elif not loc.startswith("/"):
                 loc = self.source_root + "/" + loc
-
+                
         end_index = loc.find(":")
-        loc = loc[:end_index]
+        if -1 != end_index:
+            loc = loc[:end_index]
+        
         return src, loc, srcs
 
     # -------------------------------------------------------------------------
@@ -1935,6 +1948,7 @@ class Generator:
                 # that is for the unresolved functions
                 mod_paths = ["/tmp/no_such_mod"]
             else:
+                #logging.debug(f"function {fid}")                
                 mod_paths = self.bassconnector.get_module_for_source_file(
                     src, loc)
             for mod_path in mod_paths:
@@ -5015,6 +5029,7 @@ class Generator:
         i = 0
         param_to_varname = {}
         varnames = []
+        vartypes = []
         alloced_vars = []
         alloc = False
         start_index = 0
@@ -5033,6 +5048,7 @@ class Generator:
                 if tid == -1: # this param was reordered
                     i += 1                    
                     varnames.append("_aot_reordered_param")
+                    vartypes.append(type)
                     continue
 
                 varname = ""
@@ -5059,8 +5075,10 @@ class Generator:
                         varname += "{}".format(param_names[i-1])
                 if saved_i != i:
                     varnames[i] = varname
+                    vartypes[i] = type
                 else:                
                     varnames.append(varname)
+                    vartypes.append(type)
                 logging.debug(f"Generating var def for varname {varname}")
                 str += self._generate_var_def(type, varname)
                 str += "\n"
@@ -5112,12 +5130,15 @@ class Generator:
                         RT,TPD = self._resolve_record_type(type["id"])
                         if RT is not None and type["class"]=="pointer":
                             # Replace the initialized variable with the image from kflat
-                            loc = os.path.normpath(function["location"].split(":")[0])
-                            if os.path.isabs(loc):
-                                if self.source_root is not None and len(self.source_root) > 0:
-                                    loc = loc[len(self.source_root)+1:]
-                                else:
-                                    assert 0, "Detected absolute location in function location (%s) but the 'source root' parameter is not given"%(function["location"])
+                            if "abs_location" in function and len(function["abs_location"]) > 0:
+                                loc = os.path.basename(function["abs_location"].split(":")[0])
+                            else:
+                                loc = os.path.normpath(function["location"].split(":")[0])
+                                if os.path.isabs(loc):
+                                    if self.source_root is not None and len(self.source_root) > 0:
+                                        loc = loc[len(self.source_root)+1:]
+                                    else:
+                                        assert 0, "Detected absolute location in function location (%s) but the 'source root' parameter is not given"%(function["location"])
                             trigger_base = "%s__%s"%(loc.replace("/","__").replace("-","___").replace(".","____"),function["name"])
                             root_ptr_name = "%s__%s"%(trigger_base,function["locals"][i-1]["name"])
                             vartype = " ".join(self._generate_var_def(type, varname).split()[:-1])
@@ -5141,8 +5162,12 @@ class Generator:
                 str += f"AOT_RECALL_SAVE_INTERFACE(\"{interface}\");\n"
             
             for n in range(start_index, len(varnames)):
-                # TODO: recognize type
-                varname = f'&{varnames[n]}' if varnames[n] in ['count', 'size', 'len'] else f'{varnames[n]}'
+                # Save address to variables that aren't pointers
+                # In IOCTL handlers 'arg' is pointer casted to integer so treat it as such
+                if vartypes[n]["class"] == "pointer" or (interface == "ioctl" and varnames[n] == "arg"):
+                    varname = varnames[n]
+                else:
+                    varname = f'&{varnames[n]}'
                 str += f'AOT_RECALL_SAVE_ARG({varname});\n'
             str += '\n'
 
@@ -7051,12 +7076,15 @@ class Generator:
     ##  'int (*__pf__kernel__mm__myfile____c__myfun)(void) = myfun;'
     def _get_function_pointer_stub(self, function):
 
-        loc = os.path.normpath(function["location"].split(":")[0])
-        if os.path.isabs(loc):
-            if self.source_root is not None and len(self.source_root) > 0:
-                loc = loc[len(self.source_root)+1:]
-            else:
-                assert 0, "Detected absolute location in function location (%s) but the 'source root' parameter is not given"%(function["location"])
+        if "abs_location" in function and len(function["abs_location"].split(":")[0]) > 0:
+            loc = os.path.basename(function["abs_location"])
+        else:
+            loc = os.path.normpath(function["location"].split(":")[0])
+            if os.path.isabs(loc):
+                if self.source_root is not None and len(self.source_root) > 0:
+                    loc = loc[len(self.source_root)+1:]
+                else:
+                    assert 0, "Detected absolute location in function location (%s) but the 'source root' parameter is not given"%(function["location"])
         fptr_stub_name = "%s__%s"%(loc.replace("/","__").replace("-","___").replace(".","____"),function["name"])
         self.function_pointer_stubs.add((fptr_stub_name,function["id"]))
         fptr_stub_def = "int (*%s)(void) = (int (*)(void))%s;"%(fptr_stub_name,function["name"])
@@ -7113,8 +7141,11 @@ class Generator:
 
     def _map_item_to_header(self, item):
         filename = None
-        if "location" in item:
-            loc = item["location"].split(":")[0]
+        if "abs_location" in item or "location" in item:
+            if "abs_location" in item and len(item["abs_location"]) > 0:                
+                loc = item["abs_location"].split(":")[0]
+            else:
+                loc = item["location"].split(":")[0]
             if loc not in self.location_to_header:
                 filename = loc.rsplit('/', 1)[-1]
                 filename = self._find_unique_filename(filename, self.out_dir)
@@ -8762,7 +8793,7 @@ def main():
     db_frontend = aotdb.connection_factory(aotdb.DbType.FTDB) 
 
     parser = argparse.ArgumentParser(
-        description='Auto off-target generator: "Select a function, generate a program, test a subsystem®"')
+        description='Auto off-target generator: "Select a function, generate a program, test a subsystem®"', conflict_handler="resolve")
     
     db_frontend.parse_args(parser)
     parser.add_argument('--config',
@@ -8874,9 +8905,9 @@ def main():
                         help="Dump the type cast information gathered during smart init.")
     parser.add_argument("--debug-analyze-types", action='store_true', default=False,
                         help=f"Analyze record types")
-
     
     args = parser.parse_args()
+    
     retcode = 0
     gen = Generator(logname)
 
