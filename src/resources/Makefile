@@ -10,7 +10,7 @@ obj = $(src:.c=.o)
 CLANG_TIDY:=/media/storage/toolchain_6305083/out_release/stage2-install/bin/clang-tidy
 CLANG_TIDY_OPTS:= --checks="-*,readability-function-size" --config="{Checks: 'readability-function-size',CheckOptions: [{key: readability-function-size.BranchThreshold, value: '0'},{key: readability-function-size.NestingThreshold, value: '0'},{key: readability-function-size.LineThreshold, value: '0'},{key: readability-function-size.StatementThreshold, value: '0'}]}"
 
-CFLAGS = -MD
+CFLAGS = -MD -Wno-implicit-function-declaration
 COMP = clang
 
 # modify build flags based on selected architecture
@@ -67,8 +67,8 @@ ubsan: $(obj)
 # data flow sanitizer
 # aot_dsan.c.lib contains the callbacks which can't be instrumented with dfsan and is compiled separately
 .PHONY: dfsan
-dfsan: CFLAGSDFSAN=-fno-sanitize=dataflow -MD -w -mllvm -dfsan-event-callbacks -g -DDFSAN -fPIE
-dfsan: CFLAGS=-fsanitize=dataflow -MD -w -mllvm -dfsan-event-callbacks -g -DDFSAN
+dfsan: CFLAGSDFSAN=-fno-sanitize=dataflow -MD -w -mllvm -dfsan-event-callbacks -g -DDFSAN -fPIE -Wno-implicit-function-declaration
+dfsan: CFLAGS=-fsanitize=dataflow -MD -w -mllvm -dfsan-event-callbacks -g -DDFSAN -Wno-implicit-function-declaration
 dfsan: COMP=clang-15
 dfsan: $(obj)	
 	cp aot_dfsan.c.lib aot_dfsan.c
