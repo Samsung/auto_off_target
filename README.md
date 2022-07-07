@@ -171,6 +171,20 @@ NOTE: You will notice that the source code of the generated functions is somewha
 Once the off-target is up and running you can use it for fuzzing, testing, debugging, symbolic execution or faster compilation. 
 
 
+## Docker
+
+This tool comes with a Dockerfile so you can build yourself an image, and then run `aot.py` script from preconfigured environment:
+
+```bash
+docker build -t os-aot .
+
+# To run AoT and "forget":
+docker run -it --rm os-aot:latest --aot --parameters --here
+
+# To open up shell with AoT and other tools
+docker run -it --rm --entrypoint /bin/bash os-aot:latest
+```
+
 # Last but not least
 
 If you find AoT useful we would greatly appreciate it if you could give us a credit :)
