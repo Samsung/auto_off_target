@@ -4,131 +4,45 @@
  Samsung Mobile Security Team @ Samsung R&D Poland
 */ 
 
-
-#include <stddef.h>
-#include <stdint.h>
 #include "aot.h"
-#include "rbtree.h"
 
-#ifdef __linux__
-  #define container_of(ptr, type, member) ({                    \
-		const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
-		(type *)( (char *)__mptr - offsetof(type,member) );})
-#else
-  #ifdef _WIN32
-    #define container_of(ptr, type, member) (type *)( (char *)(ptr) - offsetof(type,member) )
-  #endif
-#endif
-
-typedef int (*fptrstub_t)(void);
-
-typedef struct {
+/* Local types */
+struct fptrstub_pair {
   const char* symbol;
-  fptrstub_t address;
-} fptrstub_pair_t;
-
-struct fptrstub_node {
-  struct rb_node node;
-  const char* s;
-  fptrstub_t address;
+  void* address;
 };
 
-struct rb_root fptrstubset_root = RB_ROOT;
 
-struct fptrstub_node* fptrstubset_search(const char* s) {
-
-	struct rb_node *node = fptrstubset_root.rb_node;
-
-	while (node) {
-		struct fptrstub_node* data = container_of(node, struct fptrstub_node, node);
-
-		if (strcmp(s,data->s)<0) {
-				node = node->rb_left;
-		}
-		else if (strcmp(s,data->s)>0) {
-				node = node->rb_right;
-		}
-		else
-				return data;
-	}
-
-	return 0;
-}
-
-int fptrstubset_insert(const char* s, fptrstub_t address) {
-
-	struct fptrstub_node* data = calloc(1,sizeof(struct fptrstub_node));
-	struct rb_node **new, *parent = 0;
-	data->s = calloc(1,strlen(s)+1);
-	data->address = address;
-	strcpy(data->s,s);
-	new = &(fptrstubset_root.rb_node);
-
-	/* Figure out where to put new node */
-	while (*new) {
-		struct fptrstub_node* this = container_of(*new, struct fptrstub_node, node);
-
-		parent = *new;
-		if (strcmp(data->s,this->s)<0)
-				new = &((*new)->rb_left);
-		else if (strcmp(data->s,this->s)>0)
-				new = &((*new)->rb_right);
-		else {
-			free((void*)data->s);
-			free(data);
-			return 0;
-		}
-	}
-
-	/* Add new node and rebalance tree. */
-	rb_link_node_internal(&data->node, parent, new);
-	rb_insert_color_internal(&data->node, &fptrstubset_root);
-
-	return 1;
-}
-
-void fptrstubset_destroy(struct rb_root* root) {
-
-    struct rb_node * p = rb_first(root);
-    while(p) {
-        struct fptrstub_node* data = (struct fptrstub_node*)p;
-        rb_erase(p, root);
-        p = rb_next(p);
-        free((void*)data->s);
-        free(data);
-    }
-}
-
-size_t fptrstubset_count(const struct rb_root* root) {
-
-	struct rb_node * p = rb_first(root);
-	size_t count = 0;
-	while(p) {
-		count++;
-		p = rb_next(p);
-	}
-	return count;
-}
-
+/* Forward declarations of used pointers */
 %s
 
-fptrstub_pair_t fptrstub_pair_array[%d] = {
+
+/* Array of function pointers we're supporting */
+static struct fptrstub_pair fptrstub_pair_array[%d] = {
 %s
 };
 
+
+/* Init-like functions */
 void initialize_function_pointer_stubs(void) {
 %s
-}
-
-void initialize_fptrstubset(void) {
-
-	for (size_t i=0; i<sizeof(fptrstub_pair_array)/sizeof(fptrstub_pair_t); ++i) {
-		fptrstubset_insert(fptrstub_pair_array[i].symbol,fptrstub_pair_array[i].address);
-	}
 }
 
 void aot_kflat_initialize_global_variables(void) {
 %s
 }
 
+/* Initialization of known pointers */
 %s
+
+
+/* Exported functions */
+void* fptrstub_search(const char* symbol) {
+	unsigned long long array_size = sizeof(fptrstub_pair_array) / sizeof(fptrstub_pair_array[0]);
+
+	for(unsigned long long i = 0; i < array_size; i++)
+		if(!strcmp(symbol, fptrstub_pair_array[i].symbol))
+			return &fptrstub_pair_array[i];
+	
+	return (void*) 0;
+}

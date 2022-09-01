@@ -160,23 +160,28 @@ class Generator:
     ## {0} - global variable trigger name
     ## {1} - address specifier ('&' or '' in case of global variable array type)
     ## {2} - global variable name
-    DYNAMIC_INIT_GLOBAL_VARIABLE_TEMPLATE = """void init_{0}() {{
-  long flat_index_{0} = flat_index(\"{0}\");
-  if (flat_index_{0}>=0) {{
-    void* p_{0} = root_pointer_seq(flat_index_{0});
-    memcpy({1}{2},p_{0},flat_size(\"{0}\"));
-  }}
+    ## {3} - trigger name
+    DYNAMIC_INIT_GLOBAL_VARIABLE_TEMPLATE = """void init_{3}() {{
+  unsigned long target_size;
+  void* ptr = aot_kflat_root_by_name("{0}", &target_size);
+  if(ptr)
+    memcpy({1}{2} ,ptr, target_size);
+  else
+    puts("[Unflatten] Failed to load global {0}");
 }}"""
 
     ## {0} - function variable name
     ## {1} - function trigger basename
     ## {2} - extended root pointer name
     ## {3} - function variable type in text form
-    DYNAMIC_INIT_FUNCTION_VARIABLE_TEMPLATE = """\n    /* Dynamically initialize variable '{0}' using kflat */
-    long {1}_{0}_index = flat_index(\"{2}\");
-    if ({1}_{0}_index>=0) {{
-      {0} = ({3})root_pointer_seq({1}_{0}_index);
-    }}"""
+    DYNAMIC_INIT_FUNCTION_VARIABLE_TEMPLATE = """
+    /* Dynamically initialize variable '{0}' using kflat */
+    void* {1}_{0}_ptr = aot_kflat_root_by_name("{2}", (void*) 0);
+    if({1}_{0}_ptr)
+      {0} = ({3}) {1}_{0}_ptr;
+    else
+      puts("[Unflatten] Failed to load local variable {2}");
+"""
 
     # this is a special value returned by function stubs returning a pointer
     # it's supposed to be easily recognizable (407 == AOT)
@@ -295,7 +300,7 @@ class Generator:
         predefined_files = ["aot_replacements.h", "Makefile", "aot_lib.h", "aot_lib.c", "aot_mem_init_lib.h",
                             "aot_mem_init_lib.c", "aot_fuzz_lib.h", "aot_fuzz_lib.c", "aot_log.h", "aot_log.c",
                             "build.sh",  
-                            "vlayout.c.template", "fptr_stub.c.template","fptr_stub_known_funcs.c.template",
+                            "vlayout.c.template",
                             "aot_recall.h", "aot_recall.c", "aot_dfsan.c.lib"]
         
         # create output directory
@@ -344,13 +349,6 @@ class Generator:
         self.init = args.init
         self.dump_smart_init = args.dump_smart_init
         self.dynamic_init = args.dynamic_init
-
-        if self.dynamic_init:
-            # copy the kflat image to the output directory
-            shutil.copyfile(
-                f"{os.path.abspath(self.dynamic_init)}", f"{self.out_dir}/{Generator.KFLAT_IMAGE_NAME}")
-            shutil.copymode(
-                f"{os.path.abspath(self.dynamic_init)}", f"{self.out_dir}/{Generator.KFLAT_IMAGE_NAME}")
 
         self.used_types_only = args.used_types_only
         self.dbjson2 = args.dbjson2
@@ -3590,13 +3588,13 @@ class Generator:
             logging.info(
                 f"Creating files required for dynamic initialization")
             # copy the predefined files required for dynamic initialization
-            predefined_files_dyn_init = ["rbtree.h","rbtree.c","rbtree_augmented.h","interval_tree.h","interval_tree_generic.h","flat.c","dyn_init.h","trigger_stub.c"]
+            predefined_files_dyn_init = ["dyn_init.c", "dyn_init.h"]
+            res_dir = f"{os.path.abspath(os.path.dirname(sys.argv[0]))}/resources/"
             for f in predefined_files_dyn_init:
-                shutil.copyfile(
-                    f"{os.path.abspath(os.path.dirname(sys.argv[0]))}/resources/{f}", f"{self.out_dir}/{f}")
-                shutil.copymode(
-                    f"{os.path.abspath(os.path.dirname(sys.argv[0]))}/resources/{f}", f"{self.out_dir}/{f}")
-            with open(os.path.join(self.out_dir,Generator.FUNCTION_POINTER_STUB_FILE_TEMPLATE),"rt") as f:
+                shutil.copyfile(f"{res_dir}/{f}", f"{self.out_dir}/{f}")
+                shutil.copymode(f"{res_dir}/{f}", f"{self.out_dir}/{f}")
+            
+            with open(os.path.join(res_dir,Generator.FUNCTION_POINTER_STUB_FILE_TEMPLATE),"rt") as f:
                 fptrstub_out = f.read()
             with open(os.path.join(self.out_dir,Generator.FUNCTION_POINTER_STUB_FILE_SOURCE),"wt") as f:
                 fstub_decls_out = "\n".join(["extern int (*%s)(void);"%(fstub) for fstub,fstub_id in self.function_pointer_stubs])
@@ -3605,7 +3603,8 @@ class Generator:
                 flib_stubs = "\n".join(["%s"%(flibstub) for flibstub,flibstub_id in self.lib_function_pointer_stubs])
                 fstubs_init_call = "\n".join(["  init_%s();"%(x) for x in self.global_trigger_name_list-self.global_trigger_name_list_exclude])
                 f.write(fptrstub_out%(fstub_decls_out,len(self.function_pointer_stubs),fstubs_out,fstubs_init,fstubs_init_call,flib_stubs))
-            with open(os.path.join(self.out_dir,Generator.FUNCTION_POINTER_KNOWN_FUNCS_STUB_FILE_TEMPLATE),"rt") as f:
+            
+            with open(os.path.join(res_dir,Generator.FUNCTION_POINTER_KNOWN_FUNCS_STUB_FILE_TEMPLATE),"rt") as f:
                 fptrstub_known_funcs_out = f.read()
             with open(os.path.join(self.out_dir,Generator.FUNCTION_POINTER_KNOWN_FUNCS_STUB_FILE_SOURCE),"wt") as f:
                 known_funcs_decls = list()
@@ -5178,10 +5177,8 @@ class Generator:
                                         loc = loc[len(self.source_root)+1:]
                                     else:
                                         assert 0, "Detected absolute location in function location (%s) but the 'source root' parameter is not given"%(function["location"])
-                            trigger_base = "%s__%s"%(loc.replace("/","__").replace("-","___").replace(".","____"),function["name"])
-                            root_ptr_name = "%s__%s"%(trigger_base,function["locals"][i-1]["name"])
                             vartype = " ".join(self._generate_var_def(type, varname).split()[:-1])
-                            str += Generator.DYNAMIC_INIT_FUNCTION_VARIABLE_TEMPLATE.format(varname,trigger_base,root_ptr_name,vartype)+"\n\n"
+                            str += Generator.DYNAMIC_INIT_FUNCTION_VARIABLE_TEMPLATE.format(varname, "flatten", f"_func_arg_{i}", vartype)+"\n\n"
                 i = saved_i
                 i += 1
 
@@ -8046,7 +8043,7 @@ class Generator:
                     g_trigger_name = "%s"%(g["hash"].replace("/","__").replace(".","____").replace("-","___"))
                     g_type = self.typemap[g["type"]]
                     g_address_specifier = '&' if g_type["class"]!="const_array" and g_type["class"]!="incomplete_array" else ''
-                    def_string += "\n{};\n".format(Generator.DYNAMIC_INIT_GLOBAL_VARIABLE_TEMPLATE.format(g_trigger_name,g_address_specifier,g["name"]))
+                    def_string += "\n{};\n".format(Generator.DYNAMIC_INIT_GLOBAL_VARIABLE_TEMPLATE.format(g["hash"], g_address_specifier, g["name"], g_trigger_name))
                 else:
                     def_string = "\n{};\n".format(g["def"].replace("extern ", ""))
                 global_defs_strings[g_id] = def_string
@@ -8912,7 +8909,7 @@ def main():
                         help="If used, generates AFL inits for stores/genl_ops")
     parser.add_argument("--init", action='store_true',
                         help="When used, initialization code will be generated; the argument of this option is the path of the kflat image")
-    parser.add_argument("--dynamic-init", action="store",
+    parser.add_argument("--dynamic-init", action="store_true",
                         help="When used, dynamic initialization code will be generated (this can be used along the '--init' option to improve the static initialization)")
     parser.add_argument("--used-types-only", action='store_true',
                         help="When used, only the used types will be generated - this affects stucts and enums")

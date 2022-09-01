@@ -6,23 +6,49 @@
 # src => source files, obj => object files
 src = $(wildcard *.c)
 obj = $(src:.c=.o)
+lib := 
 
 CLANG_TIDY:=/media/storage/toolchain_6305083/out_release/stage2-install/bin/clang-tidy
 CLANG_TIDY_OPTS:= --checks="-*,readability-function-size" --config="{Checks: 'readability-function-size',CheckOptions: [{key: readability-function-size.BranchThreshold, value: '0'},{key: readability-function-size.NestingThreshold, value: '0'},{key: readability-function-size.LineThreshold, value: '0'},{key: readability-function-size.StatementThreshold, value: '0'}]}"
 
-CFLAGS = -MD -Wno-implicit-function-declaration
+CFLAGS = -MD
+LDFLAGS = 
 COMP = clang
 
-# modify build flags based on selected architecture
+
+################################
+# Cross-compilation support
+################################
+ARCH := x86_64
 ifneq (, $(filter $(ARCH),arm64 aarch64))
-	# Cross-compiled libc for arm64 is available in packet "libc6-dev-arm64-cross"
-	CFLAGS += -target aarch64-linux-gnu -isystem /usr/aarch64-linux-gnu/include --static
+  # Cross-compiled libc for arm64 is available in packet "libc6-dev-arm64-cross"
+  CFLAGS += -target aarch64-linux-gnu -isystem /usr/aarch64-linux-gnu/include --static
+  ARCH = arm64
 else ifeq ($(ARCH),)
 else ifeq ($(ARCH), x86_64)
-# ignore x86_64
 else
 $(error Unsupported architecture selected, please use x86_64 or arm64)
 endif
+
+
+################################
+# Dynamic Init support (KFLAT)
+################################
+ifneq ($(wildcard dyn_init.c), )
+
+  ifeq (${KFLAT_LIB_PATH},)
+    $(error This off-target has been built with --dynamic-init option enabled. \
+      Please setup env KFLAT_LIB_PATH to point to the directory with built \
+      Unflatten library (ex. kflat_repo/lib))
+  endif
+
+  $(info [AoT] Building off-target with dynamic init support (--dynamic-init flag))
+
+  lib += ${KFLAT_LIB_PATH}/libunflatten_${ARCH}.a
+  CFLAGS += -I${KFLAT_LIB_PATH} -L${KFLAT_LIB_PATH} -fPIC
+  LDFLAGS += -lstdc++
+endif
+
 
 .DEFAULT_GOAL:= native
 
@@ -32,8 +58,8 @@ endif
 # native: the default linux native target
 .PHONY: native
 native: CFLAGS+=-ferror-limit=0 -fno-integrated-cc1 -MD -w
-native: $(obj)
-	$(COMP) $(CFLAGS) -o $@ $^ 
+native: $(obj) $(lib)
+	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # stats: a target for clang-tidy to get some complexity stats
 .PHONY: stats
@@ -43,26 +69,26 @@ stats:
 # as native but should work with clang < 10.0
 .PHONY: native-old
 native-old: CFLAGS+=-ferror-limit=0 -MD -w
-native-old: $(obj)
-	$(COMP) -o $@ $^ 
+native-old: $(obj) $(lib)
+	$(COMP) -o $@ $^ $(LDFLAGS)
 
 # address sanitizer
 .PHONY: asan
 asan: CFLAGS+=-fsanitize=address -MD -w 
-asan: $(obj)
-	$(COMP) $(CFLAGS) -o $@ $^
+asan: $(obj) $(lib)
+	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # memory sanitizer
 .PHONY: msan
 msan: CFLAGS+=-fsanitize=memory -MD -w
-msan: $(obj)
-	$(COMP) $(CFLAGS) -o $@ $^
+msan: $(obj) $(lib)
+	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # undefined behaviour sanitizer
 .PHONY: ubsan
 ubsan: CFLAGS+=-fsanitize=undefined -MD -w
-ubsan: $(obj)	
-	$(COMP) $(CFLAGS) -o $@ $^
+ubsan: $(obj) $(lib)	
+	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # data flow sanitizer
 # aot_dsan.c.lib contains the callbacks which can't be instrumented with dfsan and is compiled separately
@@ -70,7 +96,7 @@ ubsan: $(obj)
 dfsan: CFLAGSDFSAN=-fno-sanitize=dataflow -MD -w -mllvm -dfsan-event-callbacks -g -DDFSAN -fPIE -Wno-implicit-function-declaration
 dfsan: CFLAGS=-fsanitize=dataflow -MD -w -mllvm -dfsan-event-callbacks -g -DDFSAN -Wno-implicit-function-declaration
 dfsan: COMP=clang-15
-dfsan: $(obj)	
+dfsan: $(obj) $(lib)	
 	cp aot_dfsan.c.lib aot_dfsan.c
 	$(COMP) $(CFLAGSDFSAN) -c -o aot_dfsan.o aot_dfsan.c
 	rm aot_dfsan.c
@@ -86,34 +112,34 @@ else
 afl: COMP=afl-clang-lto
 endif
 afl: COMP+=-DAFL -w
-afl: $(obj)
-	$(COMP) $(CFLAGS) -o $@ $^
+afl: $(obj) $(lib)
+	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # KLEE
 .PHONY: klee
 klee: CFLAGS+=-emit-llvm -DKLEE -MD -w
 klee: COMP=clang-9
 klee: LD=llvm-link-9
-klee: $(obj)
+klee: $(obj) $(lib)
 	$(LD) -o $@.bc $^
 
 # code coverage
 .PHONY: gcov
 gcov: CFLAGS+=-fprofile-instr-generate -fcoverage-mapping -MD -w
-gcov: $(obj)
-	$(COMP) $(CFLAGS) -o $@ $^
+gcov: $(obj) $(lib)
+	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # for debugging purposes - optimizations off
 .PHONY: debug
 debug: CFLAGS+=-ferror-limit=0 -g -O0 -MD
-debug: $(obj)
-	$(COMP) $(CFLAGS) -o $@ $^
+debug: $(obj) $(lib)
+	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # for generating on-device PoCs
 .PHONY: recall
 recall: CFLAGS+=-DAOT_RECALL_BINARY -g -w
-recall: $(obj)
-	$(COMP) $(CFLAGS) -o $@ $^
+recall: $(obj) $(lib)
+	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 .PHONY: clean
 clean:
