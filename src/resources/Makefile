@@ -7,6 +7,7 @@
 src = $(wildcard *.c)
 obj = $(src:.c=.o)
 lib := 
+extra_bc :=
 
 CLANG_TIDY:=/media/storage/toolchain_6305083/out_release/stage2-install/bin/clang-tidy
 CLANG_TIDY_OPTS:= --checks="-*,readability-function-size" --config="{Checks: 'readability-function-size',CheckOptions: [{key: readability-function-size.BranchThreshold, value: '0'},{key: readability-function-size.NestingThreshold, value: '0'},{key: readability-function-size.LineThreshold, value: '0'},{key: readability-function-size.StatementThreshold, value: '0'}]}"
@@ -47,6 +48,7 @@ ifneq ($(wildcard dyn_init.c), )
   lib += ${KFLAT_LIB_PATH}/libunflatten_${ARCH}.a
   CFLAGS += -I${KFLAT_LIB_PATH} -L${KFLAT_LIB_PATH} -fPIC
   LDFLAGS += -lstdc++
+  extra_bc += $(wildcard ${KFLAT_LIB_PATH}/*.bc)
 endif
 
 
@@ -120,8 +122,8 @@ afl: $(obj) $(lib)
 klee: CFLAGS+=-emit-llvm -DKLEE -MD -w
 klee: COMP=clang-9
 klee: LD=llvm-link-9
-klee: $(obj) $(lib)
-	$(LD) -o $@.bc $^
+klee: $(obj)
+	$(LD) -o $@.bc $^ $(extra_bc)
 
 # code coverage
 .PHONY: gcov
