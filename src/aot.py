@@ -442,6 +442,8 @@ class Generator:
             self._analyze_types()
             return False
 
+        self.debug_vars_init = args.debug_vars_init
+
         return True
 
         # 2) db.json file
@@ -3798,13 +3800,15 @@ class Generator:
         type = self._get_typedef_dst(type)
 
         cl = type["class"]
-        logging.info(f"generating var init for {name} cl {cl} type {type['id']}")
+        if self.debug_vars_init:
+            logging.info(f"generating var init for {name} cl {cl} type {type['id']}")
 
         t_id = type["id"]
      
         if t_id in self.used_types_data:
             type = self.used_types_data[t_id]
-            logging.info(f"used type found for {t_id}. Type id is {type['id']}")
+            if self.debug_vars_init:
+                logging.info(f"used type found for {t_id}. Type id is {type['id']}")
         str = ""
         # if level == 0 and skip_init == False:
         #     str = "{} = ".format(res_var)
@@ -3871,7 +3875,8 @@ class Generator:
             init_type = self.typemap[_tmp_id]
             _dst_type = self.typemap[_dst_tid]
             if init_type["class"] == "record" and _dst_type["class"] == "record_forward" and init_type["str"] == _dst_type["str"]:
-                logging.info(f"Updating dst_type from record_fwd {dst_type['id']} to record {init_obj.t_id}")
+                if self.debug_vars_init:
+                    logging.info(f"Updating dst_type from record_fwd {dst_type['id']} to record {init_obj.t_id}")
                 type = self.typemap[init_obj.t_id]
                 dst_type = type
                 cl = type["class"]
@@ -3918,13 +3923,15 @@ class Generator:
                 is_array = True
                 loop_count = array_count
                 if 0 == loop_count:
-                    logging.warn("special case: adding a single member to a const array")
+                    if self.debug_vars_init:
+                        logging.warn("special case: adding a single member to a const array")
                     loop_count = 1 # this is a special corner case -> we already allocated memory for 1 member
                     str += "// increasing the loop count to 1 for a const array of size 0\n"
             elif "incomplete_array" == cl and type['size'] == 0:
                 is_array = True
                 loop_count = 0
-                logging.warn("special case: adding a single member to a const array")
+                if self.debug_vars_init:
+                    logging.warn("special case: adding a single member to a const array")
                 loop_count = 1 # this is a special corner case -> we already allocated memory for 1 member
                 str += "// increasing the loop count to 1 for a const array of size 0\n"
             else:
@@ -3979,7 +3986,8 @@ class Generator:
                             (member_name in ["pprev"] and self._get_real_type(dst_type["id"]) in pointers)):
                         # we have already initialized the structure the pointer points to
                         # so we have to break the loop
-                        logging.info(f"breaking linked list for {name}")
+                        if self.debug_vars_init:
+                            logging.info(f"breaking linked list for {name}")
                         str += f"/* note: {name} pointer is already initialized (or we don't want a recursive init loop) */\n"
                         if member_name in ["prev", "next"]:                                
                             if pointer:
@@ -4002,11 +4010,13 @@ class Generator:
                                 _tmp_id = self._get_real_type(_tmp_id)
                             init_type = self.typemap[_tmp_id]
                             if init_type["class"] == "record" and dst_type["class"] == "record_forward" and init_type["str"] == dst_type["str"]:
-                                logging.info(f"Detected that we are dealing with a pointer to record forward but we know the real record")
+                                if self.debug_vars_init:
+                                    logging.info(f"Detected that we are dealing with a pointer to record forward but we know the real record")
                                 recfwd_found = True
                         if not recfwd_found:
                             str += f"/*{name} left uninitialized as it's not used */\n"
-                            logging.info(f"/*{name} left uninitialized as it's not used */\n")
+                            if self.debug_vars_init:
+                                logging.info(f"/*{name} left uninitialized as it's not used */\n")
                             return str, False
                     
                     # pointers are allocated as arrays of size >= 1
@@ -4030,7 +4040,8 @@ class Generator:
                 min_value = None
                 max_value = None
                 if level == 0 and self.init_data is not None and entity_name in self.init_data:
-                    logging.info(f"Detected that {entity_name} has user-provided init")
+                    if self.debug_vars_init:
+                        logging.info(f"Detected that {entity_name} has user-provided init")
                     item = self.init_data[entity_name]
                     for entry in item["items"]:
                         entry_type = "unknown"
@@ -4040,7 +4051,8 @@ class Generator:
                                 entry_type = entry_type.replace("*", " *")
                   
                         if name in entry["name"] or entry_type == self._get_typename_from_type(type):
-                            logging.info(f"In {entity_name} we detected that item {name} of type {entry_type} has a user-specified init")
+                            if self.debug_vars_init:
+                                logging.info(f"In {entity_name} we detected that item {name} of type {entry_type} has a user-specified init")
                             
                             if "size" in entry:
                                 loop_count = entry["size"]
@@ -4098,14 +4110,17 @@ class Generator:
                     single_init = False
                 else:
                     entry, single_init, offset_types = self._get_cast_ptr_data(type)
-                    logging.info(f"it's a pointer init obj {init_obj} offset types {offset_types} type {type['id']}") 
+                    if self.debug_vars_init:
+                        logging.info(f"it's a pointer init obj {init_obj} offset types {offset_types} type {type['id']}") 
                     
                     final_objs = []
                     if offset_types is not None and init_obj is not None:
-                        logging.info(f"init_obj is {init_obj}")
+                        if self.debug_vars_init:
+                            logging.info(f"init_obj is {init_obj}")
                         to_process = []
                         to_keep = []
-                        logging.info(f"this init_obj has {len(init_obj.offsetof_types)} offsetof_types") 
+                        if self.debug_vars_init:
+                            logging.info(f"this init_obj has {len(init_obj.offsetof_types)} offsetof_types") 
                         for types, members, obj in init_obj.offsetof_types:
                             to_keep = [] # indices to remove
                             for i in range(len(offset_types)):
@@ -4116,8 +4131,9 @@ class Generator:
                                     break
                         tmp = []
                         if len(to_keep) < len(offset_types):
-                            logging.info(f"We reduced offset_types by using derefs trace info")
-                            logging.info(f"Before it was {len(offset_types)} now it is {len(to_keep)}")
+                            if self.debug_vars_init:
+                                logging.info(f"We reduced offset_types by using derefs trace info")
+                                logging.info(f"Before it was {len(offset_types)} now it is {len(to_keep)}")
                             for i in to_keep:
                                 tmp.append(offset_types[i])
                             offset_types = tmp
@@ -4133,12 +4149,14 @@ class Generator:
                                 # in the last one in the trace applied only
                                 final.append((types, members))
                                 final_objs.append(obj)
-                                logging.info("No more offset types, the object is final")
+                                if self.debug_vars_init:
+                                    logging.info("No more offset types, the object is final")
                             else:
                                 for _types, _members, _obj in obj.offsetof_types:
                                     to_process.append((_types, _members, _obj))
                         if len(final) > 0:
-                            logging.info("updating offset types")
+                            if self.debug_vars_init:
+                                logging.info("updating offset types")
                             offset_types = final
 
                     if offset_types is not None and (0 == len(offset_types)):
@@ -4191,8 +4209,9 @@ class Generator:
                             str_tmp += f"\n// making extra space for the variable lenght array at the end of the struct"
                             str_tmp += f"\n{typename}* {fresh_var_name} = malloc(sizeof({typename}) + {extra_padding});"
                             fresh_var_name = f"(*{fresh_var_name})"
-
-                        logging.info(f"typename is {typename} name_tmp is {name_tmp} fresh_var_name is {fresh_var_name}")
+                        
+                        if self.debug_vars_init:                            
+                            logging.info(f"typename is {typename} name_tmp is {name_tmp} fresh_var_name is {fresh_var_name}")
                         comment = ""
                         if len(offset_types) > 1:
                             comment = "//"
@@ -4208,15 +4227,18 @@ class Generator:
                         if i < len(final_objs):
                             obj = final_objs[i]
                         elif init_obj is not None:
-                            logging.info(f"not enough objects in final_objs: len is {len(final_objs)}, init_obj: {init_obj} ")
+                            if self.debug_vars_init:
+                                logging.info(f"not enough objects in final_objs: len is {len(final_objs)}, init_obj: {init_obj} ")
                             shutil.move(self.logname, f"{self.out_dir}/{Generator.LOGFILE}")
 
                             sys.exit(1)
                         if obj == init_obj:
-                            logging.info(f"Object is the same {obj}")
+                            if self.debug_vars_init:
+                                logging.info(f"Object is the same {obj}")
                             #sys.exit(1) 
                         else:
-                            logging.info(f"Object is different obj is {obj}")
+                            if self.debug_vars_init:
+                                logging.info(f"Object is different obj is {obj}")
 
                         # we have to assign our top-level 
                         # parameter to the right member of the containing type
@@ -4239,7 +4261,8 @@ class Generator:
 
                         str_tmp += f"{name} = &{fresh_var_name}.{member_name};\n"
 
-                        logging.info("variant c") 
+                        if self.debug_vars_init:
+                            logging.info("variant c") 
                         _str_tmp, alloc_tmp = self._generate_var_init(fresh_var_name, 
                                                                     _dst_t,
                                                                     res_var,
@@ -4263,26 +4286,30 @@ class Generator:
                         alloc = False
 
                     #if len(offset_types) == 1:
-                    logging.info("Returning after detecting offsetof")
+                    if self.debug_vars_init:
+                        logging.info("Returning after detecting offsetof")
                     #logging.info(f"str is {str}, offset_types len is {len(offset_types)}, str_tmp is {str_tmp}")
                     return str, alloc
                 else: # todo: consider supporting offsetof + cast at level 0
 
                     force_ptr_init = False
                     if not user_init and entry is not None and init_obj is not None:
-                        logging.info(f"this is not user init, entry is {entry}") 
+                        if self.debug_vars_init:
+                            logging.info(f"this is not user init, entry is {entry}") 
                         # entry is not None, which means we have some casts
                         # let's check if we have some additional hints in our init object
                         # we keed all casts history in the cast_types array, but the 
                         # latest type is always stored in the t_id/original_tid
                         latest_tid = init_obj.original_tid
                         if latest_tid in entry[Generator.CAST_PTR_NO_MEMBER]:
-                            logging.info(f"Current object's tid {latest_tid} detected in entry - will use that one")
+                            if self.debug_vars_init:
+                                logging.info(f"Current object's tid {latest_tid} detected in entry - will use that one")
                             entry = copy.deepcopy(entry)
                             entry[Generator.CAST_PTR_NO_MEMBER] = [ latest_tid ]
                             single_init = True
                         else:
-                            logging.info(f"current tid {latest_tid} not found in entry")
+                            if self.debug_vars_init:
+                                logging.info(f"current tid {latest_tid} not found in entry")
 
                         
                         skipped_count = 0
@@ -4422,7 +4449,8 @@ class Generator:
                             casted_type = self._get_typedef_dst(casted_type)
                             struct_types = [ "record", "record_forward" ]
                             if active_type["class"] in struct_types and casted_type["class"] not in struct_types:
-                                logging.info("will not consider cast of structural type to non-structural type")
+                                if self.debug_vars_init:
+                                    logging.info("will not consider cast of structural type to non-structural type")
                                 continue
 
                             if new_types != None:
@@ -4433,7 +4461,8 @@ class Generator:
                             # str += "{} aot_memory_init_ptr(&{}, sizeof({}), {} /* count */, {} /* fuzz */);\n".format(
                             #     comment, name, typename, self.ptr_init_size, fuzz)
                             #pointers.append(dst_t["id"])
-                            logging.info("variant d")
+                            if self.debug_vars_init:
+                                logging.info("variant d")
                             cast_done = True
                             str_tmp, alloc_tmp = self._generate_var_init(name, 
                                                                         _dst_t,
@@ -4461,7 +4490,8 @@ class Generator:
 
                             str += str_tmp
                         if cast_done == True: #len(entry[Generator.CAST_PTR_NO_MEMBER]) == 1 and cast_done == True:
-                            logging.info("Returning after detecting a cast")
+                            if self.debug_vars_init:
+                                logging.info("Returning after detecting a cast")
                             return str, alloc
                     alloc = True
         else:
@@ -4481,7 +4511,8 @@ class Generator:
                 mul = 1
                 isPointer = False
                 if level == 0 and self.init_data is not None and entity_name in self.init_data:
-                    logging.info(f"Detected that {entity_name} has user-provided init")
+                    if self.debug_vars_init:
+                        logging.info(f"Detected that {entity_name} has user-provided init")
                     item = self.init_data[entity_name]
                     for entry in item["items"]:
                         entry_type = "unknown"
@@ -4491,7 +4522,8 @@ class Generator:
                                 entry_type = entry_type.replace("*", " *")
                   
                         if name in entry["name"] or entry_type == self._get_typename_from_type(type):
-                            logging.info(f"In {entity_name} we detected that item {name} of type {entry_type} has a user-specified init")
+                            if self.debug_vars_init:
+                                logging.info(f"In {entity_name} we detected that item {name} of type {entry_type} has a user-specified init")
                             if "nullterminated" in entry:
                                 if entry["nullterminated"] == "True":
                                     null_terminate = True
@@ -4637,7 +4669,8 @@ class Generator:
                         tmp_name = name
                     if name_change:
                         tmp_name = f"(*{tmp_name})"
-                    logging.info(f"variant E, my type is {type['id']}, loop_count is {loop_count}, cl is {cl}: {tmp_name}")
+                    if self.debug_vars_init:
+                        logging.info(f"variant E, my type is {type['id']}, loop_count is {loop_count}, cl is {cl}: {tmp_name}")
                     str_tmp, alloc_tmp = self._generate_var_init(f"{tmp_name}",
                                                                  member_type,
                                                                  res_var,
@@ -4747,13 +4780,15 @@ class Generator:
                                 if init_obj is not None:
                                     if init_obj.t_id in init_obj.used_members:
                                         if i in init_obj.used_members[init_obj.t_id]:
-                                            logging.info(f"Member use info detected for {init_obj} member {i}")
+                                            if self.debug_vars_init:
+                                                logging.info(f"Member use info detected for {init_obj} member {i}")
                                             obj = init_obj.used_members[init_obj.t_id][i]
                                         #else :
                                         #    logging.info(f"Current init object data found, but member {i} not used")
                                         #    continue
                                     else:
-                                        logging.info(f"Could not find member {i} use info in obj tid {init_obj.t_id}")
+                                        if self.debug_vars_init:
+                                            logging.info(f"Could not find member {i} use info in obj tid {init_obj.t_id}")
                                         #continue
                                     # note: currently, if we can't find the member in the current object, we fall back
                                     # to the global member data, which might produce unnecessary inits
@@ -4794,14 +4829,16 @@ class Generator:
                                     entry, single_init, offset_types = self._get_cast_ptr_data(
                                         type, i)
                                     skip = False
-                                    logging.info(f"single_init is {single_init}")
+                                    if self.debug_vars_init:
+                                        logging.info(f"single_init is {single_init}")
                                         
                                     if entry is not None:
                                         # passing skip_init as True in order to prevent
                                         # further initialization of void* as we are handling it here
                                         skip = True
                                     if not single_init:
-                                        logging.info("variant a")
+                                        if self.debug_vars_init:
+                                            logging.info("variant a")
                                         member_to_name[i] = f"{tmp_name}{deref_str}{field_name}"                                                                           
                                         str_tmp, alloc_tmp = self._generate_var_init(f"{tmp_name}{deref_str}{field_name}",
                                                                                      tmp_t,
@@ -4821,7 +4858,8 @@ class Generator:
                                         str += self._generate_constraints_check(f"{tmp_name}{deref_str}{field_name}", size_constraints[i])
 
                                     if entry is not None:
-                                        logging.info("variant b")
+                                        if self.debug_vars_init:
+                                            logging.info("variant b")
                                         variant = ""
                                         variant_num = 1
                                         for dst_tid in entry[i]:
@@ -4835,7 +4873,8 @@ class Generator:
                                             casted_type = self._get_typedef_dst(casted_type)
                                             struct_types = [ "record", "record_forward" ]
                                             if active_type["class"] in struct_types and casted_type["class"] not in struct_types:
-                                                logging.info("will not consider cast of structural type to non-structural type")
+                                                if self.debug_vars_init:
+                                                    logging.info("will not consider cast of structural type to non-structural type")
                                                 continue
 
                                             if new_types != None:
@@ -5328,7 +5367,7 @@ class Generator:
                 else:
                     end = tmp[index:].find(")") + index
                 arg = tmp[index:end].strip()
-                logging.info(
+                logging.debug(
                     f"arg is {arg} numargs is {numargs} index is {index} end is {end} name is {copy}")
                 if arg != "void":
                     if arg != "...":
@@ -6343,8 +6382,9 @@ class Generator:
         elif "usedrefs" in type: 
             # TODO: remove size check
             if member_idx < len(type["usedrefs"]) and -1 == type["usedrefs"][member_idx]:
-                logging.info(
-                    f"Detected that field {field_name} in {type_name} is not used")
+                if self.debug_vars_init:
+                    logging.info(
+                        f"Detected that field {field_name} in {type_name} is not used")
                 is_in_use = False
             if member_idx >= len(type["usedrefs"]):
                 logging.warning(
@@ -8905,6 +8945,8 @@ def main():
                         help="Dump the type cast information gathered during smart init.")
     parser.add_argument("--debug-analyze-types", action='store_true', default=False,
                         help=f"Analyze record types")
+    parser.add_argument("--debug-vars-init", action='store_true', default=False,
+                        help=f"Print debug info on vars init")
     
     args = parser.parse_args()
     
