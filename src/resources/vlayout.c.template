@@ -6,8 +6,9 @@
 
 
 #include <stdio.h>
-#include <stddef.h>
 #include "aot.h"
+
+#define offsetof(t, d) __builtin_offsetof(t, d)
 
 int __strcmp(const char* s1, const char* s2) {
     while(*s1 && (*s1 == *s2))
