@@ -444,6 +444,8 @@ class Generator:
 
         self.debug_vars_init = args.debug_vars_init
 
+        # Get the list of possible functions assigned to function pointers
+        self.fpointers = self._infer_functions()
         return True
 
         # 2) db.json file
@@ -467,7 +469,7 @@ class Generator:
     #  function_id: a function where the function invocation through a pointer takes place
     #  expr: the expression of the function invocation through a pointer
     #  called_fun_id: function id that could be possible stored (and invoked) through the pointer at the given expression
-    def infer_functions(self):
+    def _infer_functions(self):
 
         # save all funcs
         funcsaddresstaken = set()
@@ -9154,8 +9156,6 @@ def main():
     logging.info(f"AOT_OUTPUT_DIR|{gen.out_dir}|")
 
     sys.setrecursionlimit(10000)
-    # Get the list of possible functions assigned to function pointers
-    fpointers = gen.infer_functions()
 
     funs = args.functions
     logging.info("Will generate off-target for functions {}".format(funs))
