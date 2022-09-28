@@ -457,6 +457,196 @@ class Generator:
 
     # -------------------------------------------------------------------------
 
+    # Analyzes function invocations through a pointer and tries to assign
+    #  a list of possible functions that could be invoked through that pointer
+    # Returns the following map:
+    #  {
+    #    function_id : (expr,[called_fun_id,...])
+    #  }
+    # where,
+    #  function_id: a function where the function invocation through a pointer takes place
+    #  expr: the expression of the function invocation through a pointer
+    #  called_fun_id: function id that could be possible stored (and invoked) through the pointer at the given expression
+    def infer_functions(self):
+
+        # save all funcs
+        funcsaddresstaken = set()
+        funcsbytype = {}
+        funcTypeCandidates = {}
+
+        for fun in self.db.db["funcs"]:
+            for deref in fun["derefs"]:
+                if deref["kind"] != "assign" and deref["kind"] != "init":
+                    continue
+                functions = list(filter(lambda x: x["kind"] == "function", deref["offsetrefs"]))
+                if not functions:
+                    continue
+                for function in functions:
+                    funcsaddresstaken.add(function["id"])
+
+        # from global variables take all funrefs as funcs with address taken
+        for var in self.db.db["globals"]:
+            for funid in var["funrefs"]:
+                funcsaddresstaken.add(funid)
+
+        funDict = {}
+        for fun in self.db.db["funcs"]:
+            funDict[fun["id"]] = fun
+
+        for function in funcsaddresstaken:
+            if function not in funDict:  # handle if it is in funcdecls or unresolved
+                continue
+            f = funDict[function]
+            typeTuple = tuple(f["types"])
+            if typeTuple not in funcsbytype:
+                funcsbytype[typeTuple] = [f]
+            else:
+                funcsbytype[typeTuple].append(f)
+
+        for typ in self.db.db["types"]:
+            if typ["class"] == "function":
+                typeTuple = tuple(typ["refs"])
+                if typeTuple in funcsbytype:
+                    funcTypeCandidates[typ["id"]] = funcsbytype[typeTuple]
+                else:
+                    funcTypeCandidates[typ["id"]] = []
+
+        globalDict = {}
+        for glob in self.db.db["globals"]:
+            globalDict[glob["id"]] = glob
+
+        typeDict = {}
+        for fun in self.db.db["types"]:
+            typeDict[fun["id"]] = fun
+
+        # first level struct assignment
+        fucnsFirstLevelStruct = set()
+        for fun in self.db.db["funcs"]:
+            for deref in fun["derefs"]:
+                if deref["kind"] != "assign" and deref["kind"] != "init":
+                    continue
+                functions = list(filter(lambda x: x["kind"] == "function", deref["offsetrefs"]))
+                if not functions:
+                    continue
+                if deref["offsetrefs"][0]["kind"] != "member":
+                    continue
+                structDerefId = deref["offsetrefs"][0]["id"]
+                structTypeId = fun["derefs"][structDerefId]["type"][-1]
+                structMemberId = fun["derefs"][structDerefId]["member"][-1]
+
+                for function in functions:
+                    fucnsFirstLevelStruct.add((structTypeId, structMemberId, function["id"]))
+
+        # seems that we need to add also those from fops
+        recordsByName = {}
+        for type in self.db.db["types"]:
+            if type["class"] != "record":
+                continue
+            recordsByName.setdefault(type["str"], [])
+            recordsByName[type["str"]].append(type)
+
+        fopbased = set()
+
+        for fop in self.db.db["fops"]["vars"]:
+            for record in recordsByName[fop["type"]]:
+                for member in fop["members"]:
+                    fucnsFirstLevelStruct.add((record["id"], int(member), fop["members"][member]))
+                    fopbased.add((record["id"], member, fop["members"][member]))
+
+        funcsbytypeFirstLevel = {}
+
+        for structId, memberId, functionId in fucnsFirstLevelStruct:
+            if functionId not in funDict:  # handle if it is in funcdecls or unresolved
+                continue
+            f = funDict[functionId]
+            # typeTuple = tuple(f["types"])   we dont need type.... i think
+            funcsbytypeFirstLevel.setdefault((structId, memberId), [])
+            funcsbytypeFirstLevel[(structId, memberId)].append((f))
+
+        firstError = True
+
+        # and than we need to get icalls with struct type
+        iCallsStruct = []
+        for func in self.db.db["funcs"]:
+            for deref in func["derefs"]:
+                if deref["kind"] != "member":
+                    continue
+                if not "mcall" in deref:
+                    continue
+                for i, membcall in enumerate(deref["mcall"]):
+                    if membcall == -1:
+                        continue
+                    structType = typeDict[deref["type"][i]]
+                    while structType["class"] == "pointer" or structType["class"] == "typedef":
+                        structType = typeDict[structType["refs"][0]]
+
+                    if  deref["member"][i] >= len(structType["refs"]):
+                        continue
+
+                    functype = typeDict[structType["refs"][deref["member"][i]]]
+                    memberId = deref["member"][i]
+                    while functype["class"] == "pointer" or functype["class"] == "typedef" or functype["class"] == "const_array":
+                        functype = typeDict[functype["refs"][0]]
+                    if functype["class"] == "function":
+                        iCallsStruct.append(((structType["id"], memberId), deref, func, tuple(functype["refs"])))
+                    elif functype["str"] == "void":
+                        iCallsStruct.append(((structType["id"], memberId), deref, func, None))
+                    else:
+                        Term.print_error(f"Unsupported case found!", same_line=True)
+                        Term.print_error(f">>> functype: {functype}")
+                        Term.print_error(f">>> func: {func['name']}")
+                        Term.print_error(f">>> deref: {deref}")
+                        Term.print_info("Tracing function pointer calls", new_line=False)
+                        continue
+
+        output = {}
+        for firstLevelId, deref, func, functypetuple in iCallsStruct:
+            funcCandidates = []
+            if firstLevelId in funcsbytypeFirstLevel:
+                funcCandidates = [{"id": x["id"]} for x in funcsbytypeFirstLevel[firstLevelId]]
+            elif functypetuple is not None and functypetuple in funcsbytype:
+                funcCandidates = [{"id": x["id"]} for x in funcsbytype[functypetuple]]
+            output.setdefault(func["id"], {})
+            output[func["id"]][deref["expr"]] = funcCandidates
+
+        funccals = []
+        for fun in self.db.db["funcs"]:
+            for deref in fun["derefs"]:
+                if deref["kind"] == "function":
+                    funccals.append((deref, fun))
+        iCallsVar = []
+        for deref, fun in funccals:
+            if deref["offsetrefs"][0]["kind"] == "unary":
+                #deref = fun["derefs"][deref["offsetrefs"][0]["id"]]
+                continue
+
+            if deref["offsetrefs"][0]["kind"] == "global":
+                typeId = globalDict[deref["offsetrefs"][0]["id"]]["type"]
+            elif deref["offsetrefs"][0]["kind"] == "local":
+                typeId = fun["locals"][deref["offsetrefs"][0]["id"]]["type"]
+            elif deref["offsetrefs"][0]["kind"] == "param":
+                typeId = fun["params"][deref["offsetrefs"][0]["id"]]["type"]
+            elif deref["offsetrefs"][0]["kind"] == "array":
+                continue
+            else:
+                continue
+            functype = typeDict[typeId]
+            while functype["class"] == "pointer" or functype["class"] == "typedef" or functype["class"] == "const_array":
+                functype = typeDict[functype["refs"][0]]
+            if functype["str"] == "void":
+                continue
+            iCallsVar.append((deref, fun, tuple(functype["refs"])))
+
+        for deref, func, functypetuple in iCallsVar:
+            if functypetuple in funcsbytype:
+                funcCandidates = [{"id": x["id"]} for x in funcsbytype[functypetuple]]
+                output.setdefault(func["id"], {})
+                output[func["id"]][deref["expr"]] = funcCandidates
+
+        return { k:(list(v.keys())[0],[x["id"] for x in list(v.values())[0]]) for k,v in output.items() }
+
+    # -------------------------------------------------------------------------
+
     def _find_potential_targets(self):
         logging.info("going to find interesting test targets")
         uncalled_funcs = set()
@@ -8964,6 +9154,8 @@ def main():
     logging.info(f"AOT_OUTPUT_DIR|{gen.out_dir}|")
 
     sys.setrecursionlimit(10000)
+    # Get the list of possible functions assigned to function pointers
+    fpointers = gen.infer_functions()
 
     funs = args.functions
     logging.info("Will generate off-target for functions {}".format(funs))
