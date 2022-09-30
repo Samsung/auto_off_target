@@ -1,0 +1,8 @@
+# Ignore all functions exported by KFLAT library
+fun:flatten_init=uninstrumented
+fun:flatten_deinit=uninstrumented
+fun:flatten_load=uninstrumented
+fun:flatten_unload=uninstrumented
+fun:flatten_root_pointer_next=uninstrumented
+fun:flatten_root_pointer_seq=uninstrumented
+fun:flatten_root_pointer_named=uninstrumented

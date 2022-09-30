@@ -301,7 +301,7 @@ class Generator:
         predefined_files = ["aot_replacements.h", "Makefile", "aot_lib.h", "aot_lib.c", "aot_mem_init_lib.h",
                             "aot_mem_init_lib.c", "aot_fuzz_lib.h", "aot_fuzz_lib.c", "aot_log.h", "aot_log.c",
                             "build.sh",  
-                            "vlayout.c.template",
+                            "vlayout.c.template", "dfsan_ignore_list.txt", 
                             "aot_recall.h", "aot_recall.c", "aot_dfsan.c.lib"]
         
         # create output directory
