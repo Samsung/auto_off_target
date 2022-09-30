@@ -363,6 +363,7 @@ class Generator:
         self.struct_types = []
         self._debug_derefs = args.debug_derefs
         self.stubs_for_klee = args.stubs_for_klee
+        self.fptr_analysis = args.fptr_analysis
 
         self.dump_global_hashes = args.dump_global_hashes
         self.global_hashes = []
@@ -445,7 +446,8 @@ class Generator:
         self.debug_vars_init = args.debug_vars_init
 
         # Get the list of possible functions assigned to function pointers
-        self.fpointers = self._infer_functions()
+        if self.fptr_analysis:
+            self.fpointers = self._infer_functions()
         return True
 
         # 2) db.json file
@@ -9144,6 +9146,8 @@ def main():
                         help=f"Analyze record types")
     parser.add_argument("--debug-vars-init", action='store_true', default=False,
                         help=f"Print debug info on vars init")
+    parser.add_argument("--fptr-analysis", action="store_true",
+                        help="When used, based on lightweight static analysis the code of possible functions that could be invoked through the function pointer calls are also added to the generated output")
     
     args = parser.parse_args()
     
