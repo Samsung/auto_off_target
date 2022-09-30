@@ -7,6 +7,7 @@
 # Copyright  Samsung Electronics
 # Samsung Mobile Security Team @ Samsung R&D Poland
 
+from readline import get_current_history_length
 from toposort import toposort, toposort_flatten, CircularDependencyError
 import subprocess
 import functools
@@ -349,6 +350,7 @@ class Generator:
         self.init = args.init
         self.dump_smart_init = args.dump_smart_init
         self.dynamic_init = args.dynamic_init
+        self.kflat_img = args.kflat_img
 
         self.used_types_only = args.used_types_only
         self.dbjson2 = args.dbjson2
@@ -7065,8 +7067,11 @@ class Generator:
                     obj = _init_data
                     self._debug_print_typeuse_obj(obj)
             
-        if self.dynamic_init:
-            str += "\n\taot_kflat_init(\"%s\");\n"%Generator.KFLAT_IMAGE_NAME
+        if self.dynamic_init:       
+            if self.kflat_img:
+                str += "\n\taot_kflat_init(\"%s\");\n"%self.kflat_img
+            else:
+                str += "\n\taot_kflat_init(\"%s\");\n"%Generator.KFLAT_IMAGE_NAME
 
         str += "\n\n\t".join([self._generate_function_call(x, static=(x in static_functions), known_type_names=known_type_names, new_types=new_types).replace("\n", "\n\t")
                               for x in entry_points]) + "\n"
@@ -8908,9 +8913,11 @@ def main():
     parser.add_argument("--afl", type=str, choices=['none', 'stores', 'genl_ops'], default='none',
                         help="If used, generates AFL inits for stores/genl_ops")
     parser.add_argument("--init", action='store_true',
-                        help="When used, initialization code will be generated; the argument of this option is the path of the kflat image")
+                        help="When used, initialization code will be generated")
     parser.add_argument("--dynamic-init", action="store_true",
                         help="When used, dynamic initialization code will be generated (this can be used along the '--init' option to improve the static initialization)")
+    parser.add_argument("--kflat-img", default=Generator.KFLAT_IMAGE_NAME,
+                        help="The name of the KFLAT image file.")
     parser.add_argument("--used-types-only", action='store_true',
                         help="When used, only the used types will be generated - this affects stucts and enums")
     parser.add_argument("--dbjson2", action='store_true',
