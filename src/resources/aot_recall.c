@@ -385,7 +385,8 @@ struct stupid_hashmap {
     void* key;
     void* value;
 };
-static struct stupid_hashmap ptrs[4000];
+static const size_t max_ptrs = 1000000;
+static struct stupid_hashmap ptrs[max_ptrs];
 static size_t ptrsCnt;
 
 static void* getPtr(void* orig) {
@@ -395,6 +396,10 @@ static void* getPtr(void* orig) {
     return NULL;
 }
 static void addPtr(void* orig, void* ptr) {
+    if(ptrsCnt >= max_ptrs) {
+        AOT_RECALL_ERR("failed to load recall image - too many memory fragments");
+        exit(1);
+    }
     ptrs[ptrsCnt].key = orig;
     ptrs[ptrsCnt].value = ptr;
     ptrsCnt++;
