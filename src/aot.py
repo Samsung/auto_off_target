@@ -7323,7 +7323,7 @@ class Generator:
             else:
                 assert 0, "Detected absolute location in function location (%s) but the 'source root' parameter is not given"%(function["location"])
         fptr_stub_name = "%s__%s"%(loc.replace("/","__").replace("-","___").replace(".","____"),function["name"])
-         self.function_pointer_stubs.add((fptr_stub_name,function["id"]))
+        self.function_pointer_stubs.add((fptr_stub_name,function["id"]))
         fptr_stub_def = "int (*%s)(void) = (int (*)(void))%s;"%(fptr_stub_name,function["name"])
         if function["id"] in self.lib_funcs_ids:
             self.lib_function_pointer_stubs.add((fptr_stub_def,function["id"]))
