@@ -171,7 +171,7 @@ NOTE: You will notice that the source code of the generated functions is somewha
 Once the off-target is up and running you can use it for fuzzing, testing, debugging, symbolic execution or faster compilation. 
 
 
-## Docker
+# Docker
 
 This tool comes with a Dockerfile so you can build yourself an image, and then run `aot.py` script from preconfigured environment:
 
@@ -184,6 +184,18 @@ docker run -it --rm os-aot:latest --aot --parameters --here
 # To open up shell with AoT and other tools
 docker run -it --rm --entrypoint /bin/bash os-aot:latest
 ```
+
+# Paper
+
+Please find more details on CAS and AoT in our ASE 2022 paper
+
+```
+Tomasz Kuchta and Bartosz Zator. 2022. Auto Off-Target: Enabling Thorough and Scalable Testing for Complex Software Systems. 
+In 37th IEEE/ACM International Conference on Automated Software Engineering (ASE ’22), October 10–14, 2022, Rochester, MI, USA. 
+https://doi.org/10.1145/3551349.3556915
+```
+
+The paper can be found at: https://samsung.github.io/auto_off_target/paper
 
 # Last but not least
 
