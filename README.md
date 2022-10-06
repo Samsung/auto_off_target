@@ -197,6 +197,14 @@ https://doi.org/10.1145/3551349.3556915
 
 The paper can be found at: https://samsung.github.io/auto_off_target/paper
 
+# Talks
+
+Here you can find recorded talks on CAS and AoT
+
+* CAS @ LSS NA 2022: https://youtu.be/M7gl7MFU_Bc?t=648
+
+* AoT @ KLEE Workshop 2022: https://www.youtube.com/watch?v=Xzn_kmtW3_c
+
 # Last but not least
 
 If you find AoT useful we would greatly appreciate it if you could give us a credit :)
