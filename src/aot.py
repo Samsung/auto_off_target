@@ -2931,7 +2931,7 @@ class Generator:
                     return False
                 cnt = self.fnmap.get_count(f)
                 if cnt != 1:
-                    logging.warn(
+                    logging.warning(
                         "Expected 1 occurrence of function {}, found {}.".format(f, cnt))
                     # try to narrow down the search
                     files = locations[f]
