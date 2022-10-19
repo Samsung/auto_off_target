@@ -2918,6 +2918,7 @@ class Generator:
                     if not p.startswith('/') and p.count('/') != 0 and self.source_root is not None:
                         p = self.source_root + "/" + p
                     locations[f[0]].append(os.path.abspath(p))
+                    locations[f[0]].append(f[1])
                 else:
                     locations[f[0]] = []
 
@@ -2946,7 +2947,11 @@ class Generator:
                         filename = src
                         logging.info(
                             "Searched file {}, function file {}".format(files, filename))
-                        if filename in files or os.path.basename(src) in files:
+                        subpath = False
+                        for path in files:
+                            if path in filename:
+                                    subpath = True
+                        if subpath is True or filename in files or os.path.basename(src) in files:
                             if not self.include_asm and self._func_contains_assembly(func):
                                 logging.error(
                                     f"Cannot generate off-target for {f} as it contains an inline assembly")
