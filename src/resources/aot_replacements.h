@@ -2,7 +2,7 @@
 
  Copyright Samsung Electronics
  Samsung Mobile Security Team @ Samsung R&D Poland
-*/ 
+*/
 
 
 #ifndef AOT_REPLACEMENTS_H
@@ -30,15 +30,15 @@ static inline void __macrocall__list_for_each_continue__(struct list_head* pos, 
 static inline void __macrocall__list_for_each_prev__(struct list_head* pos, struct list_head* head) { (void*)pos; (void*)head; }
 static inline void __macrocall__list_for_each_safe__(struct list_head* pos, struct list_head* n, struct list_head* head) { (void*)pos; (void*)n; (void*)head; }
 static inline void __macrocall__list_for_each_prev_safe__(struct list_head* pos, struct list_head* n, struct list_head* head) { (void*)pos; (void*)n; (void*)head; }
-static inline void __macrocall__list_for_each_entry__(struct list_head* head, size_t offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_reverse__(struct list_head* head, size_t offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_continue__(struct list_head* head, size_t offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_continue_reverse__(struct list_head* head, size_t offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_from__(struct list_head* head, size_t offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_from_reverse__(struct list_head* head, size_t offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_safe__(struct list_head* head, size_t offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_safe_continue__(struct list_head* head, size_t offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_safe_from__(struct list_head* head, size_t offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_safe_reverse__(struct list_head* head, size_t offset) { (void*)head; (void*)offset; }
+static inline void __macrocall__list_for_each_entry__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
+static inline void __macrocall__list_for_each_entry_reverse__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
+static inline void __macrocall__list_for_each_entry_continue__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
+static inline void __macrocall__list_for_each_entry_continue_reverse__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
+static inline void __macrocall__list_for_each_entry_from__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
+static inline void __macrocall__list_for_each_entry_from_reverse__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
+static inline void __macrocall__list_for_each_entry_safe__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
+static inline void __macrocall__list_for_each_entry_safe_continue__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
+static inline void __macrocall__list_for_each_entry_safe_from__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
+static inline void __macrocall__list_for_each_entry_safe_reverse__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
 
 #endif
