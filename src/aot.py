@@ -364,6 +364,7 @@ class Generator:
         self._debug_derefs = args.debug_derefs
         self.stubs_for_klee = args.stubs_for_klee
         self.fptr_analysis = args.fptr_analysis
+        self.dump_ids = args.dump_ids
 
         self.dump_global_hashes = args.dump_global_hashes
         self.global_hashes = []
@@ -3785,6 +3786,15 @@ class Generator:
                 f"Saving hashes of global variables used into {self.out_dir}/{Generator.GLOBAL_HASH_FILE}")
             with open(f"{self.out_dir}/{Generator.GLOBAL_HASH_FILE}", "w") as file:
                 file.write("\n".join(self.global_hashes))
+
+        if self.dump_ids:
+            ids_dump = {}
+            ids_dump["types"] = list(self.all_types)
+            ids_dump["globals"] = list(all_global_ids)
+            ids_dump["int_funcs"] = list(self.internal_funcs)
+            ids_dump["ext_funcs"] = list(self.external_funcs)
+            with open(f"{self.out_dir}/ids.json", "w") as dump_file:
+                json.dump(ids_dump, dump_file) 
 
         if self.dynamic_init:
             logging.info(
@@ -9153,7 +9163,8 @@ def main():
                         help=f"Print debug info on vars init")
     parser.add_argument("--fptr-analysis", action="store_true",
                         help="When used, based on lightweight static analysis the code of possible functions that could be invoked through the function pointer calls are also added to the generated output")
-    
+    parser.add_argument("--dump-ids", action="store_true",
+                        help="When used, dump ids of types functions and globals used in the OT code to a file named ids.json") 
     args = parser.parse_args()
     
     retcode = 0
