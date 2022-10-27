@@ -6,16 +6,16 @@
 # Samsung Mobile Security Team @ Samsung R&D Poland
  
 function log {
-    msg=$1
+    local msg=$1
     echo "$msg"
 }
 function compile_fail {
-    target=$1
-    logfile="$target""_build.log"
+    local target=$1
+    local logfile="$target""_build.log"
     log "Command 'make $target' failed. Please check $logfile for details."
     log "The off-target code needs to compile first before we can proceed to testing."
     log "==== Build errors: ===="
-    errors=`grep "error:" $logfile`
+    local errors=`grep "error:" $logfile`
     log "$errors"
     exit 1
 }
