@@ -25,20 +25,21 @@
 #define __user
 #define __replacement__barrier__() ({;})
 
-static inline void __macrocall__list_for_each__(struct list_head* pos, struct list_head* head) { (void*)pos; (void*)head; }
-static inline void __macrocall__list_for_each_continue__(struct list_head* pos, struct list_head* head) { (void*)pos; (void*)head; }
-static inline void __macrocall__list_for_each_prev__(struct list_head* pos, struct list_head* head) { (void*)pos; (void*)head; }
-static inline void __macrocall__list_for_each_safe__(struct list_head* pos, struct list_head* n, struct list_head* head) { (void*)pos; (void*)n; (void*)head; }
-static inline void __macrocall__list_for_each_prev_safe__(struct list_head* pos, struct list_head* n, struct list_head* head) { (void*)pos; (void*)n; (void*)head; }
-static inline void __macrocall__list_for_each_entry__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_reverse__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_continue__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_continue_reverse__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_from__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_from_reverse__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_safe__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_safe_continue__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_safe_from__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
-static inline void __macrocall__list_for_each_entry_safe_reverse__(struct list_head* head, unsigned long offset) { (void*)head; (void*)offset; }
+static inline void __macrocall__list_for_each__(struct list_head* pos, struct list_head* head) { (void)pos; (void)head; }
+static inline void __macrocall__list_for_each_continue__(struct list_head* pos, struct list_head* head) { (void)pos; (void)head; }
+static inline void __macrocall__list_for_each_prev__(struct list_head* pos, struct list_head* head) { (void)pos; (void)head; }
+static inline void __macrocall__list_for_each_safe__(struct list_head* pos, struct list_head* n, struct list_head* head) { (void)pos; (void)n; (void)head; }
+static inline void __macrocall__list_for_each_prev_safe__(struct list_head* pos, struct list_head* n, struct list_head* head) { (void)pos; (void)n; (void)head; }
+static inline void __macrocall__list_for_each_entry__(struct list_head* head, unsigned long offset) { (void)head; (void)offset; }
+static inline void __macrocall__list_for_each_entry_reverse__(struct list_head* head, unsigned long offset) { (void)head; (void)offset; }
+static inline void __macrocall__list_for_each_entry_continue__(struct list_head* head, unsigned long offset) { (void)head; (void)offset; }
+static inline void __macrocall__list_for_each_entry_continue_reverse__(struct list_head* head, unsigned long offset) { (void)head; (void)offset; }
+static inline void __macrocall__list_for_each_entry_from__(struct list_head* head, unsigned long offset) { (void)head; (void)offset; }
+static inline void __macrocall__list_for_each_entry_from_reverse__(struct list_head* head, unsigned long offset) { (void)head; (void)offset; }
+static inline void __macrocall__list_for_each_entry_safe__(struct list_head* head, unsigned long offset) { (void)head; (void)offset; }
+static inline void __macrocall__list_for_each_entry_safe_continue__(struct list_head* head, unsigned long offset) { (void)head; (void)offset; }
+static inline void __macrocall__list_for_each_entry_safe_from__(struct list_head* head, unsigned long offset) { (void)head; (void)offset; }
+static inline void __macrocall__list_for_each_entry_safe_reverse__(struct list_head* head, unsigned long offset) { (void)head; (void)offset; }
+static inline void __macrocall__container_of__(void* ptr, unsigned long offset) { (void)ptr; (void)offset; }
 
 #endif
