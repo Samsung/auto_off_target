@@ -2879,6 +2879,7 @@ class Generator:
 
         all_funcs_with_asm_copy = self.all_funcs_with_asm
         self.all_funcs_with_asm = set()
+        self.function_names = function_names
 
         function_ids = []
 
@@ -3791,7 +3792,7 @@ class Generator:
             ids_dump = {}
             ids_dump["types"] = list(self.all_types)
             ids_dump["globals"] = list(all_global_ids)
-            ids_dump["entry_funcs"] = list(self.functions)
+            ids_dump["entry_funcs"] = list(self.function_names)
             ids_dump["int_funcs"] = list(self.internal_funcs)
             ids_dump["ext_funcs"] = list(self.external_funcs)
             with open(f"{self.out_dir}/ids.json", "w") as dump_file:
