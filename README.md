@@ -50,7 +50,7 @@ Moreover, as of now, AoT supports C language only (C++ is in progress).
 
 * AoT is a source-based white box solution. It means that you need to be able to build your target system's source code in order to use AoT.
 
-* In order to run AoT you need to have CAS databases (db.json, nfsdb.json) available for the target system. The creation of the database is beyond the scope of AoT, in a nutshell CAS happens during the build process. Please check the CAS (https://github.com/Samsung/CAS) project for more details.
+* In order to run AoT you need to have CAS databases (BAS, nfsdb.json) available for the target system. The creation of the database is beyond the scope of AoT, in a nutshell CAS happens during the build process. Please check the CAS (https://github.com/Samsung/CAS) project for more details.
 
 * Technical:
   * Python3
