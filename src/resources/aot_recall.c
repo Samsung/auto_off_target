@@ -92,7 +92,8 @@ struct FL_content {
     size_t othersLen;
 };
 
-static void fl_close(void);
+static void fl_close_atexit(void);
+static void fl_close(int);
 
 static int fl_file_open(const char* filename, const char* mode) {
     int ret;
@@ -127,7 +128,7 @@ int fl_create(const char* filename) {
     }
 
     // Register close callback
-    ret = atexit(fl_close);
+    ret = atexit(fl_close_atexit);
     if(ret) {
         AOT_RECALL_ERR("failed to register at_exit handler (%d)%s", errno, strerror(errno));
         return -1;
@@ -371,9 +372,12 @@ void __asan_on_error(void) {
     _fl_close_file();
 }
 
-static void fl_close(void) {
+static void fl_close(int) {
     _fl_close_file();
     _exit(0);
+}
+static void fl_close_atexit(void) {
+    fl_close(0);
 }
 
 #ifdef AOT_RECALL_BINARY

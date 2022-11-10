@@ -5671,7 +5671,7 @@ class Generator:
 
                 val = Generator.AOT_SPECIAL_PTR + (counter * (2*Generator.AOT_SPECIAL_PTR_SEPARATOR)) 
                 self.stub_to_return_ptr[func_name] = val
-                str += f"\treturn {hex(val)}; // returning a special pointer"
+                str += f"\treturn ({self._get_typename_from_type(return_type)}){hex(val)}; // returning a special pointer"
                 logging.info("Will generate return statement 1")
             elif cl == "builtin":
                 if return_type["str"] != "void":
