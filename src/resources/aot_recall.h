@@ -4,7 +4,6 @@
  Samsung Mobile Security Team @ Samsung R&D Poland
 */ 
 
-
 // Create AoT_Recall file with name `filename`
 int fl_create(const char* filename);
 
@@ -20,5 +19,6 @@ int fl_save_other(int type, const char* value);
 enum RECALL_FL_OTHER_TYPES {
     RECALL_FL_OTHER_TYPES_INTERFACE,
 };
+void exit(int exit_code);
 #define AOT_RECALL_SAVE_INTERFACE(INTERFACE)    \
         if(fl_save_other(RECALL_FL_OTHER_TYPES_INTERFACE, INTERFACE)) exit(1)

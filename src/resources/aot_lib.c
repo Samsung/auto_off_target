@@ -15,6 +15,9 @@
 #include "aot_lib.h"
 #include "aot_fuzz_lib.h"
 
+void* malloc(size_t size);
+void free(void* ptr);
+
 #ifdef AOT_MEMDUP_USER
 #define AOT_MEMDUP_USER_MAX_SIZE (128 * 1024 * 1024) // 128 MB
 

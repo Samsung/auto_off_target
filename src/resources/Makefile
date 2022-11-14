@@ -12,7 +12,7 @@ extra_bc :=
 CLANG_TIDY:=/media/storage/toolchain_6305083/out_release/stage2-install/bin/clang-tidy
 CLANG_TIDY_OPTS:= --checks="-*,readability-function-size" --config="{Checks: 'readability-function-size',CheckOptions: [{key: readability-function-size.BranchThreshold, value: '0'},{key: readability-function-size.NestingThreshold, value: '0'},{key: readability-function-size.LineThreshold, value: '0'},{key: readability-function-size.StatementThreshold, value: '0'}]}"
 
-CFLAGS = -MD -Wno-implicit-function-declaration
+CFLAGS = -MD
 LDFLAGS = 
 COMP = clang
 
@@ -95,8 +95,8 @@ ubsan: $(obj) $(lib)
 # data flow sanitizer
 # aot_dsan.c.lib contains the callbacks which can't be instrumented with dfsan and is compiled separately
 .PHONY: dfsan
-dfsan: CFLAGSDFSAN=-fno-sanitize=dataflow -MD -w -mllvm -dfsan-event-callbacks -g -DDFSAN -fPIE -Wno-implicit-function-declaration
-dfsan: CFLAGS=-fsanitize=dataflow -MD -w -mllvm -dfsan-event-callbacks -g -DDFSAN -Wno-implicit-function-declaration -I${KFLAT_LIB_PATH} -fsanitize-ignorelist=dfsan_ignore_list.txt
+dfsan: CFLAGSDFSAN=-fno-sanitize=dataflow -MD -w -mllvm -dfsan-event-callbacks -g -DDFSAN -fPIE
+dfsan: CFLAGS=-fsanitize=dataflow -MD -w -mllvm -dfsan-event-callbacks -g -DDFSAN -I${KFLAT_LIB_PATH} -fsanitize-ignorelist=dfsan_ignore_list.txt
 dfsan: COMP=clang-15
 dfsan: $(obj) $(lib)	
 	cp aot_dfsan.c.lib aot_dfsan.c

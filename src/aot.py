@@ -7114,7 +7114,7 @@ class Generator:
         # str = self._get_file_header()
 
         # str += "\n#include \"aot.h\""
-        str += "\n#include \"aot_mem_init_lib.h\""
+        #str += "\n#include \"aot_mem_init_lib.h\""
         str += "\n#include \"aot_fuzz_lib.h\""
         str += "\n#include \"aot_log.h\""
         str += "\n#include \"aot_recall.h\""
@@ -7131,6 +7131,11 @@ class Generator:
         if self.afl == 'genl_ops':
             # inster genl_ops init snippet
             str += self._load_snippet("genl_ops_init")
+
+        if self.init:
+            str += "\n"
+            for id in self.fid_to_filename:
+                str += f"void aot_init_globals_file_{id}(void);\n"
 
         main_start = len(str)
 
@@ -7383,6 +7388,8 @@ class Generator:
             else:
                 _str += "#include \"aot_replacements.h\"\n\n"
             _str += "#include \"aot_log.h\"\n\n"
+            _str += "#include \"aot_mem_init_lib.h\"\n\n"
+
         _str += contents
 
         with open(f"{self.out_dir}/{filename}", "a+") as file:

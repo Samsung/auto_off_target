@@ -4,9 +4,14 @@
  Samsung Mobile Security Team @ Samsung R&D Poland
 */ 
 
-
+#include <string.h>
 #include "aot_mem_init_lib.h"
 #include "aot_fuzz_lib.h"
+
+void* memset(void* dst, int ch, size_t count);
+void* malloc(size_t size);
+void free(void* ptr);
+int printf(const char* format, ...);
 
 /* ----------------------------- */
 /* Memory init function */
