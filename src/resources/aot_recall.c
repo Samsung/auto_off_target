@@ -372,7 +372,7 @@ void __asan_on_error(void) {
     _fl_close_file();
 }
 
-static void fl_close(int) {
+static void fl_close(int fd) {
     _fl_close_file();
     _exit(0);
 }
