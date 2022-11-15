@@ -5362,7 +5362,15 @@ class Generator:
                         pointers = []
                         # let's check if the param is used at all, if not, let's skip the init just like that
                         is_used = function["locals"][i-1]["used"]
-                        if is_used:
+                        user_init = False
+                        if name in self.init_data:
+                            _varname = function["locals"][i - 1]["name"]
+                            for item in self.init_data[name]["items"]:
+                                if _varname in item["name"]:
+                                    user_init = True
+                                    break
+
+                        if is_used or user_init:
                             init_obj = None
                             if function_id in self.funcs_init_data:
                                 init_data = self.funcs_init_data[function_id]
