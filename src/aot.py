@@ -6810,7 +6810,10 @@ class Generator:
                         # member coult be u16 but its address used to process data as int - we currently
                         # don't support that scheme -> TBD
                         #src_size = self.typemap[src_no_typedef]["size"]
-                        src_size = self.typemap[self._get_typedef_dst(self.typemap[src_root_tid])["id"]]["size"]
+                        if src_member == Generator.CAST_PTR_NO_MEMBER:
+                            src_size = self.typemap[self._get_typedef_dst(self.typemap[src_root_tid])["id"]]["size"]
+                        else:
+                            src_size = self.typemap[self._get_typedef_dst(self.typemap[src_member_tid])["id"]]["size"]
 
                         dst_size = self.typemap[dst_no_typedef]["size"]
                         if src_size != dst_size:
