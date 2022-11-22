@@ -8983,8 +8983,8 @@ class Generator:
 
         functions |= fcalls
 
-        for f in functions:
-            func = self.fnidmap[f]
+        func_ids = [f for f in functions]
+        for func in self.fnidmap.get_many(func_ids):
             if None != func:
                 # some of the funrefs might be funcdels rather then functions
                 if not calls_only:
