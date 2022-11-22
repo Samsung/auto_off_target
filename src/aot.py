@@ -8196,12 +8196,11 @@ class Generator:
         # but first, let's get the globals
         globals_ids = set()
         globals_ids |= set(globs)  # include the known globals from "globs"
-        for f in functions:
-            if f in self.external_funcs:
-                # for static inline functions we will have external stubs in a non-stub file
-                # but since the functions are external we do not want to get the globals
-                continue
-            func = self.fnidmap[f]
+
+        # for static inline functions we will have external stubs in a non-stub file
+        # but since the functions are external we do not want to get the globals
+        func_ids = [f for f in functions if f not in self.external_funcs]
+        for func in self.fnidmap.get_many(func_ids):
             if func is not None:
                 globals_ids |= set(func["globalrefs"])
 
@@ -8222,8 +8221,8 @@ class Generator:
         globals_refs = set()
         global_fwd_str = {}
         global_type_decls = set()
-        for g_id in globals_ids:
-            g = self.globalsidmap[g_id]
+        for g in self.globalsidmap.get_many(list(globals_ids)):
+            g_id = g['id']
             g_tid = g["type"]
             g_fid = g["fid"]
             # make sure that the type is not already there
