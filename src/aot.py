@@ -12,7 +12,6 @@ from toposort import toposort, toposort_flatten, CircularDependencyError
 import subprocess
 import functools
 import shutil
-import psutil
 import difflib
 import json
 import itertools
