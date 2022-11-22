@@ -1609,9 +1609,6 @@ class Generator:
 
             # recursive queries are handled by csr_matix objects 
             # we have the necessary data for those objects stored in the db
-            self.funcs_tree_funrefs = self._create_cache_matrix(self.db, Generator.FUNCS_REFS)
-            self.funcs_tree_calls = self._create_cache_matrix(self.db, Generator.FUNCS_CALLS)
-
             funcs = []
             known_asm = set()
             funcs_size = 0
@@ -1623,20 +1620,11 @@ class Generator:
                 a, b = self.funcs_tree_funrefs.shape
                 funcs_size = a
 
-            if not known_functions_updated:
-                self.funcs_tree_funrefs_no_known = self._create_cache_matrix(self.db, Generator.FUNCS_REFS_NO_KNOWN) 
-                self.funcs_tree_calls_no_known = self._create_cache_matrix(self.db, Generator.FUNCS_CALLS_NO_KNOWN)
-            else:
+            if known_functions_updated:
                 self.funcs_tree_funrefs_no_known = self._create_recursive_cache(funcs, funcs_size, "id", "funrefs", Generator.FUNCS_REFS_NO_KNOWN, set(self.known_funcs_ids))
                 self.funcs_tree_calls_no_known = self._create_recursive_cache(funcs, funcs_size, "id", "calls", Generator.FUNCS_CALLS_NO_KNOWN, set(self.known_funcs_ids))
-
-            self.funcs_tree_funrefs_no_asm = self._create_cache_matrix(self.db, Generator.FUNCS_REFS_NO_ASM)
-            self.funcs_tree_calls_no_asm = self._create_cache_matrix(self.db, Generator.FUNCS_CALLS_NO_ASM)
             
-            if not known_functions_updated:
-                self.funcs_tree_funrefs_no_known_no_asm = self._create_cache_matrix(self.db, Generator.FUNCS_REFS_NO_KNOWN_NO_ASM)
-                self.funcs_tree_calls_no_known_no_asm = self._create_cache_matrix(self.db, Generator.FUNCS_CALLS_NO_KNOWN_NO_ASM)
-            else:
+            if known_functions_updated:
                 self.funcs_tree_funrefs_no_known_no_asm = self._create_recursive_cache(funcs, funcs_size, "id", "funrefs", Generator.FUNCS_REFS_NO_KNOWN_NO_ASM, known_asm)           
                 self.funcs_tree_calls_no_known_no_asm = self._create_recursive_cache(funcs, funcs_size, "id", "calls", Generator.FUNCS_CALLS_NO_KNOWN_NO_ASM, known_asm)           
                
@@ -1684,6 +1672,13 @@ class Generator:
             # load init data from db
             self.init_data = self.db.create_local_index("init_data", "name")
 
+    # -------------------------------------------------------------------------
+
+    def get_cache_matrix(self, name):
+        if not hasattr(self, name) or getattr(self, name) is None:
+            result = self._create_cache_matrix(self.db, name)
+            setattr(self, name, result)
+        return getattr(self, name)
    
     # -------------------------------------------------------------------------
 
@@ -8939,29 +8934,14 @@ class Generator:
                 logging.debug("fcalls size is {}".format(len(fcalls)))
 
 
-            used_map = None
-
-            if cutoff is None:
-                if not calls_only:
-                    used_map = self.funcs_tree_funrefs
-                else:
-                    used_map = self.funcs_tree_calls
-            else:
-                if filter_on and not self.include_asm:
-                    if not calls_only:
-                        used_map = self.funcs_tree_funrefs_no_known_no_asm
-                    else:
-                        used_map = self.funcs_tree_calls_no_known_no_asm
-                elif filter_on and self.include_asm:
-                    if not calls_only:                    
-                        used_map = self.funcs_tree_funrefs_no_known
-                    else:
-                        used_map = self.funcs_tree_calls_no_known
-                else:
-                    if not calls_only:
-                        used_map = self.funcs_tree_funrefs_no_asm
-                    else:
-                        used_map = self.funcs_tree_calls_no_asm
+            used_map_name = 'funcs_tree_'
+            used_map_name += 'calls' if calls_only else 'funrefs'
+            if cutoff:
+                if filter_on:
+                    used_map_name += '_no_known'
+                if not self.include_asm:
+                    used_map_name += '_no_asm'
+            used_map = self.get_cache_matrix(used_map_name)
 
             if used_map is not None:
                 if additional_refs is None:
