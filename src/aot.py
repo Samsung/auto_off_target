@@ -1957,11 +1957,11 @@ class Generator:
         srcs = []
         if "fids" in function:
             fids = function["fids"]
-            for fid in fids:
-                srcs.append(self.srcidmap[fid])
+            for entry in self.srcidmap.get_many([fid for fid in fids]):
+                srcs.append(entry)
         else:
             # if fids not present for some reason, we still have fid
-            srcs.append(self.srcidmap[fid])
+            srcs.append(src)
 
         if "abs_location" in function and len(function["abs_location"]) > 0:
             loc = function["abs_location"]
@@ -2267,8 +2267,7 @@ class Generator:
 
     def _get_globals_from_types(self, types):
         globs = set()
-        for t_id in types:
-            t = self.typemap[t_id]
+        for t in self.typemap.get_many(types):
             if t is None:
                 shutil.move(self.logname, f"{self.out_dir}/{Generator.LOGFILE}")
                 sys.exit(1)
@@ -2299,10 +2298,11 @@ class Generator:
     # from a list of types get all functions referenced in those types
     def _get_funcs_from_types(self, types, skip_list=None):
         funcs = set()
-        for t_id in types:
-            if skip_list != None and t_id in skip_list:
-                continue
-            t = self.typemap[t_id]
+        if skip_list:
+            types_ids = [t_id for t_id in types if t_id not in skip_list]
+        else:
+            types_ids = types
+        for t in self.typemap.get_many(types_ids):
             if "funrefs" in t:
                 logging.debug(
                     "Adding funrefs found in types {}".format(t["funrefs"]))
