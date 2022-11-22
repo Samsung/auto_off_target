@@ -1095,7 +1095,7 @@ class Generator:
     # for size-like members:
     # - ['index']      : upper limit for members used as an index in a const array (any), e.g. array[s->index], where array is of size 20
     def _generate_member_size_info(self, funcs, types):
-        logging.info(f"will generate size info for {len(funcs)} funcs and {len(types)} types")
+        logging.info(f"will generate size info")
         
         for func in funcs:
             logging.info(f"processing {func['name']}")
