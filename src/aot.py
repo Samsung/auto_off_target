@@ -8938,8 +8938,11 @@ class Generator:
             if cutoff:
                 if filter_on:
                     used_map_name += '_no_known'
-                if not self.include_asm:
+                if not self.include_asm or not filter_on:
                     used_map_name += '_no_asm'
+            logging.debug("selecting cache matrix based on:")
+            logging.debug(" calls_only - {}; cutoff - {}; filter_on - {}; include_asm {}".format(
+                calls_only, cutoff, filter_on, self.include_asm))
             used_map = self.get_cache_matrix(used_map_name)
 
             if used_map is not None:
