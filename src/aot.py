@@ -289,6 +289,7 @@ class Generator:
         self.tagged_vars_count = 0
 
         self.member_usage_info = {}
+        self.fpointer_map = {}
 
     # -------------------------------------------------------------------------
 
@@ -444,9 +445,6 @@ class Generator:
 
         self.debug_vars_init = args.debug_vars_init
 
-        # Get the list of possible functions assigned to function pointers
-        if self.fptr_analysis:
-            self.fpointers = self._infer_functions()
         return True
 
         # 2) db.json file
@@ -464,20 +462,20 @@ class Generator:
     #  a list of possible functions that could be invoked through that pointer
     # Returns the following map:
     #  {
-    #    function_id : (expr,[called_fun_id,...])
+    #    function_id : [(expr,[called_fun_id,...]), ()...)]
     #  }
     # where,
     #  function_id: a function where the function invocation through a pointer takes place
     #  expr: the expression of the function invocation through a pointer
     #  called_fun_id: function id that could be possible stored (and invoked) through the pointer at the given expression
-    def _infer_functions(self):
+    def _infer_functions(self, json_data: dict) -> dict:
 
         # save all funcs
         funcsaddresstaken = set()
         funcsbytype = {}
         funcTypeCandidates = {}
 
-        for fun in self.db.db["funcs"]:
+        for fun in json_data["funcs"]:
             for deref in fun["derefs"]:
                 if deref["kind"] != "assign" and deref["kind"] != "init":
                     continue
@@ -488,12 +486,12 @@ class Generator:
                     funcsaddresstaken.add(function["id"])
 
         # from global variables take all funrefs as funcs with address taken
-        for var in self.db.db["globals"]:
+        for var in json_data["globals"]:
             for funid in var["funrefs"]:
                 funcsaddresstaken.add(funid)
 
         funDict = {}
-        for fun in self.db.db["funcs"]:
+        for fun in json_data["funcs"]:
             funDict[fun["id"]] = fun
 
         for function in funcsaddresstaken:
@@ -506,7 +504,7 @@ class Generator:
             else:
                 funcsbytype[typeTuple].append(f)
 
-        for typ in self.db.db["types"]:
+        for typ in json_data["types"]:
             if typ["class"] == "function":
                 typeTuple = tuple(typ["refs"])
                 if typeTuple in funcsbytype:
@@ -515,16 +513,16 @@ class Generator:
                     funcTypeCandidates[typ["id"]] = []
 
         globalDict = {}
-        for glob in self.db.db["globals"]:
+        for glob in json_data["globals"]:
             globalDict[glob["id"]] = glob
 
         typeDict = {}
-        for fun in self.db.db["types"]:
+        for fun in json_data["types"]:
             typeDict[fun["id"]] = fun
 
         # first level struct assignment
         fucnsFirstLevelStruct = set()
-        for fun in self.db.db["funcs"]:
+        for fun in json_data["funcs"]:
             for deref in fun["derefs"]:
                 if deref["kind"] != "assign" and deref["kind"] != "init":
                     continue
@@ -542,7 +540,7 @@ class Generator:
 
         # seems that we need to add also those from fops
         recordsByName = {}
-        for type in self.db.db["types"]:
+        for type in json_data["types"]:
             if type["class"] != "record":
                 continue
             recordsByName.setdefault(type["str"], [])
@@ -550,7 +548,7 @@ class Generator:
 
         fopbased = set()
 
-        for fop in self.db.db["fops"]["vars"]:
+        for fop in json_data["fops"]["vars"]:
             for record in recordsByName[fop["type"]]:
                 for member in fop["members"]:
                     fucnsFirstLevelStruct.add((record["id"], int(member), fop["members"][member]))
@@ -570,7 +568,7 @@ class Generator:
 
         # and than we need to get icalls with struct type
         iCallsStruct = []
-        for func in self.db.db["funcs"]:
+        for func in json_data["funcs"]:
             for deref in func["derefs"]:
                 if deref["kind"] != "member":
                     continue
@@ -614,7 +612,7 @@ class Generator:
             output[func["id"]][deref["expr"]] = funcCandidates
 
         funccals = []
-        for fun in self.db.db["funcs"]:
+        for fun in json_data["funcs"]:
             for deref in fun["derefs"]:
                 if deref["kind"] == "function":
                     funccals.append((deref, fun))
@@ -647,7 +645,23 @@ class Generator:
                 output.setdefault(func["id"], {})
                 output[func["id"]][deref["expr"]] = funcCandidates
 
-        return { k:(list(v.keys())[0],[x["id"] for x in list(v.values())[0]]) for k,v in output.items() }
+        return {
+            func_id: [
+                (expr, [x["id"] for x in v]) for expr, v in deref.items()
+            ] for func_id, deref in output.items()
+        }
+
+    #
+    # Queries pre-processed map of function pointers matches
+    #  Returns the following list:
+    #       [("expr", [func_id_0, func_id_1, ...])] or None if ID not found
+    #  Arguments:
+    #       func_id: ID of the function for which function_pointers should be found
+    def _get_infer_function(self, func_id: int) -> list:
+        result = self.fpointer_map.get(func_id)
+        if result is None:
+            return None
+        return result['entries']
 
     # -------------------------------------------------------------------------
 
@@ -1583,6 +1597,16 @@ class Generator:
             self.types_tree_usedrefs = self._create_recursive_cache(types, len(types), "id", "usedrefs", Generator.TYPES_USEDREFS, set())
             self.globs_tree_globalrefs = self._create_recursive_cache(globs, len(globs), "id", "globalrefs", Generator.GLOBS_GLOBALREFS, set())
 
+            if self.fptr_analysis:
+                # preprocess list of all possible functions assigned to function pointers
+                logging.info("Pre-procesing function pointers information")
+                fpointers = self._infer_functions(json_data)
+                fpointers_for_mongo = [{"_id": k, "entries": v} for k, v in fpointers.items()]
+
+                self.db.store_many_in_collection("func_fptrs", fpointers_for_mongo)
+                del fpointers_for_mongo
+                del fpointers
+
             del funcs
             del types
             del globs
@@ -1621,6 +1645,23 @@ class Generator:
 
             self._get_called_functions(self.always_inc_funcs_ids)
             logging.info(f"Recursively we have {len(self.always_inc_funcs_ids)} functions to include")
+
+            if self.fptr_analysis:
+                if json_data is not None:
+                    # if we're using db.json and --fptr-analysis flag was provided, 
+                    #  generate list of all possible functions assigned to function pointers
+                    logging.info("Generating function pointers information")
+                    fpointers = self._infer_functions(json_data)
+                    self.fpointers_map = {k: {"_id": k, "entries": v} for k, v in fpointers.items()}
+                elif json_data is None and 'func_fptrs' in self.db.db.list_collection_names():
+                    # if we're using mongodb and there is a collection named func_fptrs,
+                    #  retrieve list of fptr matches
+                    logging.info("Will be using preprocessed function pointers information")
+                    queried = self.db.create_local_index('func_fptrs', '_id').get_all()
+                    self.fpointer_map = {d['_id']: d for d in queried}
+                else:
+                    logging.error(f"Option --fptr-analysis requires either db.json or MongoDB imported with function pointers analysis enabled")
+                    exit(1)
 
 
         # import all data init constraints
@@ -2007,6 +2048,14 @@ class Generator:
         global_refs |= self._get_globals_from_globals(global_refs)
 
         funrefs |= self._get_funcs_from_globals(global_refs)
+
+        # gather func pointers
+        if self.fptr_analysis:
+            fptrs = self._get_infer_function(base_fid)
+            if fptrs is not None:
+                for expr in fptrs:
+                    funrefs.update([fid for fid in expr[1]])
+
         for fid in funrefs:
             logging.debug("checking funref {} ".format(fid))
             ext = False  # deciding if the function is external or not
@@ -8911,6 +8960,7 @@ class Generator:
                 calls_only, cutoff, filter_on, self.include_asm))
             used_map = self.get_cache_matrix(used_map_name)
 
+            # collect list of accesible functions
             if used_map is not None:
                 if additional_refs is None:
                     result = []
@@ -8931,7 +8981,7 @@ class Generator:
                     
                     tmp.add(f)
 
-                    result = list(tmp)                
+                    result = list(tmp)
             else:
                 if not calls_only:
                     field = "funrefs"
