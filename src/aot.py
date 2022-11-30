@@ -2985,7 +2985,7 @@ class Generator:
                                 "Successfully located function {} (id: {}) in file {}".format(f, fid, loc))
                     after = len(function_ids)
                     if ((after - before) > 1):
-                        logging.warn("We still have more than one function candidate")
+                        logging.warning("We still have more than one function candidate")
                         success = False
 
                     if success == False:
@@ -4158,14 +4158,14 @@ class Generator:
                 loop_count = array_count
                 if 0 == loop_count:
                     if self.debug_vars_init:
-                        logging.warn("special case: adding a single member to a const array")
+                        logging.warning("special case: adding a single member to a const array")
                     loop_count = 1 # this is a special corner case -> we already allocated memory for 1 member
                     str += "// increasing the loop count to 1 for a const array of size 0\n"
             elif "incomplete_array" == cl and type['size'] == 0:
                 is_array = True
                 loop_count = 0
                 if self.debug_vars_init:
-                    logging.warn("special case: adding a single member to a const array")
+                    logging.warning("special case: adding a single member to a const array")
                 loop_count = 1 # this is a special corner case -> we already allocated memory for 1 member
                 str += "// increasing the loop count to 1 for a const array of size 0\n"
             else:
@@ -5498,7 +5498,7 @@ class Generator:
                     f"Unable to find function id {function_id}, will try funcdecl")
                 function = self.fdmap[function_id]
                 if function is None:
-                    logging.warn(
+                    logging.warning(
                         f"Unable to find function is {function_id} in funcdecls, trying unresolved")
                     function = self.umap[function_id]
                     if function is None:
@@ -8824,7 +8824,7 @@ class Generator:
         try:
             sorted = toposort_flatten(deps)
         except CircularDependencyError as e:
-            logging.warn("Circular depdencies detected")
+            logging.warning("Circular depdencies detected")
 
             # typedefs are known to cause circular deps problem
             # because it's hard to find a generic rule for cicles removal,
