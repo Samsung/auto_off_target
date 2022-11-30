@@ -71,6 +71,9 @@ class BASconnector:
         else:
             contents = self.db_index[loc]
 
+        if contents is None:
+            logging.warning("cannot find {} in rdm database".format(loc))
+            return []
 
         if self.cache_size > 0:
             self.cache[location] = contents["entries"]
