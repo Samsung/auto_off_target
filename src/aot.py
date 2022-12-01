@@ -7123,7 +7123,8 @@ class Generator:
         str += "\n#include \"aot_fuzz_lib.h\""
         str += "\n#include \"aot_log.h\""
         str += "\n#include \"aot_recall.h\""
-
+        str += "\n\n// Forward decls of misc functions used in this file"
+        str += "\nvoid* malloc(size_t size);"
         if self.afl != 'none':
             str += "\n#include <stdio.h>"
 
