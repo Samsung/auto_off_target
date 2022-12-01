@@ -7,6 +7,7 @@
 
 #include "aot_log.h"
 #include <stdio.h>
+#include <stdarg.h>
 
 #define LOG_FILE_NAME "off_target.log"
 
