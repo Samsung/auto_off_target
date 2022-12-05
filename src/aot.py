@@ -7706,6 +7706,10 @@ class Generator:
                 if "__replacement" in func["body"]:
                     str += "#include \"aot_replacements.h\"\n"
 
+        if stubs is True:
+            str += "\n\n// func decls for the functions used in this file\n"
+            str += "void* memset(void* dst, int ch, typeof(sizeof(int)) count);\n"
+
         logging.debug("name = {}, functions = {}, types = {}".format(
             name, functions, types))
 

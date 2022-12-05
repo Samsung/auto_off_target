@@ -10,7 +10,9 @@
 
 #include "aot_fuzz_lib.h"
 
+// decls of functions used in this file
 int printf(const char* fmt, ...);
+void* memcpy(void* dst, const void* src, typeof(sizeof(int)) count);
 
 #define __replacement____put_user__(x,ptr) ({ typeof(*ptr) val; typeof(*ptr) __x = x; memcpy(&val, &__x, sizeof(__x)); 0; })
 #define __replacement____get_user__(x,ptr)  ({ fuzz_that_data(&x, ptr, sizeof(x), 0); aot_tag_memory(&x, sizeof(x), 0); 0; })
