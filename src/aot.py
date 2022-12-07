@@ -7123,8 +7123,7 @@ class Generator:
         str += "\n#include \"aot_fuzz_lib.h\""
         str += "\n#include \"aot_log.h\""
         str += "\n#include \"aot_recall.h\""
-        str += "\n\n// Forward decls of misc functions used in this file"
-        str += "\nvoid* malloc(size_t size);"
+        
         if self.afl != 'none':
             str += "\n#include <stdio.h>"
 
@@ -7706,9 +7705,13 @@ class Generator:
                 if "__replacement" in func["body"]:
                     str += "#include \"aot_replacements.h\"\n"
 
-        if stubs is True:
-            str += "\n\n// func decls for the functions used in this file\n"
-            str += "void* memset(void* dst, int ch, typeof(sizeof(int)) count);\n"
+        if fid == Generator.AOT_HEADER_ID:
+            str_header += "\n\n// func decls which might be useful\n"
+            str_header += "void* memset(void* dst, int ch, typeof(sizeof(int)) count);\n"
+            str_header += "void* memcpy(void* dst, const void* src, typeof(sizeof(int)) n);\n"
+            str_header += "void* malloc(typeof(sizeof(int)) size);\n"
+            str_header += "int puts(const char* s);\n"
+            str_header += "int strcmp(const char* a, const char* b);\n"
 
         logging.debug("name = {}, functions = {}, types = {}".format(
             name, functions, types))
