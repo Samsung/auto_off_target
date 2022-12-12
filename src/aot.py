@@ -357,7 +357,6 @@ class Generator:
         self.rdm_file = args.rdm_file
         self.init_data = None
         self.init_file = args.init_file
-        self.source_root = args.source_root
         self.verify_struct_layout = args.verify_struct_layout
         self.struct_types = []
         self._debug_derefs = args.debug_derefs
@@ -1442,8 +1441,7 @@ class Generator:
             self.lib_funcs = known_data['lib_funcs']
             self.lib_funcs_ids = known_data['lib_funcs_ids']
             self.always_inc_funcs_ids = set(known_data['always_inc_funcs_ids'])
-            self.source_root = known_data['source_root']
-        logging.info(f"Version is {self.version}, source root is {self.source_root}")
+        logging.info(f"Version is {self.version}")
 
 
         if self.always_inc_funcs_file is None:
@@ -1535,9 +1533,6 @@ class Generator:
                     tmp_static_funcs_map.append(item)
                 self.db.store_many_in_collection("static_funcs_map", tmp_static_funcs_map)
 
-                src_root = ""
-                if self.source_root is not None:
-                    src_root = self.source_root
                 known_data = {
                     "version": self.version,
                     "func_ids": list(self.known_funcs_ids),
@@ -1545,8 +1540,7 @@ class Generator:
                     "asm_ids": list(self.all_funcs_with_asm),
                     "lib_funcs": list(self.lib_funcs),
                     "lib_funcs_ids": list(self.lib_funcs_ids),
-                    "always_inc_funcs_ids": list(self.always_inc_funcs_ids),
-                    "source_root": src_root 
+                    "always_inc_funcs_ids": list(self.always_inc_funcs_ids)
                 }
                 filename = f"{self.known_funcs_file}.json"
                 filename = os.path.basename(filename)
@@ -1958,11 +1952,6 @@ class Generator:
             srcs.append(src)
 
         loc = function["location"]
-        if self.source_root is not None and self.source_root and len(self.source_root) > 0:
-            if loc.startswith("./"): 
-                loc = self.source_root + loc[1:]
-            elif not loc.startswith("/"):
-                loc = self.source_root + "/" + loc
                 
         end_index = loc.find(":")
         if -1 != end_index:
@@ -2902,9 +2891,7 @@ class Generator:
                     if f[0] not in locations:
                         locations[f[0]] = []
                     p = f[1]
-                    if not p.startswith('/') and p.count('/') != 0 and self.source_root is not None:
-                        p = self.source_root + "/" + p
-                    locations[f[0]].append(os.path.abspath(p))
+                    locations[f[0]].append(p)
                     locations[f[0]].append(f[1])
                 else:
                     locations[f[0]] = []
@@ -5375,12 +5362,6 @@ class Generator:
                         RT,TPD = self._resolve_record_type(type["id"])
                         if RT is not None and type["class"]=="pointer":
                             # Replace the initialized variable with the image from kflat
-                            loc = function["location"].split(":")[0]
-                            if os.path.isabs(loc):
-                                if self.source_root is not None and len(self.source_root) > 0:
-                                    loc = loc[len(self.source_root)+1:]
-                                else:
-                                    assert 0, "Detected absolute location in function location (%s) but the 'source root' parameter is not given"%(function["location"])
                             vartype = " ".join(self._generate_var_def(type, varname).split()[:-1])
                             str += Generator.DYNAMIC_INIT_FUNCTION_VARIABLE_TEMPLATE.format(varname, "flatten", f"_func_arg_{i}", vartype)+"\n\n"
                 i = saved_i
@@ -7329,11 +7310,6 @@ class Generator:
     def _get_function_pointer_stub(self, function):
 
         loc = function["location"].split(":")[0]
-        if os.path.isabs(loc):
-            if self.source_root is not None and len(self.source_root) > 0:
-                loc = loc[len(self.source_root)+1:]
-            else:
-                assert 0, "Detected absolute location in function location (%s) but the 'source root' parameter is not given"%(function["location"])
         fptr_stub_name = "%s__%s"%(loc.replace("/","__").replace("-","___").replace(".","____"),function["name"])
         self.function_pointer_stubs.add((fptr_stub_name,function["id"]))
         fptr_stub_def = "int (*%s)(void) = (int (*)(void))%s;"%(fptr_stub_name,function["name"])
@@ -9127,8 +9103,6 @@ def main():
                         help='BAS-generated JSON file with location->module map')
     parser.add_argument("--init-file", default=None,
                         help='JSON file with init data')
-    parser.add_argument("--source-root", default=None,
-                        help='Specify base source directory for relative file paths (that start with a .)')
     parser.add_argument("--verify-struct-layout", action='store_true',
                         help=f"Add code to verify struct layout for generated struct types")
     parser.add_argument("--dump-global-hashes", action='store_true',
