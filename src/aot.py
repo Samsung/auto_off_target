@@ -1656,8 +1656,13 @@ class Generator:
                     logging.info("Generating function pointers information")
                     fpointers = self._infer_functions(json_data)
                     self.fpointers_map = {k: {"_id": k, "entries": v} for k, v in fpointers.items()}
-                elif json_data is None and 'func_fptrs' in self.db.db.list_collection_names():
-                    # if we're using mongodb and there is a collection named func_fptrs,
+                elif type(self.db).__name__ == 'FtdbJSON':
+                    # if we're using db.img
+                    logging.info("Generating function pointers information")
+                    fpointers = self._infer_functions(self.db.db)
+                    self.fpointers_map = {k: {"_id": k, "entries": v} for k, v in fpointers.items()}
+                elif type(self.db).__name__ == 'MongoJSON' and 'func_fptrs' in self.db.db.list_collection_names():
+                    # if we're using mongoDB and there is a collection named func_fptrs,
                     #  retrieve list of fptr matches
                     logging.info("Will be using preprocessed function pointers information")
                     queried = self.db.create_local_index('func_fptrs', '_id').get_all()
