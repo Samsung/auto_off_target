@@ -329,6 +329,7 @@ class Generator:
         # 1) DB connection
         self.db = db_frontend.establish_db_connection(args)
         self.db_frontend = db_frontend
+        self.db_type = args.db_type
 
         self.version = f"{args.product}_{args.version}_{args.build_type}"
         self.cut_off = args.cut_off
@@ -1656,12 +1657,12 @@ class Generator:
                     logging.info("Generating function pointers information")
                     fpointers = self._infer_functions(json_data)
                     self.fpointers_map = {k: {"_id": k, "entries": v} for k, v in fpointers.items()}
-                elif type(self.db).__name__ == 'FtdbJSON':
+                elif self.db_type == 'ftdb':
                     # if we're using db.img
                     logging.info("Generating function pointers information")
                     fpointers = self._infer_functions(self.db.db)
                     self.fpointers_map = {k: {"_id": k, "entries": v} for k, v in fpointers.items()}
-                elif type(self.db).__name__ == 'MongoJSON' and 'func_fptrs' in self.db.db.list_collection_names():
+                elif self.db_type == 'mongo' and 'func_fptrs' in self.db.db.list_collection_names():
                     # if we're using mongoDB and there is a collection named func_fptrs,
                     #  retrieve list of fptr matches
                     logging.info("Will be using preprocessed function pointers information")
