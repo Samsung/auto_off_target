@@ -740,10 +740,7 @@ class Generator:
             if f is None:
                 logging.error(f"unable to find a function for id {f_id}")
             name = f['name']
-            if "abs_location" in f and len(f["abs_location"]) > 0:
-                file = os.path.basename(f['abs_location'])
-            else:
-                file = os.path.basename(f['location'])
+            file = os.path.basename(f['location'])
             index = file.find(":")
             if -1 != index:
                 file = file[:index]
@@ -759,10 +756,7 @@ class Generator:
             f = self.fnidmap[f_id]
             if f:
                 name = f['name']
-                if "abs_location" in f and len(f["abs_location"]) > 0:
-                    file = f['abs_location']
-                else:
-                    file = f['location']
+                file = f['location']
                 
                 index = file.find(":")
                 if -1 != index:
@@ -1341,7 +1335,7 @@ class Generator:
         if self.import_json:
             collections = ["funcs", "types", "globals", "sources", "funcdecls", "unresolvedfuncs"]
             fields = ["id", "name", "fid", "refs", "usedrefs", "decls", "class", "types", "calls", "funrefs", "fids", "globalrefs",
-            "linkage", "body", "funcdecls", "hash", "implicit", "location", "abs_location", "declbody", "inline", "str", "type", "size", 
+            "linkage", "body", "funcdecls", "hash", "implicit", "location", "declbody", "inline", "str", "type", "size", 
             "hasinit", "derefs", "union", "def", "unpreprocessed_body", "refnames", "bitfields", "locals", "signature"]
             for c in collections:
                 for f in fields:
@@ -1963,10 +1957,7 @@ class Generator:
             # if fids not present for some reason, we still have fid
             srcs.append(src)
 
-        if "abs_location" in function and len(function["abs_location"]) > 0:
-            loc = function["abs_location"]
-        else:
-            loc = function["location"]
+        loc = function["location"]
         if self.source_root is not None and self.source_root and len(self.source_root) > 0:
             if loc.startswith("./"): 
                 loc = self.source_root + loc[1:]
@@ -5384,15 +5375,12 @@ class Generator:
                         RT,TPD = self._resolve_record_type(type["id"])
                         if RT is not None and type["class"]=="pointer":
                             # Replace the initialized variable with the image from kflat
-                            if "abs_location" in function and len(function["abs_location"]) > 0:
-                                loc = os.path.basename(function["abs_location"].split(":")[0])
-                            else:
-                                loc = os.path.normpath(function["location"].split(":")[0])
-                                if os.path.isabs(loc):
-                                    if self.source_root is not None and len(self.source_root) > 0:
-                                        loc = loc[len(self.source_root)+1:]
-                                    else:
-                                        assert 0, "Detected absolute location in function location (%s) but the 'source root' parameter is not given"%(function["location"])
+                            loc = function["location"].split(":")[0]
+                            if os.path.isabs(loc):
+                                if self.source_root is not None and len(self.source_root) > 0:
+                                    loc = loc[len(self.source_root)+1:]
+                                else:
+                                    assert 0, "Detected absolute location in function location (%s) but the 'source root' parameter is not given"%(function["location"])
                             vartype = " ".join(self._generate_var_def(type, varname).split()[:-1])
                             str += Generator.DYNAMIC_INIT_FUNCTION_VARIABLE_TEMPLATE.format(varname, "flatten", f"_func_arg_{i}", vartype)+"\n\n"
                 i = saved_i
@@ -7340,10 +7328,7 @@ class Generator:
     ##  'int (*__pf__kernel__mm__myfile____c__myfun)(void) = myfun;'
     def _get_function_pointer_stub(self, function):
 
-        if "abs_location" in function and len(function["abs_location"].split(":")[0]) > 0:
-            loc = function["abs_location"].split(":")[0]
-        else:
-            loc = os.path.normpath(function["location"].split(":")[0])
+        loc = function["location"].split(":")[0]
         if os.path.isabs(loc):
             if self.source_root is not None and len(self.source_root) > 0:
                 loc = loc[len(self.source_root)+1:]
@@ -7407,11 +7392,8 @@ class Generator:
 
     def _map_item_to_header(self, item):
         filename = None
-        if "abs_location" in item or "location" in item:
-            if "abs_location" in item and len(item["abs_location"]) > 0:                
-                loc = item["abs_location"].split(":")[0]
-            else:
-                loc = item["location"].split(":")[0]
+        if "location" in item:
+            loc = item["location"].split(":")[0]
             if loc not in self.location_to_header:
                 filename = loc.rsplit('/', 1)[-1]
                 filename = self._find_unique_filename(filename, self.out_dir)
