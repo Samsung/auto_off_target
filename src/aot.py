@@ -594,12 +594,11 @@ class Generator:
                     elif functype["str"] == "void":
                         iCallsStruct.append(((structType["id"], memberId), deref, func, None))
                     else:
-                        logging.error(f"Unsupported case found!", same_line=True)
-                        logging.error(f"Unsupported case found!", same_line=True)
+                        logging.error(f"Unsupported case found!")
                         logging.error(f">>> functype: {functype}")
                         logging.error(f">>> func: {func['name']}")
                         logging.error(f">>> deref: {deref}")
-                        logging.error("Tracing function pointer calls", new_line=False)
+                        logging.error("Tracing function pointer calls")
                         continue
 
         output = {}
