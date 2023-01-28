@@ -786,7 +786,7 @@ class Engine:
                 self.init.fpointer_stubs = []
                 g = self.dbops.globalsidmap[g_id]
                 if self.dump_global_hashes:
-                    self.global_hashes.append(str(g["hash"]))
+                    self.global_hashes.append((str(g["hash"]),g["fid"]))
                 glob_has_init = g['hasinit']
                 # one more check: sometimes globals are pointers initialized to null
                 g_tid = g["type"]
@@ -1168,7 +1168,7 @@ class Engine:
             logging.info(
                 f"Saving hashes of global variables used into {self.out_dir}/{Engine.GLOBAL_HASH_FILE}")
             with open(f"{self.out_dir}/{Engine.GLOBAL_HASH_FILE}", "w") as file:
-                file.write("\n".join(self.global_hashes))
+                file.write("\n".join(["%s %d"%(x[0],x[1]) for x in self.global_hashes]))
 
         if self.dump_ids:
             ids_dump = {}
