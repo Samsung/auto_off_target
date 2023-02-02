@@ -125,6 +125,16 @@ klee: LD=llvm-link-11
 klee: $(obj)
 	$(LD) -o $@.bc $^ $(extra_bc)
 
+
+# SYMCC
+.PHONY: symcc
+symcc: COMP=symcc
+symcc: COMP+=-DAFL -w
+symcc: $(obj) $(lib)
+	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	mkdir -p "symcc_results"
+
+
 # code coverage
 .PHONY: gcov
 gcov: CFLAGS+=-fprofile-instr-generate -fcoverage-mapping -MD -w
