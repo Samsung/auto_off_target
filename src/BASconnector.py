@@ -21,8 +21,8 @@ class BASconnector:
         self.cache_size = cache_size
         self.cache = OrderedDict()
         self.db = db
-        if self.db is not None:
-            self.db_index = self.db.create_local_index("BAS", "loc", extra_field_name=None, cache_size=100000)
+        # if self.db is not None:
+        #    self.db_index = self.db.create_local_index("BAS", "loc", extra_field_name=None, cache_size=100000)
 
     def __str__(self):
         return "[BASconnector] for {}".format(self.url)
@@ -45,7 +45,7 @@ class BASconnector:
         del tmp
         del bas_data
 
-        self.db_index = self.db.create_local_index("BAS", "loc", extra_field_name=None, cache_size=100000)
+        # self.db_index = self.db.create_local_index("BAS", "loc", extra_field_name=None, cache_size=100000)
 
     # retrieves the module in which the source file is compiled
     def get_module_for_source_file(self, src_path, location):
