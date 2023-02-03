@@ -1208,18 +1208,22 @@ class Init:
 
                         if self.args.debug_vars_init:
                             logging.info("variant c")
-                        _str_tmp, alloc_tmp, brk = self._generate_var_init(fresh_var_name,
-                                                                           _dst_t,
-                                                                          res_var,
-                                                                          pointers[:],
-                                                                          level,
-                                                                          skip_init,
-                                                                          known_type_names=known_type_names,
-                                                                          cast_str=None,
-                                                                          new_types=new_types,
-                                                                          init_obj=obj,
-                                                                          fuse=fuse)
-                        str_tmp += _str_tmp
+                        brk = False
+                        if len(offset_types) > 1 and variant_num > 2 and self.args.single_init_only:
+                            str_tmp = ""
+                        else:
+                            _str_tmp, alloc_tmp, brk = self._generate_var_init(fresh_var_name,
+                                                                            _dst_t,
+                                                                            res_var,
+                                                                            pointers[:],
+                                                                            level,
+                                                                            skip_init,
+                                                                            known_type_names=known_type_names,
+                                                                            cast_str=None,
+                                                                            new_types=new_types,
+                                                                            init_obj=obj,
+                                                                            fuse=fuse)
+                            str_tmp += _str_tmp
                         i += 1
 
                         if len(offset_types) > 1 and variant_num > 2:
@@ -1430,30 +1434,33 @@ class Init:
                             if self.args.debug_vars_init:
                                 logging.info("variant d")
                             cast_done = True
-                            str_tmp, alloc_tmp, brk = self._generate_var_init(name,
-                                                                              _dst_t,
-                                                                              res_var,
-                                                                              pointers[:],
-                                                                              level,
-                                                                              skip_init,
-                                                                              known_type_names=known_type_names,
-                                                                              cast_str=typename,
-                                                                              new_types=new_types,
-                                                                              init_obj=init_obj,
-                                                                              fuse=fuse)
-                            if not single_init:
-                                comment = "//"
-                                variant = f"variant {variant_num}"
-                                variant_num += 1
-                            str_tmp = "\n{} // smart init (a) {}: we've found that this pointer var is casted to another type: {}\n{}".format(
-                                comment, variant, typename, str_tmp)
+                            brk = False
+                            if not single_init and self.args.single_init_only:
+                                str_tmp = ""
+                            else:                            
+                                str_tmp, alloc_tmp, brk = self._generate_var_init(name,
+                                                                                _dst_t,
+                                                                                res_var,
+                                                                                pointers[:],
+                                                                                level,
+                                                                                skip_init,
+                                                                                known_type_names=known_type_names,
+                                                                                cast_str=typename,
+                                                                                new_types=new_types,
+                                                                                init_obj=init_obj,
+                                                                                fuse=fuse)
+                                if not single_init:
+                                    comment = "//"
+                                    variant = f"variant {variant_num}"
+                                    variant_num += 1
+                                str_tmp = "\n{} // smart init (a) {}: we've found that this pointer var is casted to another type: {}\n{}".format(
+                                    comment, variant, typename, str_tmp)
                             # logging.info(str_tmp)
                             if not single_init:
                                 str_tmp = str_tmp.replace(
                                     "\n", "\n//")
                                 if str_tmp.endswith("//"):
                                     str_tmp = str_tmp[:-2]
-
                             str += str_tmp
                             if brk:
                                 return str, False, brk
@@ -1870,30 +1877,35 @@ class Init:
 
                                             if new_types != None:
                                                 new_types.add(dst_tid)
-                                            # generate an alternative init for each of the detected casts
-                                            str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}{deref_str}{field_name}",
-                                                                                         dst_t,
-                                                                                         res_var,
-                                                                                         pointers[:],
-                                                                                         level,
-                                                                                         False,
-                                                                                         known_type_names=known_type_names,
-                                                                                         cast_str=typename,
-                                                                                         new_types=new_types,
-                                                                                         init_obj=obj,
-                                                                                         fuse=fuse,
-                                                                                         count=count)
-                                            if not single_init:
-                                                variant = f"variant {variant_num}"
-                                                variant_num += 1
-                                            else:
-                                                member_to_name[i] = f"{tmp_name}{deref_str}{field_name}"
-                                            if size_member_used:
-                                                str_tmp = f"// smart init: using one struct member as a size of another\n{str_tmp}"
-                                            str_tmp += self._generate_constraints_check(
-                                                f"{tmp_name}{deref_str}{field_name}", size_constraints[i])
 
-                                            str_tmp = f"\n// smart init (b) {variant}: we've found that this pointer var is casted to another type: {typename}\n{str_tmp}"
+                                            brk = False
+                                            if not single_init and self.args.single_init_only:
+                                                str_tmp = ""                                                
+                                            else:
+                                                # generate an alternative init for each of the detected casts
+                                                str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}{deref_str}{field_name}",
+                                                                                            dst_t,
+                                                                                            res_var,
+                                                                                            pointers[:],
+                                                                                            level,
+                                                                                            False,
+                                                                                            known_type_names=known_type_names,
+                                                                                            cast_str=typename,
+                                                                                            new_types=new_types,
+                                                                                            init_obj=obj,
+                                                                                            fuse=fuse,
+                                                                                            count=count)
+                                                if not single_init:
+                                                    variant = f"variant {variant_num}"
+                                                    variant_num += 1
+                                                else:
+                                                    member_to_name[i] = f"{tmp_name}{deref_str}{field_name}"
+                                                if size_member_used:
+                                                    str_tmp = f"// smart init: using one struct member as a size of another\n{str_tmp}"
+                                                str_tmp += self._generate_constraints_check(
+                                                    f"{tmp_name}{deref_str}{field_name}", size_constraints[i])
+
+                                                str_tmp = f"\n// smart init (b) {variant}: we've found that this pointer var is casted to another type: {typename}\n{str_tmp}"
                                             # logging.info(str_tmp)
                                             if not single_init:
                                                 str_tmp = str_tmp.replace(
