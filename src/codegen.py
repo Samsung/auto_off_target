@@ -64,6 +64,7 @@ class CodeGen:
 
         self.generated_functions = 0
         self.generated_stubs = 0
+        self.unrolled_simple_macro_counter = 0
         self.struct_types = []
         self.stubs_with_asm = set()
         self.stub_to_return_ptr = {}
@@ -81,7 +82,6 @@ class CodeGen:
 
         # The same as above but for the library functions available in the 'aot_lib.c' file used in the AoT
         self.lib_function_pointer_stubs = set()
-
 
     def set_init(self, init):
         self.init = init
@@ -321,6 +321,83 @@ class CodeGen:
 
     # -------------------------------------------------------------------------
 
+    def _flush_function_code(self,func_data_list,common_unrolled_macro_map):
+        str = ""
+        # First flush the common unrolled macro definitions for macros with arguments
+        for k,v in common_unrolled_macro_map.items():
+            str += f"#define {k} {v}\n\n"
+        # Fill the 'str' with function bodies and unrolled macro definitions
+        used_simple_macros = {}
+        for unrolled_fbody_text,unique_unrolled_macro_map in func_data_list:
+            for k,v in unique_unrolled_macro_map.items():
+                if k in used_simple_macros and used_simple_macros[k]!=v:
+                    str += f"#undef {k}\n"
+                str += f"#define {k} {v}\n"
+                used_simple_macros[k] = v
+            str += "\n" + unrolled_fbody_text + "\n\n"
+        return str
+
+    def _get_unique_unrolled_macro_map(self,unrolled_macro_map):
+        unique_unrolled_macro_map = {}
+        for k,v in unrolled_macro_map.items():
+            if len(set([x[0] for x in v]))>1: # unlikely
+                """
+                We can have the same non-argument macro in a function with different values; consider:
+                void fun() {
+                #define CONSTVAL 3
+                (...)
+                #undef CONSTVAL
+                #define CONSTVAL 4
+                (...)
+                }
+                """
+                for x in v:
+                    unique_unrolled_macro_map[f"{k}__{x[1]}"] = x[0]
+            else:
+                unique_unrolled_macro_map[k] = v[0][0]
+        return unique_unrolled_macro_map
+
+    # Gets the function body with unrolled macro definitions (for the purpose of improving code readibility)
+    # Fills the 'unrolled_macro_map' and 'common_unrolled_macro_map' collections upon execution
+    # Returns the unrolled function body or None if function is not supported or error occurs
+    def _get_unrolled_macro_body(self,f_entry,unrolled_macro_map,common_unrolled_macro_map):
+        if not self.args.unroll_macro_defs or len(f_entry["macro_expansions"])<=0:
+            return None
+        out_body = f_entry["unpreprocessed_body"][0:f_entry["macro_expansions"][0]["pos"]]
+        for i,mexp_entry in enumerate(f_entry["macro_expansions"]):
+            pos = mexp_entry["pos"]
+            size = mexp_entry["len"]
+            macro_str = f_entry["unpreprocessed_body"][pos:pos+size]
+            u = macro_str.find('(')
+            if u>=0:
+                macro_replacement_name = f"__macrocall__{macro_str[:u]}__{self.unrolled_simple_macro_counter}"
+                macro_replacement_call = f"{macro_replacement_name}/*({macro_str[u+1:-1]})*/"
+                if macro_replacement_name in common_unrolled_macro_map: # unlikely
+                    logging.warning(f"Duplicated entry in the unrolled macro map: {macro_replacement_name}")
+                    return None
+                common_unrolled_macro_map[macro_replacement_name] = mexp_entry["text"]
+                self.unrolled_simple_macro_counter+=1
+                out_body+=macro_replacement_call
+            else:
+                if macro_str in unrolled_macro_map:
+                    unrolled_macro_map[macro_str].append((mexp_entry["text"],self.unrolled_simple_macro_counter))
+                else:
+                    unrolled_macro_map[macro_str] = [(mexp_entry["text"],self.unrolled_simple_macro_counter)]
+                self.unrolled_simple_macro_counter+=1
+                out_body+=macro_str
+            if i+1<len(f_entry["macro_expansions"]):
+                # More expansions
+                out_body+=f_entry["unpreprocessed_body"][pos+size:f_entry["macro_expansions"][i+1]["pos"]]
+            else:
+                # We're done for today
+                out_body+=f_entry["unpreprocessed_body"][pos+size:]
+        # Replace function header from preprocessed body
+        body_header_end = f_entry["body"].find("{")
+        header = f_entry["body"][0:body_header_end]
+        out_body_header_end = out_body.find("{")
+        return header + out_body[out_body_header_end:]
+
+
     # @belongs: codegen
     def _get_func_defs(self, fid, functions, section_header=True, stubs=False, file=""):
         str = ""
@@ -329,14 +406,23 @@ class CodeGen:
         #        "/* Function definitions section  */\n" +\
         #        "/* ----------------------------- */\n"
         if stubs is False:
+            # Collection of generated macro definitions that replaces the expanded code in the preprocessed code
+            common_unrolled_macro_map = {}
+            # [(function_id,unrolled_function_body_text,unique_unrolled_macro_map),...]
+            func_data_list = list()
             for f_id in functions:
                 tmp = ""
+                unrolled_macro_map = {}
                 tmp += self._get_func_clash_ifdef(f_id, fid)
                 if self.dbops.fnidmap[f_id] is not None:
                     if f_id not in self.cutoff.external_funcs:
                         if not self.args.dbjson2:
+                            f_entry = self.dbops.fnidmap[f_id]
+                            out_body = self._get_unrolled_macro_body(f_entry,unrolled_macro_map,common_unrolled_macro_map)
+                            if out_body is None:
+                                out_body = f_entry["body"]
                             tmp += self._filter_out_asm_inlines(
-                                f_id, self.dbops.fnidmap[f_id]["body"], file)
+                                f_id, out_body, file)
                         else:
                             tmp += self._filter_out_asm_inlines(
                                 f_id, self.dbops.fnidmap[f_id]["unpreprocessed_body"], file)
@@ -357,8 +443,9 @@ class CodeGen:
                     if len(tmp) > 0:
                         tmp += self._get_func_clash_endif(f_id, fid)
                         tmp += "\n\n"
-
-                    str += tmp.replace('__attribute__((warn_unused_result("")))', "")
+                    # (function_id,unrolled_function_body_text,unique_unrolled_macro_map)
+                    func_data_list.append((tmp.replace('__attribute__((warn_unused_result("")))', ""),self._get_unique_unrolled_macro_map(unrolled_macro_map)))
+            str += self._flush_function_code(func_data_list,common_unrolled_macro_map)
         else:
             for f_id in functions:
                 str += self._get_func_clash_ifdef(f_id, fid)
