@@ -199,7 +199,7 @@ class FtdbFrontend(AotDbFrontend):
                                  "unresolvedfuncs", "source_info", "module_info"]
         if self.db_file:
             logging.info(f"Loading data from {self.db_file} file")
-            self.db.load(self.db_file)
+            self.db.load(self.db_file, mp_safe=True)
             # with open(self.db_file, "r") as f:
             #     logging.info("Loading JSON data from file")
             #     self.json_data = json.load(f)

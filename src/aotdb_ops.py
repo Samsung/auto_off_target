@@ -614,7 +614,7 @@ class AotDbOps:
             funcs = set([f_id])
 
             self.deps.known_funcs_present = set()
-            self._get_called_functions(funcs, None, True, True, True)
+            self.deps._get_called_functions(funcs, None, True, True, True)
             # let's check if there are functions of interest in the subtrees of our functions
             found = False
             for name in self.deps.known_funcs_present:
@@ -637,7 +637,7 @@ class AotDbOps:
 
         for f_id in interesting:
             f = self.fnidmap[f_id]
-            logging.info(f"AOT_TARGET: {f['name']}: {f['declbody']}")
+            logging.info(f"AOT_TARGET: {f['name']}: {f['declbody']}: {f['id']}")
 
         logging.info(
             f"We have {counter} functions that call interesting functions in their subtrees")
