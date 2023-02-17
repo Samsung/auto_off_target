@@ -1386,7 +1386,7 @@ class Init:
                         if value is not None:
                             str += f"#ifdef KLEE\n"
                             str += "if (AOT_argc == 1) {\n"
-                            str += f"    klee_assume({name} == {value});\n"
+                            str += f"    klee_assume(*{name} == {value});\n"
                             str += "}\n"
                             str += f"#endif\n"
                         if min_value is not None:
@@ -1567,7 +1567,10 @@ class Init:
                 if value is not None:
                     str += "#ifdef KLEE\n"
                     str += "if (AOT_argc == 1) {\n"
-                    str += f"    klee_assume({name} == {value});\n"
+                    if not isPointer:
+                        str += f"    klee_assume({name} == {value});\n"
+                    else:
+                        str += f"    klee_assume(*{name} == {value});\n"
                     str += "}\n"
                     str += "#endif\n"
                 if min_value is not None:
