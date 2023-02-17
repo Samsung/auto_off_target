@@ -1387,7 +1387,6 @@ class Init:
                             str += f"#ifdef KLEE\n"
                             str += "if (AOT_argc == 1) {\n"
                             str += f"    klee_assume({name} == {value});\n"
-                            str += f"    klee_skip_tag();\n"
                             str += "}\n"
                             str += f"#endif\n"
                         if min_value is not None:
@@ -1569,7 +1568,6 @@ class Init:
                     str += "#ifdef KLEE\n"
                     str += "if (AOT_argc == 1) {\n"
                     str += f"    klee_assume({name} == {value});\n"
-                    str += f"    klee_skip_tag();\n"
                     str += "}\n"
                     str += "#endif\n"
                 if min_value is not None:
