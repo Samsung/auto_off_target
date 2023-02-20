@@ -120,8 +120,8 @@ afl: $(obj) $(lib)
 # KLEE
 .PHONY: klee
 klee: CFLAGS+=-emit-llvm -DKLEE -MD -w
-klee: COMP=clang-9
-klee: LD=llvm-link-9
+klee: COMP=clang-11
+klee: LD=llvm-link-11
 klee: $(obj)
 	$(LD) -o $@.bc $^ $(extra_bc)
 
