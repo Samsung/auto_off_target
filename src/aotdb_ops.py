@@ -64,7 +64,9 @@ class AotDbOps:
         self.typemap = None      # get type by id
         self.globalsidmap = None  # get global by id
         self.srcidmap = None     # get source file by id
-        self.scrnmap = None      # get source file by name
+        self.srcnmap = None      # get source file by name
+        self.modidmap = None     # get module file by id
+        self.modnmap = None      # get module file by name
 
         # the second group are various sets/lists
         self.init_data = {}              # get user-provided init data by name
@@ -369,6 +371,12 @@ class AotDbOps:
             "sources", "id", "name", cache_size=100000)
         # get source id by name
         self.srcnmap = self.db.create_local_index("sources", "name", "id", cache_size=100000,
+                                                  unique=False)
+        # get module name by id
+        self.modidmap = self.db.create_local_index(
+            "modules", "id", "name", cache_size=100000)
+        # get module id by name
+        self.modnmap = self.db.create_local_index("modules", "name", "id", cache_size=100000,
                                                   unique=False)
 
         # try to get what we can from the db
