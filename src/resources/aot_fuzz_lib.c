@@ -28,39 +28,6 @@ unsigned int aot_file_present;          // true if the user provided an input fi
 FILE* aot_dfsan_logf;
 #endif 
 
-// the map below is meant to store the mapping between original symbolic arrays and the corresponding user
-// pointers - this is currently used for memory tagging in KLEE 
-struct obj_tag_map* map_head;
-struct obj_tag_map* map_tail;
-
-void append_tag_to_map(void* userptr, void* tagptr) {
-    if (!map_head) {
-        // adding the first element
-        map_head = malloc(sizeof(struct obj_tag_map));
-        map_tail = map_head;
-    } else {
-        map_tail->next = malloc(sizeof(struct obj_tag_map));
-        map_tail = map_tail->next;
-    }
-
-    map_tail->userptr = userptr;
-    map_tail->tagptr = tagptr;
-    map_tail->next = 0;
-}
-
-void* find_in_map(void* userptr) {
-    struct obj_tag_map* it = map_head;
-    if (!it)
-        return 0;
-    do {
-        if (it->userptr == userptr) 
-            return it->tagptr;
-        it = it->next;
-    } while (it);
-    return 0;
-}
-
-
 int init_fuzzing(int argc, char* argv[]) {
     #ifdef DFSAN
     char dir[512] = { 0 };
@@ -193,10 +160,6 @@ int fuzz_that_data_klee(void* ptr, unsigned long size, const char* user_name) {
     klee_make_symbolic(fresh_sym_buf, size, name);
     memcpy(ptr, fresh_sym_buf, size);
 
-    // store the mapping between the fresh mem object and our ptr
-    // in the map
-    append_tag_to_map(ptr, fresh_sym_buf);
-
     // let's see if we did use the input file -> if yes, we are 
     // going to use that values as "fixed"
     if (aot_file_present) {
@@ -205,7 +168,6 @@ int fuzz_that_data_klee(void* ptr, unsigned long size, const char* user_name) {
         if (aot_fuzz_buffer_capacity) {
             for (int i = 0; i < fuzz_data_size; ++i) {
                 klee_assume(tmp[i] == aot_fuzz_buffer_ptr[i]);   
-                klee_skip_tag();         
             }
             // update fuzzing buffer metadata
             aot_fuzz_buffer_ptr += fuzz_data_size;
@@ -271,15 +233,6 @@ unsigned long long get_fuzz_data_bitfield(unsigned int bitcount, const char* nam
 }
 
 void aot_tag_memory(void* ptr, unsigned long size, int tag) {
-	#if 0
-    #ifdef KLEE
-    void* objtagptr = find_in_map(ptr);
-    if (!objtagptr) // pointer not found in the map
-        objtagptr = ptr;
-	klee_tag_object(objtagptr, tag);
-	#endif
-    #endif
-
     #ifdef DFSAN
     // at this point, we are only interested to know if data is tainted or not
     // as a result, a single tag for all data is fine
