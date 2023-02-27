@@ -95,9 +95,6 @@ int init_fuzzing(int argc, char* argv[]) {
 
     aot_fuzz_buffer_capacity = filesize;
 
-    map_head = 0;
-    map_tail = 0;
-
     return 0;
 }
 
