@@ -46,8 +46,19 @@ void __dfsan_load_callback(dfsan_label l, void* addr) {
 void __dfsan_mem_transfer_callback(dfsan_label *l, size_t len) {
   if (!l) return;
 
+  // assume the data is tainted if any bytes in the range 
+  // are tainted
+  dfsan_label label = 0;
+  for (unsigned i = 0; i < len; ++i) {
+    if (l[i]) {
+      label = l[i];
+      break;
+    }
+  }
+  if (!label) return;
+
   //fprintf(stderr, "Label %u copied to memory\n", l[0]);
-  //dump_stack_trace(OP_TRANSFER);
+  dump_stack_trace(OP_TRANSFER);
 }
 
 void __dfsan_cmp_callback(dfsan_label l) {
