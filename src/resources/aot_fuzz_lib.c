@@ -58,6 +58,14 @@ int init_fuzzing(int argc, char* argv[]) {
         printf("Mmap failed region is %p\n", aot_mem_region);
         exit(1);
     }
+    // reserve the protected region
+    aot_mem_region = mmap((void*)AOT_PROTECTED_PTR, AOT_REGION_SIZE, 
+                                PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (aot_mem_region != (void*)AOT_PROTECTED_PTR) {
+        printf("Mmap failed region is %p\n", aot_mem_region);
+        exit(1);
+    }
+
     #endif
 
     if (1 == argc) {

@@ -12,6 +12,9 @@
 #define AOT_SPECIAL_PTR 0x40710000 // 0x10000 is the lowest possible mapping address on Ubuntu as per /proc/sys/vm/mmap_min_addr 
 #define AOT_REGION_SIZE 0x2000000 // 32MB
 
+#define AOT_PROTECTED_PTR 0x04071000 // the start of the mem region used for protecting pointers
+
+
 extern unsigned char* aot_fuzz_buffer;         // buffer stores the data from the fuzzer received as the program input
 extern unsigned char* aot_fuzz_buffer_ptr;     // stores where we currently are in the buffer
 extern unsigned long aot_fuzz_buffer_capacity; // stores the number of bytes read from the fuzzer

@@ -13,6 +13,8 @@ void* malloc(size_t size);
 void free(void* ptr);
 int printf(const char* format, ...);
 
+void* protected_mem_region = 0;
+
 /* ----------------------------- */
 /* Memory init function */
 /* ----------------------------- */
@@ -48,6 +50,11 @@ unsigned long long aot_memory_init_bitfield(unsigned int bitcount, int fuzz, con
 
 int aot_memory_init_func_ptr(void** dst, void* src) {
 	*dst = src;
+	return 0;
+}
+
+int aot_protect_ptr(void** ptr) {
+	*ptr = AOT_PROTECTED_PTR;
 	return 0;
 }
 
