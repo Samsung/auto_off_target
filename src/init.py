@@ -971,6 +971,7 @@ class Init:
                 value = None
                 min_value = None
                 max_value = None
+                protected = False
                 if level == 0 and self.dbops.init_data is not None and entity_name in self.dbops.init_data:
                     if self.args.debug_vars_init:
                         logging.info(
@@ -1036,7 +1037,8 @@ class Init:
                                     user_fuzz = 1
                                 else:
                                     user_fuzz = 0
-
+                            if "protected" in entry and entry["protected"] == "True":
+                                protected = True
                             user_init = True
                             break  # no need to look further
 
@@ -1395,6 +1397,8 @@ class Init:
                             str += f"if ({name} > {max_value}) {name} = {max_value};\n"
                         if tag:
                             str += f"aot_tag_memory({name}, sizeof({typename}) * {cnt}, 0);\n"
+                        if protected:
+                            str += f"aot_protect_ptr(&{name});\n"
 
                     if not skip_init and entry is not None:
                         # we are dealing with a pointer for which we have found a cast in the code
@@ -1483,7 +1487,7 @@ class Init:
                 value = None
                 min_value = None
                 max_value = None
-
+                protected = False
                 mul = 1
                 isPointer = False
                 if level == 0 and self.dbops.init_data is not None and entity_name in self.dbops.init_data:
@@ -1550,6 +1554,10 @@ class Init:
                             if "pointer" in entry:
                                 if entry["pointer"] == "True":
                                     isPointer = True
+
+                            if "protected" in entry and entry["protected"] == "True":
+                                protected = True
+
                             user_init = True
                             break  # no need to look further
                 tagged_var_name = 0
@@ -1582,7 +1590,8 @@ class Init:
                         str += f"aot_tag_memory(&{name}, sizeof({typename}), 0);\n"
                     else:
                         str += f"aot_tag_memory({name}_ptr, sizeof({typename}) * {mul}, 0);\n"
-
+                if protected and isPointer:
+                    str += f"aot_protect_ptr(&{name}_ptr);\n"
         if cl == "record" and t_id not in self.used_types_data and level > 1:
             typename = self.codegen._get_typename_from_type(
                 self.dbops.typemap[t_id])
