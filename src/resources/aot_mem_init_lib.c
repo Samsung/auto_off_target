@@ -54,7 +54,7 @@ int aot_memory_init_func_ptr(void** dst, void* src) {
 }
 
 int aot_protect_ptr(void** ptr) {
-	*ptr = AOT_PROTECTED_PTR;
+	*ptr = (void*)AOT_PROTECTED_PTR;
 	return 0;
 }
 
