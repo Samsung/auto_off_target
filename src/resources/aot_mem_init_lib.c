@@ -13,7 +13,48 @@ void* malloc(size_t size);
 void free(void* ptr);
 int printf(const char* format, ...);
 
-void* protected_mem_region = 0;
+struct aot_ptr_node* aot_ptrs_head = 0; // points to the beginning of the aot pointers list
+struct aot_ptr_node* aot_ptrs_tail = 0; // points to the current tail of the aot pointers list
+
+void aot_ptrs_append(void* ptr) {
+	if (!ptr) {
+		return;
+	}
+
+	struct aot_ptr_node* new_node = (struct aot_ptr_node*)malloc(sizeof(struct aot_ptr_node));
+	new_node->ptr = ptr;
+    new_node->next = 0;
+
+	if (!aot_ptrs_head) { // this is the first item in the list
+		aot_ptrs_head = new_node;
+		aot_ptrs_tail = new_node;
+	} else {
+		aot_ptrs_tail->next = new_node;
+		aot_ptrs_tail = new_node;
+	}
+}
+
+void aot_GC() {
+	// iterate through the pointers list and free the memory
+	struct aot_ptr_node* node = aot_ptrs_head;
+
+	if (!aot_ptrs_head) {
+		// the list is empty
+		return;
+	}
+	while (aot_ptrs_head) {
+		// free the pointer
+		if (aot_ptrs_head->ptr) {
+			free(aot_ptrs_head->ptr);
+		}
+		// free the node
+		struct aot_ptr_node* tmp = aot_ptrs_head;
+		aot_ptrs_head = tmp->next;
+		free(tmp);		
+	}
+	aot_ptrs_head = 0;
+	aot_ptrs_tail = 0;
+}
 
 /* ----------------------------- */
 /* Memory init function */
@@ -32,6 +73,10 @@ int aot_memory_init_ptr(void** ptr, unsigned long size, unsigned long count, int
 	if (0 == *ptr)
 		return -1;
 	memset(*ptr, 0, total_size);
+
+    // add the allocated pointer to the list
+	aot_ptrs_append(*ptr);
+
     if (fuzz) {
         return fuzz_that_data(*ptr, 0, total_size, name);
     }
@@ -63,6 +108,7 @@ void aot_memory_free_ptr(void** ptr) {
 		free(*ptr);
 	*ptr = 0;
 }
+
 
 /* this function was added to make it possible to set pointers regardless 
 of their const qualifiers */

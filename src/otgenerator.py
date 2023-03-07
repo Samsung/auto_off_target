@@ -276,6 +276,7 @@ class OTGenerator:
         if self.args.dynamic_init:
             str += "\taot_kflat_fini();\n\n"
 
+        str += "\taot_GC();"
         str += "\n    return 0;\n"
         str += " }\n"
 

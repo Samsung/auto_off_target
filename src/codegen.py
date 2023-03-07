@@ -708,7 +708,6 @@ class CodeGen:
         param_to_varname = {}
         varnames = []
         vartypes = []
-        alloced_vars = []
         alloc = False
         start_index = 0
 
@@ -817,8 +816,6 @@ class CodeGen:
                         tmp = ""
 
                     str += tmp
-                    if alloc:
-                        alloced_vars.append(varname)
                     str += "\n"
 
                     if self.args.dynamic_init and dyn_init_present:
@@ -879,9 +876,6 @@ class CodeGen:
                 str += ", "
 
         str += ");\n"
-
-        for var in alloced_vars:
-            str += self.init._generate_var_deinit(var)
 
         if create_params:
             str += "}\n"
