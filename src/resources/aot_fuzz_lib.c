@@ -199,6 +199,9 @@ int fuzz_that_data_klee(void* ptr, unsigned long size, const char* user_name) {
 // TODO: think how we could gracefully handle the lack of fuzzer data while keeping
 // the results reproducible.
 int fuzz_that_data(void* ptr, void* src, unsigned long size, const char* name) {
+    if (!size) {
+        return 0;
+    } 
     
     #ifdef AFL 
         return fuzz_that_data_afl(ptr, src, size);
