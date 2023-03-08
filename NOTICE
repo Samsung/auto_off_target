@@ -1,5 +1,5 @@
 Auto Off-Target
-Copyright 2022 Samsung Electronics
+Copyright 2023 Samsung Electronics
 
 This product includes software developed at
 Mobile Security Group, Samsung Research R&D Warsaw (https://www.samsung.com/).
@@ -7,3 +7,4 @@ Mobile Security Group, Samsung Research R&D Warsaw (https://www.samsung.com/).
 The Initial Developer of some parts of src/aot_lib.c, 
 is Todd C. Miller.
 Copyright 1998 Todd C. Miller <Todd.Miller@courtesan.com>.
+
