@@ -694,6 +694,7 @@ class Engine:
             set(self.static_and_inline_funcs.keys()))
 
         all_global_ids = set()
+        filename_to_fid = {}
         for fid, file in files.items():
             logging.info("Generating file {} of {}".format(i, fileno))
             i += 1
@@ -718,6 +719,7 @@ class Engine:
                 self.otgen.set_fid_to_filename(fid, filename)
                 self.sources_to_types[filename] = types
                 self.file_contents[filename] = str_file
+                filename_to_fid[filename] = fid
                 static_files[fid].types = types
                 static_files[fid].filename = filename
                 static_files[fid].globals = globals_ids
@@ -729,6 +731,7 @@ class Engine:
                 self.otgen.set_fid_to_filename(fid, filename)
                 self.sources_to_types[filename] = types
                 self.file_contents[filename] = str_file
+                filename_to_fid[filename] = fid
                 files[fid].types = types
                 files[fid].filename = filename
                 files[fid].globals = globals_ids
@@ -749,6 +752,7 @@ class Engine:
                 f'{fid}', funcs_copy, [], [], [], stubs=True)
             self.sources_to_types[filename] = types
             self.file_contents[filename] = str_file
+            filename_to_fid[filename] = fid
             all_global_ids |= globals_ids
             sources.append(filename)
             stub_files[fid].types = types
@@ -1056,10 +1060,26 @@ class Engine:
         # we take the Makefile from resources directory
 
         # store file contents to disk
+        real_names = set()
+        base_files = [ "aot.c", "aot.h" ]
         for filename in self.file_contents:
             contents = self.file_contents[filename]
+            dst_filename = filename
+            if self.args.use_real_filenames and filename not in base_files:
+                fid = filename_to_fid[filename]
+                real_name = os.path.basename(self.dbops.srcidmap[fid])
+                if real_name in real_names:
+                    i = 2
+                    tmp = real_name
+                    while (tmp in real_names):
+                       tmp = f"{i}_{real_name}"
+                       i += 1
+                    real_name = tmp
+                    real_names.add(real_name)
+                dst_filename = real_name
 
-            with open(f"{self.out_dir}/{filename}", "a+") as file:
+
+            with open(f"{self.out_dir}/{dst_filename}", "a+") as file:
                 file.write(contents)
 
         # try to pretty-print the files
@@ -1403,6 +1423,9 @@ def main():
                         help="When the smart init mechanism finds more than one way to initialize, do not generate other options.")
     parser.add_argument("--unroll-macro-defs", action="store_true",
                         help="When generating function code unroll all expanded code that comes from macro invocations")
+    parser.add_argument("--use-real-filenames", action="store_true",
+                        help="When generating OT code use real file names rather than the file_<ID> scheme.")
+    
     args = parser.parse_args()
     
     retcode = 0

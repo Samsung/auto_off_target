@@ -502,8 +502,8 @@ class OTGenerator:
         # generate code: types first, then functions
         failed_count = 0
 
-        str = self.codegen._get_file_header()
-        str_header = self.codegen._get_file_header()
+        str = self.codegen._get_file_header(fid)
+        str_header = self.codegen._get_file_header(fid)
 
         for h in self.args.include_std_headers:
             str_header += f"#include {h}\n"

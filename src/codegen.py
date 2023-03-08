@@ -1311,11 +1311,13 @@ class CodeGen:
         return endif
 
     # @belongs: codegen or ot-generator
-    def _get_file_header(self):
+    def _get_file_header(self, fid=-1):
         str = "/* ------------------------------------------------ */\n" +\
               "/* AOT generated this file                          */\n" +\
               "/* Copyright Samsung Electronics                    */\n" +\
               "/* ------------------------------------------------ */\n"
+        if fid >= 0:
+            str += "/* Original file path: " + self.dbops.srcidmap[fid] + " */\n\n"
 
         return str
 
