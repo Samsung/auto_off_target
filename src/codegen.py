@@ -1316,8 +1316,8 @@ class CodeGen:
               "/* AOT generated this file                          */\n" +\
               "/* Copyright Samsung Electronics                    */\n" +\
               "/* ------------------------------------------------ */\n"
-        if fid >= 0:
-            str += "/* Original file path: " + self.dbops.srcidmap[fid] + " */\n\n"
+        if int(fid) >= 0:
+            str += "/* Original file path: " + self.dbops.srcidmap[int(fid)] + " */\n\n"
 
         return str
 
