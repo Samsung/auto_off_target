@@ -719,7 +719,7 @@ class Engine:
                 self.otgen.set_fid_to_filename(fid, filename)
                 self.sources_to_types[filename] = types
                 self.file_contents[filename] = str_file
-                filename_to_fid[filename] = fid
+                filename_to_fid[filename] = int(fid)
                 static_files[fid].types = types
                 static_files[fid].filename = filename
                 static_files[fid].globals = globals_ids
@@ -731,7 +731,7 @@ class Engine:
                 self.otgen.set_fid_to_filename(fid, filename)
                 self.sources_to_types[filename] = types
                 self.file_contents[filename] = str_file
-                filename_to_fid[filename] = fid
+                filename_to_fid[filename] = int(fid)
                 files[fid].types = types
                 files[fid].filename = filename
                 files[fid].globals = globals_ids
@@ -752,7 +752,7 @@ class Engine:
                 f'{fid}', funcs_copy, [], [], [], stubs=True)
             self.sources_to_types[filename] = types
             self.file_contents[filename] = str_file
-            filename_to_fid[filename] = fid
+            filename_to_fid[filename] = int(fid)
             all_global_ids |= globals_ids
             sources.append(filename)
             stub_files[fid].types = types
@@ -1077,10 +1077,15 @@ class Engine:
                     real_name = tmp
                     real_names.add(real_name)
                 dst_filename = real_name
+                del filename_to_fid[filename]
+                filename_to_fid[dst_filename] = fid
 
 
             with open(f"{self.out_dir}/{dst_filename}", "a+") as file:
                 file.write(contents)
+        
+        with open(f"{self.out_dir}/file_to_fid.json", "w") as file:
+            json.dump(filename_to_fid, file)
 
         # try to pretty-print the files
         clang_format = shutil.which("clang-format")
