@@ -1067,7 +1067,12 @@ class Engine:
             dst_filename = filename
             if self.args.use_real_filenames and filename not in base_files:
                 fid = filename_to_fid[filename]
+                
                 real_name = os.path.basename(self.dbops.srcidmap[fid])
+                if "_stub" in filename:
+                    suffix = real_name[real_name.rfind("."):]
+                    real_name = real_name[:real_name.rfind(".")] + "_stub" + suffix
+                    
                 if real_name in real_names:
                     i = 2
                     tmp = real_name
@@ -1076,10 +1081,11 @@ class Engine:
                        i += 1
                     real_name = tmp
                     real_names.add(real_name)
+                else:
+                    real_names.add(real_name)
                 dst_filename = real_name
                 del filename_to_fid[filename]
                 filename_to_fid[dst_filename] = fid
-
 
             with open(f"{self.out_dir}/{dst_filename}", "a+") as file:
                 file.write(contents)
