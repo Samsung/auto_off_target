@@ -15,11 +15,21 @@ FILE* aot_log_file = 0;
 
 
 void aot_log_init() {
+    // no need for logging stubs while fuzzing
+    #if defined(AFL) || defined(KLEE)
+        return;
+    #endif
+    
     aot_log_file = fopen(LOG_FILE_NAME, "w");
 }
 
 // File gets the log, screen gets the log, everyone gets the log
 void aot_log_msg(char* fmt, ...) {
+    // no need for logging stubs while fuzzing
+    #if defined(AFL) || defined(KLEE)
+        return;
+    #endif
+
     if (!aot_log_file) 
         return;
 
