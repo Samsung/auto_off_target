@@ -215,7 +215,7 @@ class OTGenerator:
                 # so we don't want to affect that in the db.json
 
                 str += "\n\t//Global vars init\n"
-                static_globals_noinit = set()
+                globals_noinit = set()
                 for g in all_globals:
                     g_tid = g["type"]
                     g_t = self.dbops.typemap[g_tid]
@@ -242,12 +242,12 @@ class OTGenerator:
                         # no init code for the global + the global is static
                         logging.warning(
                             f"Global {g['name']} lacks initializer, but it's static")
-                        static_globals_noinit.add(g["id"])
+                        globals_noinit.add(g["id"])
                         continue
                     elif len(g_t["str"]) == 0:
                         logging.warning(
                            f"Global {g['name']} has anonymous type")
-                        static_globals_noinit.add(g["id"]) 
+                        globals_noinit.add(g["id"]) 
                         continue
 
                     pointers = []
@@ -306,8 +306,8 @@ class OTGenerator:
         str = tmp + str[main_start:]
 
         if self.args.init:
-            logging.info("We didn't initialize the following static globals:")
-            for g_id in static_globals_noinit:
+            logging.info("We didn't initialize the following globals (static or anonymous type):")
+            for g_id in globals_noinit:
                 g = self.dbops.globalsidmap[g_id]
                 logging.info(f"g['name']")
         for t_id in additional_types:
