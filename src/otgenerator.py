@@ -217,12 +217,13 @@ class OTGenerator:
                 str += "\n\t//Global vars init\n"
                 static_globals_noinit = set()
                 for g in all_globals:
+                    g_tid = g["type"]
+                    g_t = self.dbops.typemap[g_tid]
+                    g_t = self.dbops._get_typedef_dst(g_t)
                     if g["hasinit"]:
                         skip_init = True
                         # one more check: sometimes globals are pointers initialized to null
-                        g_tid = g["type"]
-                        g_t = self.dbops.typemap[g_tid]
-                        g_t = self.dbops._get_typedef_dst(g_t)
+
                         if g_t["class"] == "pointer":
                             initstr = g["init"]
                             if initstr == "((void *)0)":
@@ -243,6 +244,12 @@ class OTGenerator:
                             f"Global {g['name']} lacks initializer, but it's static")
                         static_globals_noinit.add(g["id"])
                         continue
+                    elif len(g_t["str"]) == 0:
+                        logging.warning(
+                           f"Global {g['name']} has anonymous type")
+                        static_globals_noinit.add(g["id"]) 
+                        continue
+
                     pointers = []
                     self.recursion_fuse = 0
                     init_obj = None

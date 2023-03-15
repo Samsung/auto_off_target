@@ -808,7 +808,7 @@ class Engine:
                     if initstr == "((void *)0)":
                         glob_has_init = False
 
-                if not glob_has_init and g["linkage"] == "internal":
+                if not glob_has_init and g["linkage"] == "internal" or len(g_t["str"]) == 0:
                     # get id of the global definition file
                     g_fid = g["fid"]
                     filename = self.otgen.fid_to_filename[g_fid]
