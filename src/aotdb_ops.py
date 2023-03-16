@@ -135,7 +135,7 @@ class AotDbOps:
 
         if lib_funcs_file is not None:
 
-            _fids, _funcs = self._get_funcs_from_a_text_file(lib_funcs_file)
+            _fids, _funcs = self._get_funcs_from_a_text_file(lib_funcs_file, only_funcs=False)
             self.lib_funcs_ids |= _fids
             self.known_funcs_ids |= _fids
             for name in _funcs:
@@ -163,7 +163,7 @@ class AotDbOps:
             logging.info(
                 "Will discover known functions and types based on a list of function names")
 
-            _fids, _funcs = self._get_funcs_from_a_text_file(known_funcs_file)
+            _fids, _funcs = self._get_funcs_from_a_text_file(known_funcs_file, only_funcs=False)
             self.known_funcs_ids |= _fids
 
             # get builtin func ids, funcs with asm and a map of static funcs
@@ -543,7 +543,7 @@ class AotDbOps:
 
     # given a text file with function names (one name per line)
     # return a list of ids
-    def _get_funcs_from_a_text_file(self, filename):
+    def _get_funcs_from_a_text_file(self, filename, only_funcs=True):
         _fids = set()
         _funcs = set()
         with open(filename, "r") as f:
@@ -552,21 +552,40 @@ class AotDbOps:
                 func = l.replace("\n", "")
                 logging.info(func)
                 fids = set()
+                fid_func = None
+                fid_funcdecl = None
+                fid_undef = None
+
                 if self.fnmap[func] is not None:
-                    fid = self.fnmap[func]
-                elif self.fdnmap[func] is not None:
-                    fid = self.fdnmap[func]
-                elif self.unmap[func] is not None:
-                    fid = self.unmap[func]
-                else:
+                    fid_func = self.fnmap[func]
+                if self.fdnmap[func] is not None:
+                    fid_funcdecl = self.fdnmap[func]
+                if self.unmap[func] is not None:
+                    fid_undef = self.unmap[func]
+
+                if fid_func is None and fid_funcdecl is None and fid_undef is None:
                     logging.error(
-                        f"Function {func} from known funcs file not found")
+                        f"Function {func} from {filename} file not found")
                     continue
-                if isinstance(fid, list):
-                    for item in fid:
-                        fids.add(int(item["id"]))
+
+                if only_funcs:
+                    if fid_func is not None:
+                        to_add = [ fid_func ]
+                    else:
+                        if fid_funcdecl is not None:
+                            to_add = [ fid_funcdecl ]
+                        else:
+                            if fid_undef is not None:
+                                to_add = [ fid_undef ]
                 else:
-                    fids.add(int(fid["id"]))
+                    to_add = [ fid_func, fid_funcdecl, fid_undef ]
+                to_add = [ x for x in to_add if x is not None ]
+                for add_item in to_add:
+                    if isinstance(add_item, list):
+                        for item in add_item:
+                            fids.add(int(item["id"]))
+                    else:
+                        fids.add(int(add_item["id"]))
 
                 if len(fids) == 0:
                     continue
