@@ -1397,6 +1397,7 @@ class Init:
                             str += f"if ({name} > {max_value}) {name} = {max_value};\n"
                         if tag:
                             str += f"aot_tag_memory({name}, sizeof({typename}) * {cnt}, 0);\n"
+                            str += f"aot_tag_memory(&{name}, sizeof({name}), 0);\n"
                         if protected:
                             str += f"aot_protect_ptr(&{name});\n"
 
@@ -1590,6 +1591,8 @@ class Init:
                         str += f"aot_tag_memory(&{name}, sizeof({typename}), 0);\n"
                     else:
                         str += f"aot_tag_memory({name}_ptr, sizeof({typename}) * {mul}, 0);\n"
+                        str += f"aot_tag_memory(&{name}_ptr, sizeof({name}_ptr), 0);\n"
+
                 if protected and isPointer:
                     str += f"aot_protect_ptr(&{name}_ptr);\n"
         if cl == "record" and t_id not in self.used_types_data and level > 1:
