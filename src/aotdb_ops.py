@@ -645,7 +645,7 @@ class AotDbOps:
             # let's check if there are functions of interest in the subtrees of our functions
             found = False
             for name in self.deps.known_funcs_present:
-                if name == 'copy_from_user' or name == "copy_to_user":
+                if 'copy_from_user' in name or "copy_to_user" in name:
                     counter += 1
                     found = True
                     interesting.add(f_id)
@@ -655,7 +655,7 @@ class AotDbOps:
                 for _id in funcs:
                     f = self.fnidmap[_id]
                     if f is not None:
-                        if f['name'] == 'copy_from_user' or "__replacement____get_user__" in f['body'] or f['name'] == 'copy_to_user' or "__replacement____put_user__" in f['body']:
+                        if 'copy_from_user' in f['name'] or "__replacement____get_user__" in f['body'] or 'copy_to_user' in f['name'] or "__replacement____put_user__" in f['body']:
                             if f['name'] == "__dump_instr":
                                 continue
                             counter += 1
