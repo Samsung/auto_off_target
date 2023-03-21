@@ -1571,7 +1571,6 @@ class Init:
                     # special case: non-pointer value is to be treated as a pointer
                     str += f"{typename}* {name}_ptr;\n"
                     str += f"aot_memory_init_ptr(&{name}_ptr, sizeof({typename}), {mul}, 1 /* fuzz */, {tagged_var_name});\n"
-                    str += f"{name} = {name}_ptr;\n"
 
                 if value is not None:
                     str += "#ifdef KLEE\n"
@@ -1595,6 +1594,10 @@ class Init:
 
                 if protected and isPointer:
                     str += f"aot_protect_ptr(&{name}_ptr);\n"
+
+                if isPointer:
+                    str += f"{name} = {name}_ptr;\n"
+
         if cl == "record" and t_id not in self.used_types_data and level > 1:
             typename = self.codegen._get_typename_from_type(
                 self.dbops.typemap[t_id])
