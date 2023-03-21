@@ -32,8 +32,7 @@ void *memdup_user(const void * _src, size_t len) {
 }
 #endif
 
-#ifdef AOT_COPY_FROM_USER
-unsigned long copy_from_user(void *to, const void *from , unsigned long n){
+unsigned long aot_copy_from_user(void* to, const void* from, unsigned long n) {
     // in copy from user we will just return a fuzzer-generated data 
     // if we're not fuzzing, that will be just zero-initialized memory
     // "from" is not important from the security standpoint as an incorrect pointer
@@ -43,11 +42,21 @@ unsigned long copy_from_user(void *to, const void *from , unsigned long n){
     aot_tag_memory(to, n, 0);
     return 0;
 }
+
+#ifdef AOT_COPY_FROM_USER
+unsigned long copy_from_user(void *to, const void *from , unsigned long n){
+    return aot_copy_from_user(to, from, n);
+}
 #endif
 
-#ifdef AOT_COPY_TO_USER
+#ifdef AOT___COPY_FROM_USER
+unsigned long __copy_from_user(void *to, const void *from , unsigned long n){
+    return aot_copy_from_user(to, from, n);
+}
+#endif
+
 static char largebuffer[0xFFFF];
-unsigned long copy_to_user(void *to, const void *from, unsigned long n){
+unsigned long aot_copy_to_user(void* to, const void* from, unsigned long n) {
     // It might be better to ignore memcpy destination in copy_to_user -> it doesn't change much 
     // from the security standpoint and could introduce FPs: e.g. there is a pattern
     // in which unsigned long args are casted to pointers which might be hard
@@ -60,6 +69,17 @@ unsigned long copy_to_user(void *to, const void *from, unsigned long n){
     // copy the data to an arbitrary large buffer (should be large enough in most cases)
     memcpy(largebuffer, from, n);
     return 0;
+}
+
+#ifdef AOT_COPY_TO_USER
+unsigned long copy_to_user(void *to, const void *from, unsigned long n){
+    return aot_copy_to_user(to, from, n);
+}
+#endif
+
+#ifdef AOT___COPY_TO_USER
+unsigned long __copy_to_user(void *to, const void *from, unsigned long n){
+    return aot_copy_to_user(to, from, n);
 }
 #endif
 
