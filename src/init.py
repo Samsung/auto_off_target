@@ -1596,7 +1596,7 @@ class Init:
                     str += f"aot_protect_ptr(&{name}_ptr);\n"
 
                 if isPointer:
-                    str += f"{name} = {name}_ptr;\n"
+                    str += f"{name} = ({typename}){name}_ptr;\n"
 
         if cl == "record" and t_id not in self.used_types_data and level > 1:
             typename = self.codegen._get_typename_from_type(
