@@ -4,7 +4,7 @@
  Samsung Mobile Security Team @ Samsung R&D Poland
 */ 
 
-#include aot_log.h
+#include "aot_log.h"
 
 #ifdef AOT_GET_CURRENT
 static inline struct task_struct* get_current() {
