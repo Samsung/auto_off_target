@@ -2,6 +2,8 @@ copy_from_user
 __copy_from_user
 copy_to_user
 __copy_to_user
+__range_ok
+access_ok
 kmalloc
 __kmalloc
 kzalloc

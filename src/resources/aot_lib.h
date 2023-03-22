@@ -4,6 +4,7 @@
  Samsung Mobile Security Team @ Samsung R&D Poland
 */ 
 
+#include aot_log.h
 
 #ifdef AOT_GET_CURRENT
 static inline struct task_struct* get_current() {
@@ -19,3 +20,16 @@ static inline bool capable(int cap) {
 }
 #endif
 
+#ifdef AOT___RANGE_OK
+static inline unsigned long __range_ok(const void* addr, unsigned long size) {
+    aot_log_msg("__range_ok -> assuming success\n");
+    return 1;
+}
+#endif
+
+#ifdef  AOT_ACCESS_OK
+static inline int access_ok(const void* addr, unsigned long size) {
+    aot_log_msg("access_ok -> assuming success\n");
+    return 1;
+}
+#endif
