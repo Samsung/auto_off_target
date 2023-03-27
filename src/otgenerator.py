@@ -60,7 +60,7 @@ class OTGenerator:
     def set_fid_to_filename(self, fid, filename):
         self.fid_to_filename[fid] = filename
 
-    def _get_file_name_withot_extenstion_from_fid(self, fid):
+    def _get_file_name_without_extenstion_from_fid(self, fid):
         full_path_to_source = self.dbops.srcidmap[fid]
         if full_path_to_source is None:
             return None
@@ -121,7 +121,9 @@ class OTGenerator:
             str += "\n"
             for id in self.fid_to_filename:
                 if self.args.use_real_filenames:
-                    source_file_name = self._get_file_name_withot_extenstion_from_fid(id);
+                    source_file_name = self._get_file_name_without_extenstion_from_fid(id);
+                    if source_file_name is None:
+                        source_file_name = id
                     str += f"void aot_init_globals_file_{source_file_name}(void);\n"
                 else:
                     str += f"void aot_init_globals_file_{id}(void);\n"
@@ -275,7 +277,9 @@ class OTGenerator:
                 str += "\n"
                 for id in self.fid_to_filename:
                     if self.args.use_real_filenames:
-                        source_file_name = self._get_file_name_withot_extenstion_from_fid(id)
+                        source_file_name = self._get_file_name_without_extenstion_from_fid(id)
+                        if source_file_name is None:
+                            source_file_name = id
                         str += f"\taot_init_globals_file_{source_file_name}();\n"
                     else:  
                         str += f"\taot_init_globals_file_{id}();\n"
@@ -942,7 +946,7 @@ class OTGenerator:
             str += "\n /* Static globals init */\n"
             str += f"\n{OTGenerator.AOT_STATIC_GLOBS_FPTRS}\n"
             if self.args.use_real_filenames:
-                source_file_name = self._get_file_name_withot_extenstion_from_fid(fid)
+                source_file_name = self._get_file_name_without_extenstion_from_fid(fid)
                 if source_file_name is None:
                     source_file_name = fid
                 str += f"void aot_init_globals_file_{source_file_name}(void) {{\n"
