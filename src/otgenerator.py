@@ -60,6 +60,14 @@ class OTGenerator:
     def set_fid_to_filename(self, fid, filename):
         self.fid_to_filename[fid] = filename
 
+    def _get_file_name_withot_extenstion_from_fid(self, fid):
+        full_path_to_source = self.dbops.srcidmap[fid]
+        if full_path_to_source is None:
+            return None
+        source_file_name = os.path.basename(full_path_to_source)
+        source_file_name_withot_extenstion = source_file_name[:source_file_name.rfind(".")]
+        return source_file_name_withot_extenstion;
+
     # @belongs: otgenerator
     def _get_file_define(self, fid):
         filename = f"file_{fid}.c"
@@ -112,7 +120,11 @@ class OTGenerator:
         if self.args.init:
             str += "\n"
             for id in self.fid_to_filename:
-                str += f"void aot_init_globals_file_{id}(void);\n"
+                if self.args.use_real_filenames:
+                    source_file_name = self._get_file_name_withot_extenstion_from_fid(id);
+                    str += f"void aot_init_globals_file_{source_file_name}(void);\n"
+                else:
+                    str += f"void aot_init_globals_file_{id}(void);\n"
 
         main_start = len(str)
 
@@ -262,7 +274,11 @@ class OTGenerator:
 
                 str += "\n"
                 for id in self.fid_to_filename:
-                    str += f"\taot_init_globals_file_{id}();\n"
+                    if self.args.use_real_filenames:
+                        source_file_name = self._get_file_name_withot_extenstion_from_fid(id)
+                        str += f"\taot_init_globals_file_{source_file_name}();\n"
+                    else:  
+                        str += f"\taot_init_globals_file_{id}();\n"
 
             if self.args.init:
                 logging.info(f"init data for {f_id}: {ret_val}")
@@ -925,7 +941,13 @@ class OTGenerator:
         if test_driver is False and stubs is False:
             str += "\n /* Static globals init */\n"
             str += f"\n{OTGenerator.AOT_STATIC_GLOBS_FPTRS}\n"
-            str += f"void aot_init_globals_file_{fid}(void) {{\n"
+            if self.args.use_real_filenames:
+                source_file_name = self._get_file_name_withot_extenstion_from_fid(fid)
+                if source_file_name is None:
+                    source_file_name = fid
+                str += f"void aot_init_globals_file_{source_file_name}(void) {{\n"
+            else:
+                str += f"void aot_init_globals_file_{fid}(void) {{\n"
             str += f"\tchar* tmpname;\n"
             str += f"\n{OTGenerator.AOT_STATIC_GLOBS_MARKER}\n"
             str += "}\n"
