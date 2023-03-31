@@ -67,6 +67,7 @@ class Init:
         self.array_init_max_size = 32  # when initializing arrays use this a an upper limimit
         self.tagged_vars_count = 0
         self.fpointer_stubs = []
+        self.stub_names = set()
 
     # -------------------------------------------------------------------------
 
@@ -903,6 +904,15 @@ class Init:
                         stub_name = stub_name.replace("*", "")
                         stub_name = stub_name.strip()
                         stub_name = f"aotstub_{stub_name.split()[-1]}"
+
+                        if stub_name not in self.stub_names:
+                            self.stub_names.add(stub_name)
+                        else:
+                            suffix=1
+                            while f"{stub_name}_{suffix}" in self.stub_names:
+                                suffix += 1
+                            stub_name = f"{stub_name}_{suffix}"
+                            self.stub_names.add(stub_name)
 
                         tmp_str, fname = self.codegen._generate_function_stub(dst_type["id"], stubs_file=False,
                                                                               fpointer_stub=True, stub_name=stub_name)
