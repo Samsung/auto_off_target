@@ -364,6 +364,7 @@ class CodeGen:
         if not self.args.unroll_macro_defs or len(f_entry["macro_expansions"])<=0:
             return None
         out_body = f_entry["unpreprocessed_body"][0:f_entry["macro_expansions"][0]["pos"]]
+        body_loc = list()
         for i,mexp_entry in enumerate(f_entry["macro_expansions"]):
             pos = mexp_entry["pos"]
             size = mexp_entry["len"]
@@ -384,6 +385,8 @@ class CodeGen:
                 else:
                     unrolled_macro_map[macro_str] = [(mexp_entry["text"],self.unrolled_simple_macro_counter)]
                 self.unrolled_simple_macro_counter+=1
+                # (location of macro in the body, length of macro string, index of macro string in macro vector)
+                body_loc.append((len(out_body),len(macro_str),len(unrolled_macro_map[macro_str])-1))
                 out_body+=macro_str
             if i+1<len(f_entry["macro_expansions"]):
                 # More expansions
@@ -391,6 +394,15 @@ class CodeGen:
             else:
                 # We're done for today
                 out_body+=f_entry["unpreprocessed_body"][pos+size:]
+        # Replace macro strings in case of simple macros with distinct values
+        body_shift=0
+        for bloc,mlen,mindex in body_loc:
+            k = out_body[bloc+body_shift:bloc+body_shift+mlen]
+            if len(set([x[0] for x in unrolled_macro_map[k]]))>1:
+                text,cntr = unrolled_macro_map[k][mindex]
+                nk = f"{k}__{cntr}"
+                out_body = out_body[:bloc+body_shift]+nk+out_body[bloc+body_shift+mlen:]
+                body_shift+=len(nk)-mlen
         # Replace function header from preprocessed body
         body_header_end = f_entry["body"].find("{")
         header = f_entry["body"][0:body_header_end]
