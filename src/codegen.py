@@ -363,10 +363,17 @@ class CodeGen:
     def _get_unrolled_macro_body(self,f_entry,unrolled_macro_map,common_unrolled_macro_map):
         if not self.args.unroll_macro_defs or len(f_entry["macro_expansions"])<=0:
             return None
-        out_body = f_entry["unpreprocessed_body"][0:f_entry["macro_expansions"][0]["pos"]]
+        out_body = ""
         body_loc = list()
+        pos = 0
+        size = 0
         for i,mexp_entry in enumerate(f_entry["macro_expansions"]):
-            pos = mexp_entry["pos"]
+            npos = mexp_entry["pos"]
+            if npos<pos+size:
+                # Ignore overlapping macro expansion entries
+                continue
+            out_body+=f_entry["unpreprocessed_body"][pos+size:npos]
+            pos = npos
             size = mexp_entry["len"]
             macro_str = f_entry["unpreprocessed_body"][pos:pos+size]
             u = macro_str.find('(')
@@ -388,12 +395,7 @@ class CodeGen:
                 # (location of macro in the body, length of macro string, index of macro string in macro vector)
                 body_loc.append((len(out_body),len(macro_str),len(unrolled_macro_map[macro_str])-1))
                 out_body+=macro_str
-            if i+1<len(f_entry["macro_expansions"]):
-                # More expansions
-                out_body+=f_entry["unpreprocessed_body"][pos+size:f_entry["macro_expansions"][i+1]["pos"]]
-            else:
-                # We're done for today
-                out_body+=f_entry["unpreprocessed_body"][pos+size:]
+        out_body+=f_entry["unpreprocessed_body"][pos+size:]
         # Replace macro strings in case of simple macros with distinct values
         body_shift=0
         for bloc,mlen,mindex in body_loc:
