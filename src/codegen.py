@@ -376,10 +376,13 @@ class CodeGen:
             pos = npos
             size = mexp_entry["len"]
             macro_str = f_entry["unpreprocessed_body"][pos:pos+size]
+            if mexp_entry["text"]=='':
+                # We just remove a part of the original code
+                continue
             u = macro_str.find('(')
             if u>=0:
                 macro_replacement_name = f"__macrocall__{macro_str[:u].strip()}__{self.unrolled_simple_macro_counter}"
-                macro_replacement_call = f"{macro_replacement_name}/*({macro_str[u+1:-1]})*/"
+                macro_replacement_call = f"{macro_replacement_name}/*({macro_str[u+1:-1].replace('/*','|*').replace('*/','*|')})*/"
                 if macro_replacement_name in common_unrolled_macro_map: # unlikely
                     logging.warning(f"Duplicated entry in the unrolled macro map: {macro_replacement_name}")
                     return None
