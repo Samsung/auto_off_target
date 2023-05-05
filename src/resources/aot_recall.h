@@ -12,7 +12,7 @@ int fl_add(void* dst, void* src, unsigned long long size, void* data);
 
 // Save memory location of OT entry point argument to recall file
 int fl_save_arg(void* ptr, const char* name);
-#define AOT_RECALL_SAVE_ARG(PTR)        if(fl_save_arg(PTR, #PTR)) exit(1)
+#define AOT_RECALL_SAVE_ARG(PTR)        if(fl_save_arg((void *)PTR, #PTR)) exit(1)
 
 // Save arbitrary other value to recall file (ex. interface type)
 int fl_save_other(int type, const char* value);
