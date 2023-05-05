@@ -124,7 +124,7 @@ class OTGenerator:
                     source_file_name = self._get_file_name_without_extenstion_from_fid(id);
                     if source_file_name is None:
                         source_file_name = id
-                    str += f"void aot_init_globals_file_{source_file_name}(void);\n"
+                    str += f"void aot_init_globals_file_{source_file_name.replace('-','_')}(void);\n"
                 else:
                     str += f"void aot_init_globals_file_{id}(void);\n"
 
@@ -280,7 +280,7 @@ class OTGenerator:
                         source_file_name = self._get_file_name_without_extenstion_from_fid(id)
                         if source_file_name is None:
                             source_file_name = id
-                        str += f"\taot_init_globals_file_{source_file_name}();\n"
+                        str += f"\taot_init_globals_file_{source_file_name.replace('-','_')}();\n"
                     else:  
                         str += f"\taot_init_globals_file_{id}();\n"
 
@@ -949,7 +949,7 @@ class OTGenerator:
                 source_file_name = self._get_file_name_without_extenstion_from_fid(fid)
                 if source_file_name is None:
                     source_file_name = fid
-                str += f"void aot_init_globals_file_{source_file_name}(void) {{\n"
+                str += f"void aot_init_globals_file_{source_file_name.replace('-','_')}(void) {{\n"
             else:
                 str += f"void aot_init_globals_file_{fid}(void) {{\n"
             str += f"\tchar* tmpname;\n"
