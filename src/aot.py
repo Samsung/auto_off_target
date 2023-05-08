@@ -1072,7 +1072,12 @@ class Engine:
                 if "_stub" in filename:
                     suffix = real_name[real_name.rfind("."):]
                     real_name = real_name[:real_name.rfind(".")] + "_stub" + suffix
-                    
+                
+                suffix_index = real_name.rfind(".")
+                suffix = real_name[suffix_index:]
+                real_name = real_name[:suffix_index] + f"_{fid}" + suffix
+                
+
                 if real_name in real_names:
                     i = 2
                     tmp = real_name

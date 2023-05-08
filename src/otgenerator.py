@@ -127,6 +127,7 @@ class OTGenerator:
                     if not isinstance(source_file_name, int):                        
                         source_file_name = source_file_name.replace('-', '_')
                         source_file_name = source_file_name.replace('.', '_')
+                        source_file_name = f"{source_file_name}_{id}"
                     str += f"void aot_init_globals_file_{source_file_name}(void);\n"
                 else:
                     str += f"void aot_init_globals_file_{id}(void);\n"
@@ -286,6 +287,7 @@ class OTGenerator:
                         if not isinstance(source_file_name, int):
                             source_file_name = source_file_name.replace('-', '_')
                             source_file_name = source_file_name.replace('.', '_')
+                            source_file_name = f"{source_file_name}_{id}"
                         str += f"\taot_init_globals_file_{source_file_name}();\n"
                     else:  
                         str += f"\taot_init_globals_file_{id}();\n"
@@ -958,6 +960,7 @@ class OTGenerator:
                 if not isinstance(source_file_name, int):
                     source_file_name = source_file_name.replace('-', '_')
                     source_file_name = source_file_name.replace('.', '_')
+                    source_file_name = f"{source_file_name}_{fid}"
                 str += f"void aot_init_globals_file_{source_file_name}(void) {{\n"
             else:
                 str += f"void aot_init_globals_file_{fid}(void) {{\n"
