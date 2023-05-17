@@ -1049,34 +1049,62 @@ class Deps:
 
         del all_types_data
         logging.debug("Toposort types")
-        try:
-            sorted = toposort_flatten(deps)
-        except CircularDependencyError as e:
-            logging.warning("Circular depdencies detected")
 
-            # typedefs are known to cause circular deps problem
-            # because it's hard to find a generic rule for cicles removal,
-            # we decided to remove deps on toposort failure
+        circles = True
+        while circles:
+            try:
+                sorted = toposort_flatten(deps)
+                circles = False
+            except CircularDependencyError as e:
+                logging.warning("Circular depdencies detected")
 
-            for tid, tid_deps in e.data.items():
-                type = self.dbops.typemap[tid]
-                if type["class"] == "typedef":
-                    dst_tid = type["refs"][0]
-                    dst_type = self.dbops.typemap[dst_tid]
-                    dst_class = dst_type["class"]
-                    if dst_class == "record" or dst_class == "enum":
-                        dst_tid = dst_type["id"]
-                        if dst_tid in tid_deps:
-                            deps[tid].remove(dst_tid)
-                            logging.info(
-                                "Breaking dependency from {} to {}".format(tid, dst_tid))
-            logging.info("Retry toposort after circle removal")
-            sorted = toposort_flatten(deps)
+                # typedefs are known to cause circular deps problem
+                # because it's hard to find a generic rule for cicles removal,
+                # we decided to remove deps on toposort failure
 
+                for tid, tid_deps in e.data.items():
+                    type = self.dbops.typemap[tid]
+                    if type["class"] == "typedef":
+                        dst_tid = type["refs"][0]
+                        dst_type = self.dbops.typemap[dst_tid]
+                        dst_class = dst_type["class"]
+                        if dst_class == "record" or dst_class == "enum":
+                            dst_tid = dst_type["id"]
+                            if dst_tid in tid_deps:
+                                deps[tid].remove(dst_tid)                                
+                                logging.info(
+                                    "Breaking dependency from {} to {}".format(tid, dst_tid))
+                                # after removing the dependency we should explicitly add
+                                # the destination of the typedef to all types dependent on 
+                                # typedef
+                                to_check = []
+                                for _tid in deps:
+                                    _type = self.dbops.typemap[_tid]
+                                    if _type['class'] == 'record' or _type['class'] == 'enum':
+                                        if tid in deps[_tid] and dst_tid not in deps[_tid]:
+                                            logging.debug(f"adding dep {_tid} => {dst_tid}")
+                                            deps[_tid].add(dst_tid)
+                                            if _tid in _internal_defs:
+                                                to_check.append(_tid)
+                                # if the types we added deps to are internal we need to find their outer types and 
+                                # add deps there 
+                                while (len(to_check) > 0):
+                                    _tid_ext = to_check.pop()
+                                    if _tid_ext in self.internal_types:
+                                        for _tid in self.internal_types[_tid_ext]:
+                                            deps[_tid].add(dst_tid)
+                                            logging.debug(f"adding dep {_tid} => {dst_tid}")
+                                            if _tid in _internal_defs:
+                                                to_check.append(_tid)
+
+                logging.info("Retry toposort after circle removal")
+                #sorted = toposort_flatten(deps)
+                
         sorted_types = self.dbops.typemap.get_many(list(sorted))
         sorted = [t["id"] for t in sorted_types if t["class"] != "builtin"
                   and t["id"] not in _internal_defs]
         logging.debug("sorted is {}".format(sorted))
+
         del sorted_types
 
         # adding type deps might have added types that we don't want to have
