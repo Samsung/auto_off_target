@@ -125,7 +125,7 @@ int printk(const char *fmt, ...) {
 }
 #endif
 
-#ifdef AOT_PRINTK
+#ifdef AOT__PRINTK
 int _printk(const char *fmt, ...) {
     va_list args;
     int ret = 0;
