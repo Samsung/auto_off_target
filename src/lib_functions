@@ -9,6 +9,7 @@ __kmalloc
 kzalloc
 kfree
 printk
+_printk
 mutex_lock
 mutex_unlock
 spin_lock

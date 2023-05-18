@@ -125,6 +125,21 @@ int printk(const char *fmt, ...) {
 }
 #endif
 
+#ifdef AOT_PRINTK
+int _printk(const char *fmt, ...) {
+    va_list args;
+    int ret = 0;
+
+    va_start(args, fmt);
+    ret = vprintf(fmt, args);
+    va_end(args);
+
+    return ret;
+}
+#endif
+
+
+
 #ifdef AOT_MUTEX_LOCK
 void mutex_lock(void* m) {
     // no locking 
