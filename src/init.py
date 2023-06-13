@@ -1353,7 +1353,7 @@ class Init:
                                             max // dst_type["size"]) + 1
                                         multiplier = f"sizeof({typename})*{multiplier}"
                                     if extra_padding:
-                                        multiplier = f"{multiplier} + {extra_padding}"
+                                        multiplier = f"{multiplier} + {extra_padding.replace('*', '', 1)}"
                                         str += f"// smart init: allocating extra space for a 0-size const array member\n"
                                     str += f"// smart init: this object has many casts: using larger count to accommodate the biggest casted type\n"
                                     str += f"// the other types are: {names}\n"
@@ -1383,7 +1383,7 @@ class Init:
                                 # a rather rare case of extra padding being non-zero
                                 str += f"// smart init: allocating extra space for a 0-size const array member\n"
                                 str += "aot_memory_init_ptr(&{}, sizeof({}) + {}, {} /* count */, {} /* fuzz */, {});\n".format(
-                                    name, typename, extra_padding, cnt, fuzz, tagged_var_name)
+                                    name, typename, extra_padding.replace("*", "", 1), cnt, fuzz, tagged_var_name)
                         else:
                             str += "aot_memory_init_ptr(&{}, {}, {} /* count */, {} /* fuzz */, {});\n".format(
                                 name, multiplier, cnt, fuzz, tagged_var_name)
