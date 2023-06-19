@@ -807,7 +807,7 @@ class Engine:
                     initstr = g["init"]
                     if initstr == "((void *)0)":
                         glob_has_init = False
-
+                glob_has_init = False
                 if not glob_has_init and g["linkage"] == "internal" or len(g_t["str"]) == 0:
                     # get id of the global definition file
                     g_fid = g["fid"]

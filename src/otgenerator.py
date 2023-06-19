@@ -239,6 +239,7 @@ class OTGenerator:
                     g_t = self.dbops.typemap[g_tid]
                     g_t = self.dbops._get_typedef_dst(g_t)
                     if g["hasinit"]:
+                        pass
                         skip_init = True
                         # one more check: sometimes globals are pointers initialized to null
 
