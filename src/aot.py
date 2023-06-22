@@ -803,13 +803,14 @@ class Engine:
                 g_tid = g["type"]
                 g_t = self.dbops.typemap[g_tid]
                 g_t = self.dbops._get_typedef_dst(g_t)
-                #if g_t["class"] == "pointer":
-                #    initstr = g["init"]
-                #    if initstr == "((void *)0)":
-                #        glob_has_init = False
+                if g_t["class"] == "pointer":
+                    initstr = g["init"]
+                    if initstr == "((void *)0)":
+                        glob_has_init = False
                 
                 # enforcing initialization of globals
-                glob_has_init = False
+                if g_t["class"] != "const_array":
+                    glob_has_init = False
                 if not glob_has_init and g["linkage"] == "internal" or len(g_t["str"]) == 0:
                     # get id of the global definition file
                     g_fid = g["fid"]

@@ -239,25 +239,26 @@ class OTGenerator:
                     g_t = self.dbops.typemap[g_tid]
                     g_t = self.dbops._get_typedef_dst(g_t)
                     if g["hasinit"]:
-                        # enforcing init of all globals
-                        pass
-                        # skip_init = True
-                        # # one more check: sometimes globals are pointers initialized to null
+                        if g_t["class"] != "const_array":
+                            # enforcing init of all globals
+                            pass
+                        skip_init = True
+                        # one more check: sometimes globals are pointers initialized to null
 
-                        # if g_t["class"] == "pointer":
-                        #     initstr = g["init"]
-                        #     if initstr == "((void *)0)":
-                        #         if g['linkage'] == "internal":
-                        #             logging.info(
-                        #                 f"Global {g['name']} has a null initialized and is static -> skipping for now")
-                        #             continue
-                        #         logging.info(
-                        #             f"Global {g['name']} is a pointer initialized to null -> will generate init")
-                        #         skip_init = False
-                        # if skip_init:
-                        #     logging.info(
-                        #         f"Global {g['name']} already has an initializer -> skipping")
-                        #     continue
+                        if g_t["class"] == "pointer":
+                            initstr = g["init"]
+                            if initstr == "((void *)0)":
+                                if g['linkage'] == "internal":
+                                    logging.info(
+                                        f"Global {g['name']} has a null initialized and is static -> skipping for now")
+                                    continue
+                                logging.info(
+                                    f"Global {g['name']} is a pointer initialized to null -> will generate init")
+                                skip_init = False
+                        if skip_init:
+                            logging.info(
+                                f"Global {g['name']} already has an initializer -> skipping")
+                            continue
                     elif g["linkage"] == "internal":
                         # no init code for the global + the global is static
                         logging.warning(
