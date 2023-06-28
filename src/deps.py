@@ -1070,7 +1070,7 @@ class Deps:
                         dst_class = dst_type["class"]
                         if dst_class == "record" or dst_class == "enum":
                             dst_tid = dst_type["id"]
-                            if dst_tid in tid_deps:
+                            if dst_tid in tid_deps or dst_tid in deps[tid]:
                                 deps[tid].remove(dst_tid)                                
                                 logging.info(
                                     "Breaking dependency from {} to {}".format(tid, dst_tid))
