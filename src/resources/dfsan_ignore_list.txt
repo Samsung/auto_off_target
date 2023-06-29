@@ -1,8 +1,31 @@
-# Ignore all functions exported by KFLAT library
-fun:flatten_init=uninstrumented
-fun:flatten_deinit=uninstrumented
-fun:flatten_load=uninstrumented
-fun:flatten_unload=uninstrumented
-fun:flatten_root_pointer_next=uninstrumented
-fun:flatten_root_pointer_seq=uninstrumented
-fun:flatten_root_pointer_named=uninstrumented
+#
+#  dfsan_ignore_list.txt - DFSAN sanitizer special case list. Use this file
+#  with -fsanitize-ignorelist compiler flag to properly link against KFLAT
+#  libunflatten in DFSAN enabled projects
+#  For details see: https://clang.llvm.org/docs/DataFlowSanitizer.html#abi-list
+#
+
+fun:unflatten_init=uninstrumented
+fun:unflatten_init=discard
+
+fun:unflatten_deinit=uninstrumented
+fun:unflatten_deinit=discard
+
+fun:unflatten_load=uninstrumented
+fun:unflatten_load=discard
+
+fun:unflatten_load_continuous=uninstrumented
+fun:unflatten_load_continuous=discard
+
+fun:unflatten_unload=uninstrumented
+fun:unflatten_unload=discard
+
+fun:unflatten_root_pointer_next=uninstrumented
+fun:unflatten_root_pointer_next=discard
+
+fun:unflatten_root_pointer_seq=uninstrumented
+fun:unflatten_root_pointer_seq=discard
+
+fun:unflatten_root_pointer_named=uninstrumented
+fun:unflatten_root_pointer_named=discard
+
