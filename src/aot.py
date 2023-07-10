@@ -1054,7 +1054,7 @@ class Engine:
         if self.dynamic_init:
             str_header += "\n\n// Global initializers fwd decls"
             for f in self.otgen.global_trigger_name_list:
-                str_header += f"\nvoid init_{f}();"
+                str_header += f"\nvoid init_{f}() __attribute__((weak));"
                 
 
         str_header += "\n#endif"
@@ -1247,8 +1247,7 @@ class Engine:
                     i, fstubT[0]) for i, fstubT in enumerate(self.codegen.function_pointer_stubs)])
                 flib_stubs = "\n".join(
                     ["%s" % (flibstub) for flibstub, flibstub_id in self.codegen.lib_function_pointer_stubs])
-                fstubs_init_call = "\n".join(["  init_%s();" % (
-                    x) for x in self.otgen.global_trigger_name_list-self.otgen.global_trigger_name_list_exclude])
+                fstubs_init_call = "\n".join([f"  init_{x}();" for x in self.otgen.global_trigger_name_list])
                 f.write(fptrstub_out % (fstub_decls_out, len(
                     self.codegen.function_pointer_stubs), fstubs_out, fstubs_init, fstubs_init_call, flib_stubs))
 

@@ -43,10 +43,6 @@ class OTGenerator:
         #  The set below should contain all the derived names from global variable hashes defined in the AoT
         self.global_trigger_name_list = set()
 
-        # For some global variables only declaration is included ('extern') in the 'aot.h' file.
-        #  The set below should contain all the derived names from global variable declarations
-        self.global_trigger_name_list_exclude = set()
-
         self.stats = {}
         self.all_types = set()
         self.all_funcs = set()
@@ -840,8 +836,6 @@ class OTGenerator:
 
                 if fid == OTGenerator.AOT_HEADER_ID and g["linkage"] != "internal":
                     prefix = "extern "
-                    self.global_trigger_name_list_exclude.add(
-                        "%s" % (g["hash"].replace("/", "__").replace(".", "____").replace("-", "___")))
                 else:
                     prefix = ""
                 str_header += "{}{}\n".format(prefix, global_fwd_str[g_id])
