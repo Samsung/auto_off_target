@@ -70,3 +70,7 @@ void aot_kflat_fini(void) {
 void* aot_kflat_root_by_name(const char* name, unsigned long* size) {
 	return unflatten_root_pointer_named(unflatten, name, size);
 }
+
+long aot_kflat_replace_variable(void* old_mem, void* new_mem, unsigned long size) {
+	return unflatten_replace_variable(unflatten, old_mem, new_mem, size);
+}

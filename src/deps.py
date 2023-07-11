@@ -34,9 +34,10 @@ class Deps:
     DYNAMIC_INIT_GLOBAL_VARIABLE_TEMPLATE = """void init_{3}() {{
     unsigned long target_size;
     void* ptr = aot_kflat_root_by_name("{0}", &target_size);
-    if(ptr)
+    if(ptr) {{
       memcpy({1}{2} ,ptr, target_size);
-    else
+      aot_kflat_replace_variable(ptr, {1}{2}, target_size);
+    }} else
       puts("[Unflatten] Failed to load global {0}");
 }}"""
 
