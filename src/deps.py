@@ -1307,7 +1307,7 @@ class Deps:
 
         # for static inline functions we will have external stubs in a non-stub file
         # but since the functions are external we do not want to get the globals
-        func_ids = [f for f in functions if f not in self.cutoff.external_funcs]
+        func_ids = [f for f in functions if (f not in self.cutoff.external_funcs and f not in self.dbops.known_funcs_ids)]
         for func in self.dbops.fnidmap.get_many(func_ids):
             if func is not None:
                 globals_ids |= set(func["globalrefs"])
