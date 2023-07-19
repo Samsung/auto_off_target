@@ -12,6 +12,9 @@ struct fptrstub_pair {
   void* address;
 };
 
+/* Weak declaration of init-like functions */
+%s
+
 
 /* Forward declarations of used pointers */
 %s
