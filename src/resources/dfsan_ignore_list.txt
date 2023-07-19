@@ -29,3 +29,5 @@ fun:unflatten_root_pointer_seq=discard
 fun:unflatten_root_pointer_named=uninstrumented
 fun:unflatten_root_pointer_named=discard
 
+fun:unflatten_replace_variable=uninstrumented
+fun:unflatten_replace_variable=discard
