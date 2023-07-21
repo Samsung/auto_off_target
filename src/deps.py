@@ -759,7 +759,7 @@ class Deps:
             if gid1_files == gid2_files:
                 # both globals are used in exactly the same files -> no need to create
                 # header guards
-                return
+                continue
 
             if g_id1 not in self.clash_global_to_file:
                 self.clash_global_to_file[g_id1] = set()
@@ -793,9 +793,9 @@ class Deps:
             if fid1_files == fid2_files:
                 # both globals are used in exactly the same files -> no need to create
                 # header guards
-                return
+                continue
 
-            if f_id1 not in self.clash_global_to_file:
+            if f_id1 not in self.clash_function_to_file:
                 self.clash_function_to_file[f_id1] = set()
             self.clash_function_to_file[f_id1] |= fid2_files
             if f_id2 not in self.clash_function_to_file:
@@ -819,11 +819,11 @@ class Deps:
             for fid, file in files.items():
                 if f_id in file.funcs:
                     fid_files.add(f_id)
-                if g_id in files.globals:
+                if g_id in file.globals:
                     gid_files.add(g_id)
 
             if fid_files == gid_files:
-                return
+                continue
 
             if f_id not in self.clash_function_to_file:
                 self.clash_function_to_file[f_id] = set()
