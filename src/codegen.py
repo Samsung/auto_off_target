@@ -292,7 +292,7 @@ class CodeGen:
                     '__attribute__((warn_unused_result("")))', "")
                 str += self._get_func_clash_ifdef(f, fid)
                 str += f"\n\n{decl};\n"
-                str += self._get_func_clash_ifdef(f, fid)
+                str += self._get_func_clash_endif(f, fid)
 
         for f_id in static_functions:
             if f_id in self.otgen.static_inline_headers:
@@ -430,8 +430,8 @@ class CodeGen:
             for f_id in functions:
                 tmp = ""
                 unrolled_macro_map = {}
-                tmp += self._get_func_clash_ifdef(f_id, fid)
                 if self.dbops.fnidmap[f_id] is not None:
+                    tmp += self._get_func_clash_ifdef(f_id, fid)
                     if f_id not in self.cutoff.external_funcs:
                         if not self.args.dbjson2:
                             f_entry = self.dbops.fnidmap[f_id]
