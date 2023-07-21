@@ -269,6 +269,7 @@ class CutOff:
                     self.fid_to_dirs[fid] = dirs
 
         self.internal_funcs = set()
+        self.external_funcs = set()
         logging.info("Getting internal functions")
         for f in base_functions:
             self._get_internal_funcs(

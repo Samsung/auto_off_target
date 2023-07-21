@@ -370,7 +370,7 @@ class Engine:
             logging.info("adding basedir {}".format(dir))
             basedirs.add(dir)
 
-        self.globals = set()
+
         self.deps._get_called_functions(self.functions)
         # TODO: filter out external functions -> consider adding a filter to the
         # get_called_functions method (this might cover the globals too)
@@ -379,17 +379,25 @@ class Engine:
         # do we need to call it with self.functions as the second arg?
         # what would be the best way to create a filter for internal/external
 
-        all_types = set()
-        internal_defs = set()
-        self.deps._discover_functions_and_globals(
-            self.functions, self.globals, all_types, basedirs, internal_defs)
-        self.dbops.all_funcs_with_asm = all_funcs_with_asm_copy
-
-        logging.debug("funcs are " + str(self.functions))
         self.cutoff._get_function_stats(function_ids, self.functions)
         # after calling get_function_stats the list of external funcs can be found in
         # self.external_funcs and the list of internal funcs can be found in self.internal_funcs
 
+        self.globals = set()
+        all_types = set()
+        internal_defs = set()
+        _funcs = set()
+        _funcs |= self.cutoff.internal_funcs
+        _funcs |= self.cutoff.external_funcs
+        self.deps._discover_functions_and_globals(
+            _funcs, self.globals, all_types, basedirs, internal_defs)
+        self.dbops.all_funcs_with_asm = all_funcs_with_asm_copy
+
+        logging.debug("funcs are " + str(self.functions))
+        self.cutoff._get_function_stats(function_ids, _funcs)
+        # after calling get_function_stats the list of external funcs can be found in
+        # self.external_funcs and the list of internal funcs can be found in self.internal_funcs
+        self.functions |= _funcs
         logging.info("Engine found " +
                      str(len(self.functions)) + " functions")
 
