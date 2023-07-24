@@ -62,6 +62,7 @@ class Deps:
         self.glob_clash_counter = 0
         self.func_clash_nums = {}
         self.func_clash_counter = 0
+        self.function_clashes = {}
 
         self.literals = {}
         self.literals[Deps.INT_LITERAL] = set()
@@ -801,6 +802,13 @@ class Deps:
             if f_id2 not in self.clash_function_to_file:
                 self.clash_function_to_file[f_id2] = set()
             self.clash_function_to_file[f_id2] |= fid1_files
+
+            if f_id1 not in self.function_clashes:
+                self.function_clashes[f_id1] = set()
+            if f_id2 not in self.function_clashes:
+                self.function_clashes[f_id2] = set()
+            self.function_clashes[f_id1].add(f_id2)
+            self.function_clashes[f_id2].add(f_id1)
 
         for tuple in func_glob_clashes:
             f_id = tuple[0]

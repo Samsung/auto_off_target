@@ -11,7 +11,7 @@
 
 import logging
 import os
-
+import copy
 
 class OTGenerator:
 
@@ -766,6 +766,14 @@ class OTGenerator:
                     # sys.exit(1)
                 index += 1
 
+            # additional check: make sure that in case of name clashes we include all the clashing functions
+            # just for the sake of completeness
+            funcs_for_type_copy = copy.deepcopy(funcs_for_type)
+            for t_id in funcs_for_type:
+                for f_id in funcs_for_type[t_id]:
+                    if f_id in self.deps.function_clashes:
+                        funcs_for_type_copy[t_id] |= self.deps.function_clashes[f_id]
+            funcs_for_type = funcs_for_type_copy
             types_str, failed = self.codegen._get_type_defs(
                 types, funcs_for_type, fid, static_funcs)
             str_header += "\n/* Global type defs */\n"
