@@ -1243,9 +1243,9 @@ class CodeGen:
             else:
                 ifdef = f"#if {ifdef}\n"
                 ifgenerated = True
-            if t_id in self.deps.type_clash_nums:
-                ifdef += f"#ifndef CLASH_{self.deps.type_clash_nums[t_id]}\n"
-                ifdef += f"#define CLASH_{self.deps.type_clash_nums[t_id]}\n"
+            #if t_id in self.deps.type_clash_nums:
+            #    ifdef += f"#ifndef CLASH_{self.deps.type_clash_nums[t_id]}\n"
+            #    ifdef += f"#define CLASH_{self.deps.type_clash_nums[t_id]}\n"
 
         return ifdef, ifgenerated
 
@@ -1258,8 +1258,8 @@ class CodeGen:
             # if fid in self.clash_type_to_file[t_id]:
             if ifgenerated == True:
                 endif = "#endif\n"
-            if t_id in self.deps.type_clash_nums:
-                endif += "#endif\n"
+            #if t_id in self.deps.type_clash_nums:
+            #    endif += "#endif\n"
 
         return endif
 
@@ -1277,9 +1277,9 @@ class CodeGen:
                     ifdef += " && "
                 ifdef += f"!defined({self.otgen._get_file_define(file_id)})"
             ifdef = f"#if {ifdef}\n"
-            if g_id in self.deps.glob_clash_nums:
-                ifdef += f"#ifndef CLASH_{self.deps.glob_clash_nums[g_id]}\n"
-                ifdef += f"#define CLASH_{self.deps.glob_clash_nums[g_id]}\n"
+            #if g_id in self.deps.glob_clash_nums:
+            #    ifdef += f"#ifndef CLASH_{self.deps.glob_clash_nums[g_id]}\n"
+            #    ifdef += f"#define CLASH_{self.deps.glob_clash_nums[g_id]}\n"
         return ifdef
 
     # -------------------------------------------------------------------------
@@ -1290,8 +1290,8 @@ class CodeGen:
         if g_id in self.deps.clash_global_to_file:
             # if fid in self.clash_global_to_file[g_id]:
             endif = "#endif\n"
-            if g_id in self.deps.glob_clash_nums:
-                endif += "#endif\n"
+            #if g_id in self.deps.glob_clash_nums:
+            #    endif += "#endif\n"
 
         return endif
 
@@ -1309,9 +1309,9 @@ class CodeGen:
                     ifdef += " && "
                 ifdef += f"!defined({self.otgen._get_file_define(file_id)})"
             ifdef = f"#if {ifdef}\n"
-            if f_id in self.deps.func_clash_nums:
-                ifdef += f"#ifndef CLASH_{self.deps.func_clash_nums[f_id]}\n"
-                ifdef += f"#define CLASH_{self.deps.func_clash_nums[f_id]}\n"
+            #if f_id in self.deps.func_clash_nums:
+            #    ifdef += f"#ifndef CLASH_{self.deps.func_clash_nums[f_id]}\n"
+            #    ifdef += f"#define CLASH_{self.deps.func_clash_nums[f_id]}\n"
 
         return ifdef
 
@@ -1322,8 +1322,8 @@ class CodeGen:
         endif = ""
         if f_id in self.deps.clash_function_to_file:
             endif = "#endif\n"
-        if f_id in self.deps.func_clash_nums:
-            endif += "#endif\n"
+        #if f_id in self.deps.func_clash_nums:
+        #    endif += "#endif\n"
 
         return endif
 
