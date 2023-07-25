@@ -276,7 +276,7 @@ class CodeGen:
                 decl = self._filter_out_asm_in_fdecl(decl)
                 decl = decl.replace(
                     '__attribute__((warn_unused_result("")))', "")
-                str += self._get_func_clash_ifdef(f, fid)
+                str += self._get_func_clash_ifdef(f, fid, True)
                 str += f"\n\n{decl};\n"
                 str += self._get_func_clash_endif(f, fid)
 
@@ -290,7 +290,7 @@ class CodeGen:
                 decl = self._filter_out_asm_in_fdecl(decl)
                 decl = decl.replace(
                     '__attribute__((warn_unused_result("")))', "")
-                str += self._get_func_clash_ifdef(f, fid)
+                str += self._get_func_clash_ifdef(f, fid, True)
                 str += f"\n\n{decl};\n"
                 str += self._get_func_clash_endif(f, fid)
 
@@ -303,7 +303,7 @@ class CodeGen:
                 continue
             f = self.dbops.fnidmap[f_id]
             name = f["name"]
-            str += self._get_func_clash_ifdef(f_id, fid)
+            str += self._get_func_clash_ifdef(f_id, fid, True)
             str += "\n\n"
             body = f["declbody"].replace(
                 "{}(".format(name), "wrapper_{}_{}(".format(name, f_id))
@@ -1244,8 +1244,8 @@ class CodeGen:
                 ifdef = f"#if {ifdef}\n"
                 ifgenerated = True
             if t_id in self.deps.type_clash_nums:
-                ifdef += f"#ifndef CLASH_{self.deps.type_clash_nums[t_id]}\n"
-                ifdef += f"#define CLASH_{self.deps.type_clash_nums[t_id]}\n"
+                ifdef += f"#ifndef CLASH_TYPE_{self.deps.type_clash_nums[t_id]}\n"
+                ifdef += f"#define CLASH_TYPE_{self.deps.type_clash_nums[t_id]}\n"
 
         return ifdef, ifgenerated
 
@@ -1278,8 +1278,8 @@ class CodeGen:
                 ifdef += f"!defined({self.otgen._get_file_define(file_id)})"
             ifdef = f"#if {ifdef}\n"
             if g_id in self.deps.glob_clash_nums:
-                ifdef += f"#ifndef CLASH_{self.deps.glob_clash_nums[g_id]}\n"
-                ifdef += f"#define CLASH_{self.deps.glob_clash_nums[g_id]}\n"
+                ifdef += f"#ifndef CLASH_GLOB_{self.deps.glob_clash_nums[g_id]}\n"
+                ifdef += f"#define CLASH_GLOB_{self.deps.glob_clash_nums[g_id]}\n"
         return ifdef
 
     # -------------------------------------------------------------------------
@@ -1298,8 +1298,11 @@ class CodeGen:
     # -------------------------------------------------------------------------
 
     # @belongs: codegen?
-    def _get_func_clash_ifdef(self, f_id, fid):
+    def _get_func_clash_ifdef(self, f_id, fid, isDecl = False):
         ifdef = ""
+        marker = "FUNC"
+        if isDecl is True:
+            marker = "FUNCDECL"
         if f_id in self.deps.clash_function_to_file:
             # if fid in self.clash_function_to_file[f_id]:
             # now we know that this file is using a function that clashes with some other function
@@ -1310,8 +1313,8 @@ class CodeGen:
                 ifdef += f"!defined({self.otgen._get_file_define(file_id)})"
             ifdef = f"#if {ifdef}\n"
             if f_id in self.deps.func_clash_nums:
-                ifdef += f"#ifndef CLASH_{self.deps.func_clash_nums[f_id]}\n"
-                ifdef += f"#define CLASH_{self.deps.func_clash_nums[f_id]}\n"
+                ifdef += f"#ifndef CLASH_{marker}_{self.deps.func_clash_nums[f_id]}\n"
+                ifdef += f"#define CLASH_{marker}_{self.deps.func_clash_nums[f_id]}\n"
 
         return ifdef
 
