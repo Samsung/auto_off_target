@@ -11,15 +11,14 @@
 
 import logging
 import os
-
+import sys
 
 class Module:
 
-    def __init__(self, path, isbase=False):
+    def __init__(self, path):
         self.fids = set()
         self.path = path
         self.depth = path.count("/")
-        self.isbase = isbase
 
 
 class CutOff:
@@ -119,7 +118,19 @@ class CutOff:
                         # fid will not be in fid_to_mods if it's an unresolved function in db.json
                     else:
                         # internal functions are the ones residing in the same module
+
+                        _to_add = []
+                        if fid not in self.fid_to_mods:
+                            _to_add.append(fid)
+                        if base_fid not in self.fid_to_mods:
+                            _to_add.append(base_fid)
+                        
+                        if len(_to_add) > 0:
+                            for _fid in _to_add:
+                                self._get_mods_and_dirs_for_f(_fid)
+
                         mods = self.fid_to_mods[fid]
+
                         base_mods = self.fid_to_mods[base_fid]
                         # let's check if the modules are the same
                         # in principle we need to make sure that every module the base is compiled in,
@@ -208,6 +219,47 @@ class CutOff:
 
     # -------------------------------------------------------------------------
 
+    def _get_mods_and_dirs_for_f(self, fid):
+        src, loc, srcs = self.dbops._get_function_file(fid)
+        mod_paths = None
+
+        # Cut-off based on modules
+        if (src is None) and (loc is None):
+            # that is for the unresolved functions
+            mod_paths = ["/tmp/no_such_mod"]
+            #sys.exit(1)
+        else:
+            # logging.debug(f"function {fid}")
+            mod_paths = self.basconnector.get_module_for_source_file(
+                src, loc)
+            
+        for mod_path in mod_paths:
+            if mod_path not in self.modules:
+                self.modules[mod_path] = Module(mod_path)
+            self.modules[mod_path].fids.add(fid)
+            if fid not in self.fid_to_mods:
+                self.fid_to_mods[fid] = []
+            if mod_path not in self.fid_to_mods[fid]:            
+                self.fid_to_mods[fid].append(mod_path)
+            # else:
+            #    logging.error("Ambiguous function to module mapping for fid {}".format(fid))
+            #    sys.exit(1)
+
+        # cut-off based on the list of function names
+        # we don't really need to collect anything in that case - we will filter out
+        # based on names
+
+        # cut-off based on the list of directories
+        dirs = set()
+        if src is not None:
+            dirs.add(os.path.dirname(src))
+        else:
+            dirs.add("/tmp/no_such_file")
+        if len(dirs) != 0:
+            if fid not in self.fid_to_dirs:
+                self.fid_to_dirs[fid] = dirs
+    
+
     # @base_fids: the ids of the functions we would like to create an off-target for
     # @fids: the ids of all the other functions (that we discovered recursively)
     # @belongs: deps or cut-off
@@ -230,43 +282,7 @@ class CutOff:
             # self.co_files.add(src)
 
         for fid in fids:
-            src, loc, srcs = self.dbops._get_function_file(fid)
-
-            # Cut-off based on modules
-            if (src is None) and (loc is None):
-                # that is for the unresolved functions
-                mod_paths = ["/tmp/no_such_mod"]
-            else:
-                # logging.debug(f"function {fid}")
-                mod_paths = self.basconnector.get_module_for_source_file(
-                    src, loc)
-            for mod_path in mod_paths:
-                if mod_path not in self.modules:
-                    if fid in base_fids:
-                        self.modules[mod_path] = Module(mod_path, isbase=True)
-                    else:
-                        self.modules[mod_path] = Module(mod_path, isbase=False)
-                self.modules[mod_path].fids.add(fid)
-                if fid not in self.fid_to_mods:
-                    self.fid_to_mods[fid] = []
-                self.fid_to_mods[fid].append(mod_path)
-                # else:
-                #    logging.error("Ambiguous function to module mapping for fid {}".format(fid))
-                #    sys.exit(1)
-
-            # cut-off based on the list of function names
-            # we don't really need to collect anything in that case - we will filter out
-            # based on names
-
-            # cut-off based on the list of directories
-            dirs = set()
-            if src is not None:
-                dirs.add(os.path.dirname(src))
-            else:
-                dirs.add("/tmp/no_such_file")
-            if len(dirs) != 0:
-                if fid not in self.fid_to_dirs:
-                    self.fid_to_dirs[fid] = dirs
+            self._get_mods_and_dirs_for_f(fid)
 
         self.internal_funcs = set()
         self.external_funcs = set()
