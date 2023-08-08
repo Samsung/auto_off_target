@@ -1163,7 +1163,8 @@ class Init:
                             str_tmp += f"\n{typename} {fresh_var_name};"
                         else:
                             str_tmp += f"\n// making extra space for the variable lenght array at the end of the struct"
-                            str_tmp += f"\n{typename}* {fresh_var_name} = malloc(sizeof({typename}) + {extra_padding});"
+                            str_tmp += f"\n{typename}* {fresh_var_name};"
+                            str_tmp += f"\naot_memory_init_ptr(&{fresh_var_name}, sizeof({typename}) + {extra_padding}, 1 /* count */, 0 /* fuzz */, \"\");"
                             fresh_var_name = f"(*{fresh_var_name})"
 
                         if self.args.debug_vars_init:
