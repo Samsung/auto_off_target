@@ -162,23 +162,38 @@ class Deps:
                     fucnsFirstLevelStruct.add(
                         (structTypeId, structMemberId, function["id"]))
 
-        # seems that we need to add also those from fops
-        recordsByName = {}
-        for type in json_data["types"]:
-            if type["class"] != "record":
-                continue
-            recordsByName.setdefault(type["str"], [])
-            recordsByName[type["str"]].append(type)
-
         fopbased = set()
 
-        for fop in json_data["fops"]["vars"]:
-            for record in recordsByName[fop["type"]]:
-                for member in fop["members"]:
-                    fucnsFirstLevelStruct.add(
-                        (record["id"], int(member), fop["members"][member]))
-                    fopbased.add(
-                        (record["id"], member, fop["members"][member]))
+        if "vars" in json_data["fops"]: # legacy format
+            # seems that we need to add also those from fops
+            recordsByName = {}
+            for type in json_data["types"]:
+                if type["class"] != "record":
+                    continue
+                recordsByName.setdefault(type["str"], [])
+                recordsByName[type["str"]].append(type)
+            
+            for fop in json_data["fops"]["vars"]:
+                for record in recordsByName[fop["type"]]:
+                    for member in fop["members"]:
+                        fucnsFirstLevelStruct.add(
+                            (record["id"], int(member), fop["members"][member]))
+                        fopbased.add(
+                            (record["id"], member, fop["members"][member]))
+        else:
+            for fop in json_data["fops"]:
+                record = None
+                for t in json_data["types"]:
+                    if t["id"] == fop["id"]:
+                        record = t
+                        break
+                if record is not None:
+                    for member in fop["members"]:
+                        for f_id in fop["members"][member]:
+                            fucnsFirstLevelStruct.add(
+                                (record["id"], int(member), f_id))
+                            fopbased.add(
+                                (record["id"], member, f_id))
 
         funcsbytypeFirstLevel = {}
 
