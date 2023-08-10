@@ -1655,7 +1655,7 @@ class Init:
                     # assuming an array has only one ref
                     member_type = type["refs"][0]
                     member_type = self.dbops.typemap[member_type]
-                    if (count is None and loop_count > 1) or cl == "const_array" or cl == "incomplete_array":
+                    if (count is None and int(loop_count) > 1) or cl == "const_array" or cl == "incomplete_array":
                         # please note that the loop_count could only be > 0 for an incomplete array if it
                         # was artificially increased in AoT; normally the size of such array in db.json would be 0
                         str += f"for (int {index} = 0; {index} < {loop_count}; {index}++) ""{\n"
@@ -1669,7 +1669,7 @@ class Init:
                         skip = True
 
                     tmp_name = ""
-                    if (count is None and loop_count > 1) or cl == "const_array" or cl == "incomplete_array":
+                    if (count is None and int(loop_count) > 1) or cl == "const_array" or cl == "incomplete_array":
                         tmp_name = f"{name}[{index}]"
                     else:
                         tmp_name = name
