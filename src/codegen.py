@@ -1334,7 +1334,6 @@ class CodeGen:
     def _get_file_header(self, fid=-1):
         str = "/* ------------------------------------------------ */\n" +\
               "/* AOT generated this file                          */\n" +\
-              "/* Copyright Samsung Electronics                    */\n" +\
               "/* ------------------------------------------------ */\n"
         if int(fid) >= 0:
             str += "/* Original file path: " + self.dbops.srcidmap[int(fid)] + " */\n\n"
