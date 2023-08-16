@@ -1,5 +1,5 @@
 scipy
 toposort
 psutil
-numpy
+numpy == 1.23
 packaging
