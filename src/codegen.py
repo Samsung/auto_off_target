@@ -80,6 +80,8 @@ class CodeGen:
         #  The set below should contain all the symbol names along with function id for all non-inline functions available in the AoT
         self.function_pointer_stubs = set()
 
+        self.funcs_with_asm = {}
+
         # The same as above but for the library functions available in the 'aot_lib.c' file used in the AoT
         self.lib_function_pointer_stubs = set()
 

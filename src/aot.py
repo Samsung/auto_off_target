@@ -62,9 +62,6 @@ class Engine:
         self.random_names = set()
         self.bassconnector = None
 
-        # the set of functions with inline assembly
-        self.funcs_with_asm = {}
-
         # to create
         self.sources_to_types = {}
         self.file_contents = {}
@@ -434,6 +431,8 @@ class Engine:
                             # funcs
                             for f in _included:
                                 func = self.dbops.fnidmap[f]
+                                if not func:
+                                    continue
                                 for ref in func["funrefs"]:
                                     if ref in self.dbops.fdmap or ref in self.dbops.umap:
                                         # found a reference that is either func decl or unresolved
@@ -1171,9 +1170,9 @@ class Engine:
         tmp += "Funcs count: AOT_EXT_FUNCS_COUNT: {}\n".format(
             len(self.cutoff.external_funcs))
         logging.info("{}".format(tmp))
-        if len(self.funcs_with_asm) > 0:
+        if len(self.codegen.funcs_with_asm) > 0:
             tmp = "\n# WARNING: the functions below have inline assembly commented out:\n"
-            for fid, data in self.funcs_with_asm.items():
+            for fid, data in self.codegen.funcs_with_asm.items():
                 f = self.dbops.fnidmap[fid]
                 file = data["file"]
                 diff = data["diff"]

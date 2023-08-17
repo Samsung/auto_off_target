@@ -324,7 +324,7 @@ class CutOff:
                 if fid in self.stats_cache:
                     query |= self.stats_cache[fid]
                 else:
-                    self._get_called_functions(query)
+                    self.deps._get_called_functions(query)
                     self.stats_cache[fid] = query
                 logging.info("- [external] {} @ {} pulls in another {} functions".format(
                     f["name"], f["location"], len(query) - 1))
