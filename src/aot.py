@@ -41,8 +41,6 @@ class Engine:
 
     DEFAULT_OUTPUT_DIR = 'off-target'
 
-    AOT_INCLUDE_MARKER = 'AOT_INCLUDE_MARKER'
-
     GLOBAL_HASH_FILE = 'global.hashes'
 
     FUNCTION_POINTER_STUB_FILE_TEMPLATE = "fptr_stub.c.template"
@@ -50,38 +48,18 @@ class Engine:
     FUNCTION_POINTER_KNOWN_FUNCS_STUB_FILE_TEMPLATE = "fptr_stub_known_funcs.c.template"
     FUNCTION_POINTER_KNOWN_FUNCS_STUB_FILE_SOURCE = "fptr_stub_known_funcs.c"
 
-    def __init__(self, logname):
-        self.FOPS_FILE = "fops.json"
-        self.DBJSON_FILE = "db.json"
-        self.db = None
-        self.genclass = {"record", "record_forward", "enum", "enum_forward"}
+    def __init__(self):
         self.functions = set()
-        self._visited_calls = set()
         self.out_dir = Engine.DEFAULT_OUTPUT_DIR
-        self.defined_globals = set()
-        self.random_names = set()
-        self.bassconnector = None
 
         # to create
         self.sources_to_types = {}
         self.file_contents = {}
 
-        self.casted_types = set()
-        self.logname = logname
-
     # -------------------------------------------------------------------------
 
     def init(self, args, db_frontend):
         self.out_dir = args.output_dir
-        self.out_dir_abs = os.path.abspath(self.out_dir)
-
-        # predefined_files = ["aot_replacements.h", "Makefile", "aot_lib.h", "aot_lib.c", "aot_mem_init_lib.h",
-        #                     "aot_mem_init_lib.c", "aot_fuzz_lib.h", "aot_fuzz_lib.c", "aot_log.h", "aot_log.c",
-        #                     "run-afl.sh", "run-klee.sh", "run-asan.sh", "run-dfsan.sh", "aot-fp-reject.py", "analyze-klee.sh", "analyze-afl.sh",
-        #                     "extractor.sh", "build.sh", "single-aot-up.sh", "aot-up.sh", "purge.sh",
-        #                     "vlayout.c.template", "fptr_stub.c.template", "fptr_stub_known_funcs.c.template", "dfsan_ignore_list.txt",
-        #                     "create-poc.sh", "lib_fuzzers.sh", "aot_recall.h", "aot_recall.c", "analyze-recall.sh", "aot_dfsan.c.lib",
-        #                     "analyze.sh" ]
 
         # create output directory
         # TODO: perhaps it's the job of OTGenerator to prepare the output dir and call the resource manager
@@ -100,26 +78,14 @@ class Engine:
         self.resourcemgr = resources.resourcemgr_factory(resources_dir, self.out_dir)
         self.resourcemgr.copy_resources()
 
-        # # copy the predefined files
-        # for f in predefined_files:
-        #     # https://www.blog.pythonlibrary.org/2013/10/29/python-101-how-to-find-the-path-of-a-running-script/
-        #     shutil.copyfile(
-        #         f"{os.path.abspath(os.path.dirname(sys.argv[0]))}/resources/{f}", f"{self.out_dir}/{f}")
-        #     shutil.copymode(
-        #         f"{os.path.abspath(os.path.dirname(sys.argv[0]))}/resources/{f}", f"{self.out_dir}/{f}")
-
-        if False == self._sanity_check(args):
+        if not self._sanity_check(args):
             logging.error("Sanity check failed in the Engine object")
             return False
 
         # 1) DB connection
-        self.db_handle = db_frontend.establish_db_connection(args)
         self.db_frontend = db_frontend
-        self.db_type = args.db_type
+        db_handle = db_frontend.establish_db_connection(args)
 
-        self.version = f"{args.product}_{args.version}_{args.build_type}"
-        self.known_funcs_file = args.known_funcs_file
-        self.always_inc_funcs_file = args.always_inc_funcs_file
         self.libc_includes = args.libc_includes
         self.include_asm = args.include_asm
 
@@ -127,22 +93,20 @@ class Engine:
 
         self.cut_off = args.cut_off
 
-        self.args = args
+        self.use_real_filenames = args.use_real_filenames
+
+        self.smart_init = args.init
         self.dump_smart_init = args.dump_smart_init
         self.dynamic_init = args.dynamic_init
 
-        self.import_json = args.import_json
-        self.rdm_file = args.rdm_file
-        self.init_file = args.init_file
         self.verify_struct_layout = args.verify_struct_layout
-        self._debug_derefs = args.debug_derefs
-        self.fptr_analysis = args.fptr_analysis
         self.dump_ids = args.dump_ids
 
         self.dump_global_hashes = args.dump_global_hashes
         self.global_hashes = []
 
         basserver = "localhost"
+        bassconnector = None
         if args.config:
             with open(args.config, "r") as c:
 
@@ -152,21 +116,18 @@ class Engine:
                 if "BASserver" not in cfg:
                     logging.error("Cannot find BASserver in the config file.")
                     return False
-                    # return True
 
                 basserver = cfg["BASserver"]
         if not args.debug_bas:
-            self.bassconnector = BASconnector(basserver,
-                                              args.product, args.version, args.build_type, db=self.db_handle)
+            bassconnector = BASconnector(basserver, args.product,
+                                              args.version, args.build_type, db=db_handle)
         else:
-            self.bassconnector = BASconnector(basserver, db=self.db_handle)
+            bassconnector = BASconnector(basserver, db=db_handle)
 
         self.deps = Deps(args)
-        self.dbops = AotDbOps(
-            self.db_handle, self.bassconnector, self.deps, args)
-        self.cutoff = CutOff(self.dbops, args, self.bassconnector, self.deps)
-        self.codegen = CodeGen(self.dbops, self.deps,
-                               self.cutoff, args)
+        self.dbops = AotDbOps(db_handle, bassconnector, self.deps, args)
+        self.cutoff = CutOff(self.dbops, args, bassconnector, self.deps)
+        self.codegen = CodeGen(self.dbops, self.deps, self.cutoff, args)
         self.deps.set_dbops(self.dbops)
         self.deps.set_codegen(self.codegen)
         self.deps.set_cutoff(self.cutoff)
@@ -176,7 +137,7 @@ class Engine:
         self.otgen = OTGenerator(
             self.dbops, self.deps, self.codegen, self.cutoff, self.init, args)
         self.codegen.set_otgen(self.otgen)
-        if self.import_json:
+        if args.import_json:
             self.dbops.import_aot_db(args.import_json, args.lib_funcs_file,
                                      args.always_inc_funcs_file, args.known_funcs_file, args.init_file,
                                      args.rdm_file)
@@ -185,14 +146,9 @@ class Engine:
         self.deps._get_called_functions(self.dbops.always_inc_funcs_ids)
         logging.info(
             f"Recursively we have {len(self.dbops.always_inc_funcs_ids)} functions to include")
-        # self.create_indices()
 
-        # sys.exit(1)
         self.deps.discover_type_duplicates()
         self.deps.discover_internal_types()
-
-        # if self.rdm_file is not None:
-        #    self.bassconnector.import_data_to_db(self.rdm_file)
 
         if args.find_potential_targets:
             # we will look for a potential testing targets
@@ -216,10 +172,6 @@ class Engine:
         self.debug_vars_init = args.debug_vars_init
 
         return True
-
-        # 2) db.json file
-        # self.db = ctypelib.ModuleTypeGraph("db.json",False)
-        # return True
 
     # -------------------------------------------------------------------------
 
@@ -827,7 +779,7 @@ class Engine:
                     pointers = []
                     self.recursion_fuse = 0
                     init_obj = None
-                    if self.args.init:
+                    if self.smart_init:
                         param_tid, init_obj = self.otgen.globs_init_data[g['id']]
 
                     tmp_str, alloc, brk = self.init._generate_var_init(
@@ -1076,7 +1028,7 @@ class Engine:
         for filename in self.file_contents:
             contents = self.file_contents[filename]
             dst_filename = filename
-            if self.args.use_real_filenames and filename not in base_files:
+            if self.use_real_filenames and filename not in base_files:
                 fid = filename_to_fid[filename]
                 
                 real_name = os.path.basename(self.dbops.srcidmap[fid])
@@ -1120,7 +1072,7 @@ class Engine:
 
         logging.info("Output generated in " + self.out_dir)
         logging.info(f"AOT_OUT_DIR: {os.path.abspath(self.out_dir)}\n")
-        if self.args.init and self.dump_smart_init:
+        if self.smart_init and self.dump_smart_init:
             types = self.dbops.typemap.get_many(self.otgen.all_types)
             # out_name = "smart_init.json"
             # logging.info(f"As requested, dumping the smart init data to a JSON file {out_name}")
@@ -1462,7 +1414,7 @@ def main():
     
     retcode = 0
     try:
-        engine = Engine(logname)
+        engine = Engine()
 
         if False == engine.init(args, db_frontend):
             shutil.move(logname, f"{args.output_dir}/{Engine.LOGFILE}")
