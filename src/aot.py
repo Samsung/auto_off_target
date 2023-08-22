@@ -96,7 +96,8 @@ class Engine:
         os.makedirs(self.out_dir)
 
         # copy the predefined files
-        self.resourcemgr = resources.resourcemgr_factory(self.out_dir)
+        resources_dir = os.path.join(os.path.dirname(__file__), "resources")
+        self.resourcemgr = resources.resourcemgr_factory(resources_dir, self.out_dir)
         self.resourcemgr.copy_resources()
 
         # # copy the predefined files
@@ -1304,29 +1305,12 @@ class Engine:
 # ------------------------------------------------------------------------------
 
 
-def main():
-    start_time = datetime.now()
-    FORMAT = "%(asctime)-15s [AOT]: %(message)s (@ %(funcName)s %(filename)s:%(lineno)d)"
-    (fd, logname) = tempfile.mkstemp(dir=os.getcwd())
-    logging.basicConfig(filename=logname, filemode="w",
-                        level=logging.INFO, format=FORMAT, datefmt='%Y-%m-%d %H:%M:%S')
-    # https://stackoverflow.com/questions/13733552/logger-configuration-to-log-to-file-and-print-to-stdout
-    format = logging.Formatter(FORMAT)
-    streamlog = logging.StreamHandler(sys.stdout)
-    streamlog.setFormatter(format)
-    logging.getLogger().addHandler(streamlog)
-
-    logging.info("We are happily running with the following parameters:")
-    argvcopy = sys.argv[:]
-    argvcopy[0] = os.path.abspath(argvcopy[0])
-    logging.info("AOT_RUN_ARGS: |" + " ".join(argvcopy[:]) + "|")
-
-    db_frontend = aotdb.connection_factory(aotdb.DbType.FTDB) 
-
+def prepare_parser(*db_frontends):
     parser = argparse.ArgumentParser(
         description='Auto off-target generator: "Select a function, generate a program, test a subsystem®"', conflict_handler="resolve")
-    
-    db_frontend.parse_args(parser)
+
+    for db_frontend in db_frontends:
+        db_frontend.parse_args(parser)
     parser.add_argument('--config',
                         default=None,
                         help='The path to config file')
@@ -1451,7 +1435,29 @@ def main():
                         help="When generating function code unroll all expanded code that comes from macro invocations")
     parser.add_argument("--use-real-filenames", action="store_true",
                         help="When generating OT code use real file names rather than the file_<ID> scheme.")
-    
+    return parser
+
+
+def main():
+    start_time = datetime.now()
+    FORMAT = "%(asctime)-15s [AOT]: %(message)s (@ %(funcName)s %(filename)s:%(lineno)d)"
+    (fd, logname) = tempfile.mkstemp(dir=os.getcwd())
+    logging.basicConfig(filename=logname, filemode="w",
+                        level=logging.INFO, format=FORMAT, datefmt='%Y-%m-%d %H:%M:%S')
+    # https://stackoverflow.com/questions/13733552/logger-configuration-to-log-to-file-and-print-to-stdout
+    format = logging.Formatter(FORMAT)
+    streamlog = logging.StreamHandler(sys.stdout)
+    streamlog.setFormatter(format)
+    logging.getLogger().addHandler(streamlog)
+
+    logging.info("We are happily running with the following parameters:")
+    argvcopy = sys.argv[:]
+    argvcopy[0] = os.path.abspath(argvcopy[0])
+    logging.info("AOT_RUN_ARGS: |" + " ".join(argvcopy[:]) + "|")
+
+    db_frontend = aotdb.connection_factory(aotdb.DbType.FTDB)
+
+    parser = prepare_parser(db_frontend)
     args = parser.parse_args()
     
     retcode = 0

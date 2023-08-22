@@ -225,10 +225,11 @@ class FtdbFrontend(AotDbFrontend):
                     new_sources.append({'id': item[k], 'name': k})
             self.db['source_info'] = new_sources
             new_modules = []
-            for item in self.db['modules']:
-                for k in item:
-                    new_modules.append({'id': item[k], 'name': k})
-            self.db['module_info'] = new_modules
+            if 'modules' in self.db:
+                for item in self.db['modules']:
+                    for k in item:
+                        new_modules.append({'id': item[k], 'name': k})
+                self.db['module_info'] = new_modules
 
             filename = self.json_file.replace(".json", ".img")
             logging.info(f"Storing database to {filename} file")
