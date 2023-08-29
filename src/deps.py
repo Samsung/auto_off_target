@@ -807,8 +807,9 @@ class Deps:
                     fid2_files.add(fid)
 
             if fid1_files == fid2_files:
-                # both globals are used in exactly the same files -> no need to create
+                # both functions are used in exactly the same files -> no need to create
                 # header guards
+                logging.debug(f"identical files for {f_id1} {f_id2}: {fid1_files}")
                 continue
 
             if f_id1 not in self.clash_function_to_file:

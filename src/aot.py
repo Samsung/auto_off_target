@@ -534,22 +534,6 @@ class Engine:
                 files_for_globals += 1
             files[fid].globals.append(glob)
 
-        # static inline functions are knonw to cause troubles
-        # one of them is the case when multiple versions of the same function
-        # exsit, the only difference being compile_time assert macro in the body
-        copy = self.static_and_inline_funcs.copy()
-        decls = set()
-        for func in copy:
-            f = self.dbops.fnidmap[func]
-            if f is not None:
-                decl = f["declbody"]
-            if decl not in decls:
-                decls.add(decl)
-            else:
-                logging.info(
-                    f"removing a duplicate of an inline static function {f['name']}")
-                del self.static_and_inline_funcs[func]
-
         # once we have all the files
         # handle static and inline functions
         for func in self.static_and_inline_funcs:
@@ -936,6 +920,8 @@ class Engine:
                     gclashes.add(g_id2)
         logging.info(f"We've found {len(global_clashes)} clashing globals")
 
+        self.otgen.all_funcs |= set(self.static_and_inline_funcs.keys())
+
         logging.info("Looking for function name clashes")
         function_clashes = set()
         func_names = set()
@@ -992,6 +978,22 @@ class Engine:
 
         # now since we know which functions, types and globals are clashing
         # lets find out in which files they are used
+        all_files = set()
+        all_files |= set(files.keys())
+        all_files |= set(static_files.keys())
+        all_files |= set(stub_files.keys())
+
+        for f_id, fids in self.static_and_inline_funcs.items():
+            final_fids = set(fids)
+            final_fids.intersection_update(all_files)
+
+            for fid in final_fids:
+                if fid not in files:
+                    files[fid] = File()
+                if isinstance(files[fid].funcs, list):
+                    files[fid].funcs.append(f_id)
+                else:
+                    files[fid].funcs.add(f_id)
 
         logging.info("find clashes in files")
         self.deps._find_clashes(files, type_clashes,
@@ -1006,7 +1008,6 @@ class Engine:
         logging.info(
             f"Clash data: type to file {len(self.deps.clash_type_to_file)} items, global to file {len(self.deps.clash_global_to_file)} items, func to file {len(self.deps.clash_function_to_file)} items")
 
-        self.otgen.all_funcs |= set(self.static_and_inline_funcs.keys())
 
         # self.include_std_headers = [ f"<{h}>" for h in self.include_std_headers ]
         str_header, str_file, filename, func_ids, globals_ids, types, internal_defs = self.otgen._create_src_file(
