@@ -968,8 +968,6 @@ class CodeGen:
                 copy = function["signature"]
                 # sometimes it happens that function decl line doesn't have param names
                 # let's try to detect that and generate them
-                numargs = len(function["types"]) - 1
-                i = 0
 
                 # in the signature, the function's name comes first
                 index = tmp.find(name)
@@ -1007,17 +1005,19 @@ class CodeGen:
                 end_index = tmp.find("(")
                 func_type = tmp[index:end_index].strip()
                 index = end_index
-                end_index = tmp[index:].find(")") + index
 
-                if end_index == index + 1:
-                    numargs = 0
-                else:
-                    numargs = tmp[index:end_index].count(",") + 1
+            end_index = tmp[index:].find(")") + index
+
+            if end_index == index + 1:
+                numargs = 0
+            else:
+                numargs = tmp[index:end_index].count(",") + 1
 
             # we now construct funcdecl string without param names
             tmp = f"{func_type} {func_name}{tmp[index:]}"
             copy = tmp[:]
             index = len(func_type) + len(" ") + len(func_name) + 1
+            i = 0
             while (i < numargs):
                 if i != numargs - 1:
                     end = tmp[index:].find(",") + index
