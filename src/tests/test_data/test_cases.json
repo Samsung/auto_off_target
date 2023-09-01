@@ -3,19 +3,26 @@
         "product": "test_product",
         "version": "test_version",
         "build-type": "userdebug",
-        "import-json": "db.json",
         "config": "cfg.json",
         "db-type": "ftdb",
-        "functions": "main",
-        "init": ""
+        "db": "tinycc/db.img",
+        "functions": "main@tcc.c",
+        "fptr-analysis": "",
+        "use-real-filenames": ""
     },
     {
         "product": "test_product",
         "version": "test_version",
         "build-type": "userdebug",
-        "import-json": "db.json",
         "config": "cfg.json",
         "db-type": "ftdb",
-        "functions": "dep1_function"
+        "db": "csmith_test/db.img",
+        "functions": "test",
+        "init": "",
+        "fptr-analysis": "",
+        "ignore-recursion-errors": "",
+        "single-init-only": "",
+        "dynamic-init": "",
+        "use-real-filenames": ""
     }
 ]

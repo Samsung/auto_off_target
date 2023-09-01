@@ -1,3 +1,8 @@
+# Auto off-target PoC
+###
+# Copyright Samsung Electronics
+# Samsung Mobile Security Team @ Samsung R&D Poland
+
 import subprocess
 import aot
 import sys

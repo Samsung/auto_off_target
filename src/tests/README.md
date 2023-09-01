@@ -26,3 +26,12 @@ variable.
 Generated files are compared directly unless they are specified in
 `special_files` map in `RegressionTester` class, which maps the file name to a
 function that returns `True` if files are the same according to some criterion.
+
+## Test data
+
+Data required for tests has to be generated using CAS (information on CAS
+setup can be found in [CAS repository](https://github.com/Samsung/CAS)). Make
+sure `CAS_DIR` env variable is set to CAS root directory.
+
+To generate all required files run `setup_test_data.sh`. Make sure you run it
+from `tests` directory.
