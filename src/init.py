@@ -941,7 +941,7 @@ class Init:
                                 str += f"aot_memory_setptr(&{name},&{name_base}.next);\n"
 
                         return str, alloc, False
-                    elif known_type_names != None and dst_type["class"] == "record_forward" and dst_type["str"] not in known_type_names:
+                    elif known_type_names is not None and dst_type["class"] == "record_forward" and dst_type["str"] not in known_type_names:
                         recfwd_found = False
                         if init_obj is not None and init_obj.t_id != dst_type["id"]:
                             # see if we might be dealing with record_forward of the same record
@@ -1131,7 +1131,7 @@ class Init:
                         _dst_t = self.dbops.typemap[types[0]]
                         typename = self.codegen._get_typename_from_type(_dst_t)
                         _dst_tid = _dst_t["id"]
-                        if new_types != None:
+                        if new_types is not None:
                             new_types.add(_dst_tid)
                         fuzz = int(self._to_fuzz_or_not_to_fuzz(_dst_t))
                         name_tmp = name.replace(typename, "")
@@ -1438,7 +1438,7 @@ class Init:
                                         "will not consider cast of structural type to non-structural type")
                                 continue
 
-                            if new_types != None:
+                            if new_types is not None:
                                 new_types.add(_dst_tid)
                             fuzz = int(self._to_fuzz_or_not_to_fuzz(_dst_t))
 
@@ -1818,7 +1818,7 @@ class Init:
                                         "__!anonrecord__", "")
                                     deref_str = ""
 
-                                if cast_str != None:
+                                if cast_str is not None:
                                     tmp_name = f"(({cast_str}){tmp_name})"
                                     cast_str = None
 
@@ -1902,7 +1902,7 @@ class Init:
                                                         "will not consider cast of structural type to non-structural type")
                                                 continue
 
-                                            if new_types != None:
+                                            if new_types is not None:
                                                 new_types.add(dst_tid)
 
                                             brk = False
@@ -2530,7 +2530,7 @@ class Init:
         arg_tids = f["types"][1:]  # types[0] is a return type of the function
         self.debug_derefs(
             f"processing derefs for function {f['name']}, trace size is {len(trace)}")
-        if tids != None:
+        if tids is not None:
             for t_id in tids:
                 arg_tids.append(t_id)
 

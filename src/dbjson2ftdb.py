@@ -313,14 +313,14 @@ class FtdbCollectionQuery(AotDbCollectionQuery):
                     self.cache.popitem(last=False)
                     logging.debug("CACHE FULL")
 
-        if None != item and None != self.extra_field:
+        if item is not None and self.extra_field is not None:
             if self.field_is_unique:
                 item = item[self.extra_field]
             else:
                 for i in range(len(item)):
                     item[i] = item[i][self.extra_field]
 
-        if None != item and not self.field_is_unique and len(item) == 1:
+        if item is not None and not self.field_is_unique and len(item) == 1:
             # no need to create 1-element lists
             item = item[0]
         return item

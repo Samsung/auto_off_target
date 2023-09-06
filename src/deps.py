@@ -488,7 +488,7 @@ class Deps:
     def _get_funcs_from_globals(self, globals, skip_list=None):
         funcs = set()
         for g_id in globals:
-            if skip_list != None and g_id in skip_list:
+            if skip_list is not None and g_id in skip_list:
                 continue
             g = self.dbops.globalsidmap[g_id]
             if "funrefs" in g:
@@ -1137,7 +1137,7 @@ class Deps:
         if base_types is not None:
             sorted = [t for t in sorted if t not in base_types]
 
-        if None != internal_defs:
+        if internal_defs is not None:
             internal_defs |= _internal_defs
 
         return sorted, deps
@@ -1285,7 +1285,7 @@ class Deps:
 
         func_ids = [f for f in functions]
         for func in self.dbops.fnidmap.get_many(func_ids):
-            if None != func:
+            if func is not None:
                 # some of the funrefs might be funcdels rather then functions
                 if not calls_only:
                     fcalls |= set(func["funrefs"])
@@ -1484,7 +1484,7 @@ class Deps:
         # globals can reference other types, eg. enums in their initializers
         globalTypes |= globals_refs
 
-        if type_decls != None and internal_defs != None:
+        if type_decls is not None and internal_defs is not None:
             type_decls |= internal_defs
 
         if len(globalTypes) != 0:

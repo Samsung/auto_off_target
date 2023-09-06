@@ -470,7 +470,7 @@ class Engine:
 
         for func in self.cutoff.internal_funcs:
             function = self.dbops.fnidmap[func]
-            if None == function:
+            if function is None:
                 logging.warning("Function {} not found. Trying funcdecl.")
                 # TODO: handle funcdelcs
                 function = self.dbops.fdmap[func]
@@ -498,7 +498,7 @@ class Engine:
         stub_files = {}
         for func in self.cutoff.external_funcs:
             function = self.dbops.fnidmap[func]
-            if None == function:
+            if function is None:
                 logging.warning("Function {} not found. Trying funcdecl.")
                 # TODO: handle funcdelcs
                 function = self.dbops.fdmap[func]

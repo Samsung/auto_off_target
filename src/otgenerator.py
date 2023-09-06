@@ -994,8 +994,6 @@ class OTGenerator:
 
     # @belongs: otgenerator or codegen
     def adjust_funcs_lib(self):
-        # if self.dbops.lib_funcs_file == None:
-        #    return True
         if 0 == len(self.dbops.lib_funcs):
             return True
 

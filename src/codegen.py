@@ -752,7 +752,7 @@ class CodeGen:
                 else:
                     # if name in self.dbops.init_data and param_names is None:
                     i = index_mapping[i]
-                    if param_names == None:
+                    if param_names is None:
                         # varname += "param_{}".format(i)
 
                         if i in param_to_user_name:
@@ -991,13 +991,13 @@ class CodeGen:
                 # in the TYPE_FPOINTER mode, rather than passing id to a function we
                 # pass id of a function type
                 f_type = self.dbops.typemap[function_id]
-                if f_type == None:
+                if f_type is None:
                     logging.error(
                         f"Unable to locate function type {function_id}")
                     raise Exception("Breaking exection due to error")
                 return_type = self.dbops.typemap[f_type["refs"][0]]
 
-                if stub_name != None:
+                if stub_name is not None:
                     func_name = stub_name
                 else:
                     func_name = "fpointer_stub"
@@ -1090,7 +1090,7 @@ class CodeGen:
                 str += original_fbody.replace("\n", "\n//")
                 str += "\n\t // End of function's orignal body\n"
 
-        if return_type != None:
+        if return_type is not None:
             orig_return_type = return_type
             orig_cl = return_type["class"]
             return_type = self.dbops._get_typedef_dst(return_type)
