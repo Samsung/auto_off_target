@@ -82,7 +82,7 @@ class AotDbOps:
         # the third group are precomputed sets which represent entire
         # recursive subtrees for certain features
         # for a given func get its callgraph (set of func ids);
-        self.funcs_tree_funrefs = None
+        self.funcs_tree_func_refs = None
         # include all func references in addition to direct calls
         # as above, but exclude known funcs from the computation
         self.funcs_tree_funrefs_no_known = None
@@ -91,7 +91,7 @@ class AotDbOps:
         # as above, but exclude known funcs and funcs with asm from the computation
         self.funcs_tree_funrefs_no_known_no_asm = None
         # for a given func get its callgraph (function calls only)
-        self.funcs_tree_calls = None
+        self.funcs_tree_func_calls = None
         self.funcs_tree_calls_no_known = None           # same meaning as above
         self.funcs_tree_calls_no_asm = None             # same meaning as above
         self.funcs_tree_calls_no_known_no_asm = None    # same meaning as above
@@ -243,7 +243,7 @@ class AotDbOps:
 
         funcs_size = len(
             funcs) + len(json_data['funcdecls']) + len(json_data['unresolvedfuncs'])
-        self.funcs_tree_funrefs = self._create_recursive_cache(
+        self.funcs_tree_func_refs = self._create_recursive_cache(
             funcs, funcs_size, "id", "funrefs", AotDbOps.FUNCS_REFS, set())
         self.funcs_tree_funrefs_no_known = self._create_recursive_cache(
             funcs, funcs_size, "id", "funrefs", AotDbOps.FUNCS_REFS_NO_KNOWN, set(self.known_funcs_ids))
@@ -251,7 +251,7 @@ class AotDbOps:
             funcs, funcs_size, "id", "funrefs", AotDbOps.FUNCS_REFS_NO_ASM, set(self.all_funcs_with_asm))
         self.funcs_tree_funrefs_no_known_no_asm = self._create_recursive_cache(
             funcs, funcs_size, "id", "funrefs", AotDbOps.FUNCS_REFS_NO_KNOWN_NO_ASM, known_asm)
-        self.funcs_tree_calls = self._create_recursive_cache(
+        self.funcs_tree_func_calls = self._create_recursive_cache(
             funcs, funcs_size, "id", "calls", AotDbOps.FUNCS_CALLS, set())
         self.funcs_tree_calls_no_known = self._create_recursive_cache(
             funcs, funcs_size, "id", "calls", AotDbOps.FUNCS_CALLS_NO_KNOWN, set(self.known_funcs_ids))
@@ -322,22 +322,8 @@ class AotDbOps:
             self.bassconnector.import_data_to_db(rdm_file)
 
     def create_indices(self):
-        # self.funcs_tree_funrefs = None
-        # self.funcs_tree_funrefs_no_known = None
-        # self.funcs_tree_funrefs_no_asm = None
-        # self.funcs_tree_funrefs_no_known_no_asm = None
-        # self.funcs_tree_calls = None
-        # self.funcs_tree_calls_no_known = None
-        # self.funcs_tree_calls_no_asm = None
-        # self.funcs_tree_calls_no_known_no_asm = None
-
-        # self.types_tree_refs = None
-        # self.types_tree_usedrefs = None
-        # self.globs_tree_globalrefs = None
-
-        # self.known_funcs_ids = set()
-
         # create db indices as in ctypelib
+
         # get function by name
         self.fnmap = self.db.create_local_index("funcs", "name", extra_field_name=None,
                                                 cache_size=100000, unique=False)
@@ -458,7 +444,9 @@ class AotDbOps:
     # -------------------------------------------------------------------------
 
     def get_cache_matrix(self, name):
-        if not hasattr(self, name) or getattr(self, name) is None:
+        if not hasattr(self, name):
+            raise Exception(f'Invalid AotDbOps attr {name}')
+        if getattr(self, name) is None:
             result = self._create_cache_matrix(self.db, name)
             setattr(self, name, result)
         return getattr(self, name)

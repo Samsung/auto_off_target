@@ -72,6 +72,8 @@ class FtdbFrontend(AotDbFrontend):
             name = "source_info"
         elif collection_name == "modules":
             name = "module_info"
+        if name not in self.collections:
+            raise Exception(f"Collection {name} does not exist")
         return FtdbCollectionQuery(self.collections[name], field_name, extra_field_name,
                                    cache_size=cache_size, field_is_unique=unique)
 

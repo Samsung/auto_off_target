@@ -1230,54 +1230,42 @@ class Deps:
                 logging.debug("fcalls size is {}".format(len(fcalls)))
 
             used_map_name = 'funcs_tree_'
-            used_map_name += 'calls' if calls_only else 'funrefs'
             if cutoff:
+                used_map_name += 'calls' if calls_only else 'funrefs'
                 if filter_on:
                     used_map_name += '_no_known'
                 if not self.args.include_asm or not filter_on:
                     used_map_name += '_no_asm'
+            else:
+                used_map_name += 'func_calls' if calls_only else 'func_refs'
             logging.debug("selecting cache matrix based on:")
             logging.debug(" calls_only - {}; cutoff - {}; filter_on - {}; include_asm {}".format(
                 calls_only, cutoff, filter_on, self.args.include_asm))
             used_map = self.dbops.get_cache_matrix(used_map_name)
+            if used_map is None:
+                raise Exception(f"Map {used_map_name} doesn't exist")
 
             # collect list of accesible functions
-            if used_map is not None:
-                if additional_refs is None:
-                    result = []
-                    # if f in used_map:
-                    # result = used_map[f]["funrefs"]
-                    result = self.dbops._graph_dfs(used_map, f)
-                    if f not in result:
-                        result.append(f)
-                else:
-                    tmp = set()
-                    for f_id in additional_refs:
-                        tmp |= set(self.dbops._graph_dfs(used_map, f_id))
-                        # if f_id in used_map:
-                        #    tmp |= set(used_map[f_id]["funrefs"])
-                        tmp.add(f_id)
-                    # tmp |= set(used_map[f]["funrefs"])
-                    tmp |= set(self.dbops._graph_dfs(used_map, f))
-
-                    tmp.add(f)
-
-                    result = list(tmp)
+            if additional_refs is None:
+                result = []
+                # if f in used_map:
+                # result = used_map[f]["funrefs"]
+                result = self.dbops._graph_dfs(used_map, f)
+                if f not in result:
+                    result.append(f)
             else:
-                if not calls_only:
-                    field = "funrefs"
-                else:
-                    field = "calls"
+                tmp = set()
+                for f_id in additional_refs:
+                    tmp |= set(self.dbops._graph_dfs(used_map, f_id))
+                    # if f_id in used_map:
+                    #    tmp |= set(used_map[f_id]["funrefs"])
+                    tmp.add(f_id)
+                # tmp |= set(used_map[f]["funrefs"])
+                tmp |= set(self.dbops._graph_dfs(used_map, f))
 
-                result = self.db.make_recursive_query(
-                    "funcs",
-                    "id",
-                    f,
-                    field,
-                    "id",
-                    value_to_return="id",
-                    add_vals=additional_refs,
-                    cutoff_list=cutoff)
+                tmp.add(f)
+
+                result = list(tmp)
             for r in result:
                 fcalls.add(r)
 
