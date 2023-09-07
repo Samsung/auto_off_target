@@ -1403,9 +1403,9 @@ class Init:
                             str += "}\n"
                             str += f"#endif\n"
                         if min_value is not None:
-                            str += f"if ({name} < {min_value}) {name} = {min_value};\n"
+                            str += f"if (*{name} < {min_value}) *{name} = {min_value};\n"
                         if max_value is not None:
-                            str += f"if ({name} > {max_value}) {name} = {max_value};\n"
+                            str += f"if (*{name} > {max_value}) *{name} = {max_value};\n"
                         if tag:
                             str += f"aot_tag_memory({name}, sizeof({typename}) * {cnt}, 0);\n"
                             str += f"aot_tag_memory(&{name}, sizeof({name}), 0);\n"
@@ -1592,10 +1592,15 @@ class Init:
                         str += f"    klee_assume(*{name} == {value});\n"
                     str += "}\n"
                     str += "#endif\n"
+
+                if isPointer is False:
+                    deref = ""
+                else:
+                    deref = "*"
                 if min_value is not None:
-                    str += f"if ({name} < {min_value}) {name} = {min_value};\n"
+                    str += f"if ({deref}{name} < {min_value}) {deref}{name} = {min_value};\n"
                 if max_value is not None:
-                    str += f"if ({name} > {max_value}) {name} = {max_value};\n"
+                    str += f"if ({deref}{name} > {max_value}) {deref}{name} = {max_value};\n"
                 if tag:
                     if not isPointer:
                         str += f"aot_tag_memory(&{name}, sizeof({typename}), 0);\n"
