@@ -1394,7 +1394,7 @@ class Deps:
             if local:
                 if self.args.dynamic_init:
                     def_string = "\n{};\n".format(g["def"].replace(
-                        "extern ", "").replace("const ", "").split("=")[0].rstrip())
+                        "extern ", "").replace("const ", ""))
                     g_trigger_name = "%s" % (g["hash"].replace(
                         "/", "__").replace(".", "____").replace("-", "___"))
                     g_type = self.dbops.typemap[g["type"]]
