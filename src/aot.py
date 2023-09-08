@@ -1391,16 +1391,36 @@ def prepare_parser(*db_frontends):
     return parser
 
 
+class ColorFormatter(logging.Formatter):
+    # TODO: in the future we might consider putting
+    # all logging setup in a separate module
+
+    FORMAT = "%(asctime)-15s [AOT][%(levelname)s]: %(message)s (@ %(funcName)s %(filename)s:%(lineno)d)"
+
+    def escape_sequence(type="reset"):
+        color_map = {
+            "reset": "0",
+            logging.DEBUG: "0",
+            logging.INFO: "0",
+            logging.WARNING: "33",
+            logging.ERROR: "31",
+            logging.CRITICAL: "31;1",
+        }
+        return f"\x1b[{color_map[type]}m"
+
+    def format(self, record):
+        formatter = logging.Formatter(ColorFormatter.escape_sequence(record.levelno) + ColorFormatter.FORMAT + ColorFormatter.escape_sequence())
+        return formatter.format(record)
+
+
 def main():
     start_time = datetime.now()
-    FORMAT = "%(asctime)-15s [AOT]: %(message)s (@ %(funcName)s %(filename)s:%(lineno)d)"
     (fd, logname) = tempfile.mkstemp(dir=os.getcwd())
     logging.basicConfig(filename=logname, filemode="w",
-                        level=logging.INFO, format=FORMAT, datefmt='%Y-%m-%d %H:%M:%S')
+                        level=logging.INFO, format=ColorFormatter.FORMAT, datefmt='%Y-%m-%d %H:%M:%S')
     # https://stackoverflow.com/questions/13733552/logger-configuration-to-log-to-file-and-print-to-stdout
-    format = logging.Formatter(FORMAT)
     streamlog = logging.StreamHandler(sys.stdout)
-    streamlog.setFormatter(format)
+    streamlog.setFormatter(ColorFormatter())
     logging.getLogger().addHandler(streamlog)
 
     logging.info("We are happily running with the following parameters:")
