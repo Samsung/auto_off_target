@@ -24,20 +24,18 @@ AOT_ARGS="--product test_product
         --fptr-analysis"
 
 generate_data () {
-    $CAS_DIR/cas parse &&
-    $CAS_DIR/cas postprocess &&
-    $CAS_DIR/cas cache &&
-    $CAS_DIR/cas lm deps --cached &&
+    cas lm deps --cached &&
     PYTHONPATH=$CAS_DIR python3 $AOT_ROOT/tests/extract_ftdb_info.py &&
     $CAS_DIR/clang-proc/create_json_db -P $CAS_DIR/clang-proc/clang-proc &&
     PYTHONPATH=$CAS_DIR $AOT_ROOT/aot.py $AOT_ARGS &&
-
-    find . -type f ! \( -name rdm.json -o -name db.img -o -name .nfsdb \) -exec rm -f {} + &&
     rm -Rf off-target
 }
 
 for build in $@ ; do
     cd $build &&
-    generate_data
-    cd -
+    generate_data &&
+    cd - &&
+    mkdir -p test_data/$(basename $build) &&
+    cp -f $build/db.img test_data/$(basename $build) &&
+    cp -f $build/rdm.json test_data/$(basename $build)
 done

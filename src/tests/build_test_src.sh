@@ -13,25 +13,8 @@ then
     exit 1
 fi
 
-cd test_data &&
+(cd test_data/src/csmith_test && make clean && etrace make) &&
+(cd test_data/src/csmith_test && cas parse && cas postprocess && cas cache) &&
 
-cd src/csmith_test &&
-
-# build csmith
-$CAS_DIR/etrace make &&
-
-cd - &&
-mkdir -p csmith_test &&
-cp src/csmith_test/.nfsdb csmith_test &&
-
-cd src/tinycc &&
-
-# build tinycc
-./configure &&
-$CAS_DIR/etrace make &&
-
-cd - &&
-mkdir -p tinycc &&
-cp src/tinycc/.nfsdb tinycc &&
-
-cd ..
+(cd test_data/src/tinycc && ./configure && etrace make) &&
+(cd test_data/src/tinycc && cas parse && cas postprocess && cas cache)

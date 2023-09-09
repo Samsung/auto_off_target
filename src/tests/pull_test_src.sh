@@ -8,6 +8,7 @@
 set -u
 
 cd test_data/src &&
+rm -rf tinycc &&
 git clone https://github.com/TinyCC/tinycc.git &&
 cd tinycc &&
 git checkout ff2a372a9af5a7eb16548940f779a24c20767d4f &&

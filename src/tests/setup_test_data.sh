@@ -7,11 +7,13 @@
  
 set -u
 
+export PATH=${CAS_DIR}:$PATH
+
 echo "Pulling test project sources" &&
 ./pull_test_src.sh &&
 
-echo "Tracing test project builds" &&
+echo "Tracing test project builds and creating BAS database" &&
 ./build_test_src.sh &&
 
-echo "Processing tracer data" &&
-./generate_test_data.sh test_data/tinycc test_data/csmith_test
+echo "Generating FTDB database for the project"
+./generate_test_data.sh test_data/src/tinycc test_data/src/csmith_test
