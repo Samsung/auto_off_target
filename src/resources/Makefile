@@ -74,6 +74,13 @@ native-old: CFLAGS+=-ferror-limit=0 -MD -w
 native-old: $(obj) $(lib)
 	$(COMP) -o $@ $^ $(LDFLAGS)
 
+# as native but compiled using gcc
+.PHONY: native-gcc
+native-gcc:  COMP=gcc
+native-gcc: CFLAGS+=-fmax-errors=0 -MD -w -fPIE
+native-gcc: $(obj) $(lib)
+	$(COMP) -o $@ $^ $(LDFLAGS)
+
 # address sanitizer
 .PHONY: asan
 asan: CFLAGS+=-fsanitize=address -MD -w 
