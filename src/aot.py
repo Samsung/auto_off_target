@@ -1409,7 +1409,10 @@ class ColorFormatter(logging.Formatter):
         return f"\x1b[{color_map[type]}m"
 
     def format(self, record):
-        formatter = logging.Formatter(ColorFormatter.escape_sequence(record.levelno) + ColorFormatter.FORMAT + ColorFormatter.escape_sequence())
+        if sys.stdout.isatty():
+            formatter = logging.Formatter(ColorFormatter.escape_sequence(record.levelno) + ColorFormatter.FORMAT + ColorFormatter.escape_sequence())
+        else:
+            formatter = logging.Formatter(ColorFormatter.FORMAT)
         return formatter.format(record)
 
 
