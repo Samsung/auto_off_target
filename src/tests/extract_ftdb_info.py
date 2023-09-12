@@ -18,8 +18,8 @@ nfsdb_db = os.path.join(args.dir, ".nfsdb.img")
 nfsdb_deps_db = os.path.join(args.dir, ".nfsdb.deps.img")
 
 nfsdb = libetrace.nfsdb()
-nfsdb.load(nfsdb_db, quiet=True, mp_safe=True)
-nfsdb.load_deps(nfsdb_deps_db, quiet=True, mp_safe=True)
+nfsdb.load(nfsdb_db, quiet=True)
+nfsdb.load_deps(nfsdb_deps_db, quiet=True)
 
 L = nfsdb.linked_modules()
 print(f"Number of modules: {len(L)}")

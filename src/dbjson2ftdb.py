@@ -201,7 +201,7 @@ class FtdbFrontend(AotDbFrontend):
                                  "unresolvedfuncs", "source_info", "module_info"]
         if self.db_file:
             logging.info(f"Loading data from {self.db_file} file")
-            if not self.db.load(self.db_file, mp_safe=True, quiet=True):
+            if not self.db.load(self.db_file, quiet=True):
                 logging.error(f"Loading data from {self.db_file} failed")
                 return False
 
