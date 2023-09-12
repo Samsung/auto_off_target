@@ -11,7 +11,6 @@
 
 import logging
 import sys
-import shutil
 import copy
 import functools
 
@@ -46,6 +45,58 @@ class TypeUse:
 
     def __repr__(self):
         return f"[TypeUse id={self.id} t_id={self.t_id} original_tid={self.original_tid}]"
+
+
+class _TreeIterator:
+    """
+    Class for iterating derefs_trace tree.
+    derefs_trace is a list that contains elements and subtrees
+    ex. [(a, b), [(c, d), [(e, f), (g, h)], (i, j)]] represents
+    [(a, b), (c, d), (e, f), (g, h), (i, j)]
+    """
+
+    def __init__(self, tree):
+        self.tree = tree
+        self.index = 0
+        self.next_iterator = None
+
+    def __iter__(self):
+        return self
+
+    def len(self, tree_length_cache=None):
+        if tree_length_cache is None:
+            tree_length_cache = {}
+        if id(self.tree) in tree_length_cache:
+            return tree_length_cache[id(self.tree)]
+
+        s = 0
+        for v in self.tree:
+            if not isinstance(v, list):
+                s += 1
+            else:
+                s += _TreeIterator(v).len(tree_length_cache)
+
+        tree_length_cache[id(self.tree)] = s
+        return s
+
+    def __next__(self):
+        if self.index >= len(self.tree):
+            raise StopIteration
+
+        if not isinstance(self.tree[self.index], list):
+            r = self.tree[self.index]
+            self.index += 1
+            return r
+
+        if not self.next_iterator:
+            self.next_iterator = _TreeIterator(self.tree[self.index])
+
+        try:
+            return self.next_iterator.__next__()
+        except StopIteration:
+            self.next_iterator = None
+            self.index += 1
+            return self.__next__()
 
 
 class Init:
@@ -1991,11 +2042,10 @@ class Init:
 
         DEREF = "deref"
         CALL = "call"
-        derefs_trace = []
 
         f = self.dbops.fnidmap[f_id]
         if f is None:
-            return derefs_trace
+            return []
         self.debug_derefs(f"Collecting derefs for function {f['name']}")
         # first we need to establish a local order of funcs and derefs
         ordered = []
@@ -2286,8 +2336,9 @@ class Init:
 
         logging.debug(f"ordered trace is {ordered}")
 
-        for i in range(len(ordered)):
-            item = ordered[i]
+        derefs_trace = []
+
+        for i, item in enumerate(ordered):
             if item["type"] == DEREF:
                 derefs_trace.append((item["obj"], f))
             elif item["type"] == CALL:
@@ -2297,15 +2348,15 @@ class Init:
                     # mark that we processed the current function already
                     _functions.remove(f_id)
                 if _f_id in self.trace_cache:
-                    derefs_trace += self.trace_cache[_f_id]
+                    derefs_trace.append(self.trace_cache[_f_id])
                 else:
                     ftrace = self._collect_derefs_trace(_f_id, _functions)
                     self.trace_cache[_f_id] = ftrace
-                    derefs_trace += ftrace
+                    derefs_trace.append(ftrace)
 
         logging.info(f"Collected trace for function {f['name']}")
         if self.args.debug_derefs:
-            for obj, f in derefs_trace:
+            for obj, f in _TreeIterator(derefs_trace):
                 logging.info(f"{f['id']} : {obj}")
 
         return derefs_trace
@@ -2410,7 +2461,7 @@ class Init:
     def _parse_derefs_trace(self, f_id, functions, tids=None):
         # before we can start reasoning we have to collect the trace
 
-        trace = self._collect_derefs_trace(f_id, functions)
+        trace = _TreeIterator(self._collect_derefs_trace(f_id, functions))
 
         # we will now perform an analysis of the collected derefs trace for each of
         # the function parameter types
@@ -2418,8 +2469,7 @@ class Init:
         # first, let's get the types
         f = self.dbops.fnidmap[f_id]
         arg_tids = f["types"][1:]  # types[0] is a return type of the function
-        self.debug_derefs(
-            f"processing derefs for function {f['name']}, trace size is {len(trace)}")
+        logging.info(f"Processing derefs for function {f['name']}, trace size is {trace.len()}")
         if tids is not None:
             for t_id in tids:
                 arg_tids.append(t_id)
