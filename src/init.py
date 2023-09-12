@@ -2953,7 +2953,7 @@ class Init:
 
         # TODO: implement "kind": "return" -> in that case we don't need to have
         # cast in the offsetrefs
-        logging.debug(f"get cast from deref: {deref}")
+        self.debug_derefs(f"get cast from deref: {deref}")
 
         # first, check if we are not doing pointer arithmetic
         if deref["kind"] == "assign" and deref["offset"] != 21:
@@ -2999,7 +2999,7 @@ class Init:
                             # sys.exit(1) <- uncomment for testing
                             continue
                         dst_deref = f["derefs"][id]
-                        logging.debug(f"dst deref is {dst_deref}")
+                        self.debug_derefs(f"dst deref is {dst_deref}")
 
                     elif oref["kind"] == "assign":
                         self.debug_derefs(

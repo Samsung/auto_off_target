@@ -471,7 +471,7 @@ class Engine:
         for func in self.cutoff.internal_funcs:
             function = self.dbops.fnidmap[func]
             if function is None:
-                logging.warning("Function {} not found. Trying funcdecl.")
+                logging.warning("Function {} not found. Trying funcdecl.".format(func))
                 # TODO: handle funcdelcs
                 function = self.dbops.fdmap[func]
                 if function is None:
@@ -499,7 +499,7 @@ class Engine:
         for func in self.cutoff.external_funcs:
             function = self.dbops.fnidmap[func]
             if function is None:
-                logging.warning("Function {} not found. Trying funcdecl.")
+                logging.warning("Function {} not found. Trying funcdecl.".format(func))
                 # TODO: handle funcdelcs
                 function = self.dbops.fdmap[func]
                 if function is None:
@@ -704,7 +704,8 @@ class Engine:
             stub_files[fid].globals = globals_ids
             stub_files[fid].funcs = func_ids
 
-        if "main" not in function_names:
+        if all([f_name.partition('@')[0] != "main"
+                for f_name in function_names]):
             # if "main" is not among the functions of interest
             # we need to generate it ourselves
             # TODO: always generate test driver - it will be necessary to
@@ -1188,11 +1189,11 @@ class Engine:
                 json.dump(ids_dump, dump_file)
 
         if self.dynamic_init:
-            logging.info(
-                f"Creating files required for dynamic initialization")
+            logging.info(f"Creating files required for dynamic initialization")
+            # TODO: this should be handled by resource manager
             # copy the predefined files required for dynamic initialization
             predefined_files_dyn_init = ["dyn_init.c", "dyn_init.h"]
-            res_dir = f"{os.path.abspath(os.path.dirname(sys.argv[0]))}/resources/"
+            res_dir = os.path.join(os.path.dirname(__file__), "resources")
             for f in predefined_files_dyn_init:
                 shutil.copyfile(f"{res_dir}/{f}", f"{self.out_dir}/{f}")
                 shutil.copymode(f"{res_dir}/{f}", f"{self.out_dir}/{f}")

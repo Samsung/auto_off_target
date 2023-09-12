@@ -201,14 +201,9 @@ class FtdbFrontend(AotDbFrontend):
                                  "unresolvedfuncs", "source_info", "module_info"]
         if self.db_file:
             logging.info(f"Loading data from {self.db_file} file")
-            self.db.load(self.db_file, mp_safe=True)
-            # with open(self.db_file, "r") as f:
-            #     logging.info("Loading JSON data from file")
-            #     self.json_data = json.load(f)
-            #     logging.info("Data loaded!")
-            #     # during the import phase we want to use the json data as the db
-            #     # after the import, ftdb will be used
-            #     self.db = self.json_data
+            if not self.db.load(self.db_file, mp_safe=True, quiet=True):
+                logging.error(f"Loading data from {self.db_file} failed")
+                return False
 
             self.collections = {name: FtdbCollection(name, self.db, "id")
                                 for name in self.collection_names}

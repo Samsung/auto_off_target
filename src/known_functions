@@ -933,7 +933,6 @@ lstat
 lstat64
 lutimes
 madvise
-main
 makecontext
 mallinfo
 malloc

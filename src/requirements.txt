@@ -3,3 +3,8 @@ toposort
 psutil
 numpy == 1.23
 packaging
+clang <= 15
+pytest
+pytest-subtests
+coverage
+func_timeout

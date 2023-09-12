@@ -4,6 +4,8 @@ E2E Test Suite runs test cases located in one of the `test_data` directories
 (specific directory depends on the `DATA_DIR` env variable, `test_data` by
 default). 
 
+The tests can be run using `pytest` (refer to `pytest` documentation for options).
+
 ## test_cases.json
 
 `test_cases.json` contains a list of test cases, each one having key-value

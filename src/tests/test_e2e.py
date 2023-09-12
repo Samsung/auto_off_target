@@ -8,8 +8,8 @@ import tempfile
 import os
 import json
 import shutil
+import uuid
 from tests import regression_tester
-from tests import build_tester
 
 
 class TestE2E(unittest.TestCase):
@@ -22,6 +22,9 @@ class TestE2E(unittest.TestCase):
         if 'DATA_DIR' in os.environ:
             self.test_data_dir = os.environ['DATA_DIR']
         self.test_data_dir = os.path.join(os.path.dirname(__file__), self.test_data_dir)
+        self.ignore_test_data_dirs = ['src']
+
+        self.keep_test_env = 'KEEP_TEST_ENV' in os.environ and os.environ['KEEP_TEST_ENV'] == 'True'
 
         test_cases_path = os.path.join(self.test_data_dir, 'test_cases.json')
 
@@ -38,31 +41,43 @@ class TestE2E(unittest.TestCase):
     def tearDownClass(self):
         os.chdir(self.cwd_path)
 
-    def set_up_test_case(self):
-        temp_dir = tempfile.TemporaryDirectory()
-        os.chdir(temp_dir.name)
-        print(f'Working in temporary directory: {temp_dir}')
+    def set_up_test_case(self, i):
+        execution_dir_name = None
+        if self.keep_test_env:
+            execution_dir_name = os.path.join(os.path.dirname(__file__),
+                                              'test_env',
+                                              f'test{i}_{uuid.uuid4()}')
+            try:
+                os.makedirs(execution_dir_name)
+            except OSError:
+                pass
+        else:
+            self.temp_dir = tempfile.TemporaryDirectory()
+            execution_dir_name = self.temp_dir.name
 
-        shutil.copytree(self.test_data_dir, temp_dir.name, dirs_exist_ok=True)
+        os.chdir(execution_dir_name)
+        print(f'Working in directory: {execution_dir_name}')
 
-        return temp_dir
+        shutil.copytree(self.test_data_dir, execution_dir_name, dirs_exist_ok=True,
+                        ignore=shutil.ignore_patterns(*self.ignore_test_data_dirs))
+        return execution_dir_name
+
+    def clean_up_test_case(self):
+        if not self.keep_test_env:
+            self.temp_dir.cleanup()
 
     def test_regression(self):
         if 'AOT_REGRESSION_PATH' not in os.environ:
             self.fail('Make sure AOT_REGRESSION_PATH is set')
         regression_aot_path = os.environ['AOT_REGRESSION_PATH']
 
-        tester = regression_tester.RegressionTester(self, regression_aot_path)
-        for options in self.test_cases:
-            with self.subTest(f'options={options}'):
-                temp_dir = self.set_up_test_case()
-                tester.run_regression(options.copy())
-                temp_dir.cleanup()
+        timeout = None
+        if 'AOT_TIMEOUT' in os.environ:
+            timeout = int(os.environ['AOT_TIMEOUT'])
 
-    def test_build(self):
-        tester = build_tester.BuildTester(self)
-        for options in self.test_cases:
-            with self.subTest(f'options={options}'):
-                temp_dir = self.set_up_test_case()
-                tester.run_build(options.copy())
-                temp_dir.cleanup()
+        tester = regression_tester.RegressionTester(self, regression_aot_path, timeout, self.keep_test_env)
+        for i, options in enumerate(self.test_cases):
+            execution_dir_name = self.set_up_test_case(i)
+            with self.subTest(f'Test {i} at {execution_dir_name}'):
+                tester.run_regression(options.copy())
+            self.clean_up_test_case()
