@@ -2237,78 +2237,6 @@ class Init:
                                 if found:
                                     break
 
-            # cast_data = self._get_cast_from_deref(deref, f)
-            # inserts_num = 0
-            # if cast_data is not None:
-            #     logging.info("CAST DATA IS NOT NONE")
-            #     for t_id in cast_data:
-            #         for member in cast_data[t_id]:
-            #             if member == Generator.CAST_PTR_NO_MEMBER:
-            #                 for oref in deref["offsetrefs"]:
-            #                     if "cast" in oref and oref["kind"] == "callref":
-            #                         # get the related call order
-            #                         ords = f["call_info"][oref["id"]]["ord"]
-            #                         if not isinstance(ords, list):
-            #                             ords = [ ords ]
-
-            #                         for o in ords:
-            #                             found = False
-            #                             if o > deref_id:
-            #                                 logging.info("processing ords...")
-            #                                 # seems like we've found a call with order
-            #                                 # greater than our cast -> let's move it
-            #                                 for i in range(len(ordered)):
-            #                                     if ordered[i]["id"] == o:
-            #                                         # that is our function call
-            #                                         diff = i - index
-            #                                         logging.info(f"Moving item {ordered[i]} from index {i} to index {index} size is {len(ordered)} diff {diff}")
-            #                                         ordered[i]["id"] -= diff
-            #                                         ordered.insert(index, ordered[i])
-            #                                         deref_id += 1
-            #                                         inserts_num += 1
-            #                                         del ordered[i + 1]
-            #                                         # we have to update the ids of items that go after the inserted one
-            #                                         # for j in range(index + 1, len(ordered)):
-            #                                         #     ordered[j]["id"] += 1
-            #                                         logging.info(f"size is {len(ordered)}")
-            #                                         found = True
-
-            #                                 break
-            #                             if found:
-            #                                 break
-
-            #                         # cool, we have moved the call to it's right place,
-            #                         # but we still have to handle the call's params: most likely
-            #                         # as their related call they are also located past the cast deref
-            #                         # first let's get their ids:
-            #                         args = f["call_info"][oref["id"]]["args"]
-            #                         # args is a list of ids in our derefs table
-
-            #                         for _deref_id in args:
-            #                             logging.info("handling args")
-            #                             deref_obj = f["derefs"][_deref_id]
-            #                             ords = deref_obj["ord"]
-
-            #                             for o in ords:
-            #                                 found = False
-            #                                 if o > deref_id:
-            #                                     for i in range(len(ordered)):
-            #                                         if ordered[i]["id"] == o:
-            #                                             diff = i - index
-            #                                             logging.info(f"Moving item {ordered[i]} from index {i} to index {index} size is {len(ordered)} diff {diff}")
-            #                                             ordered[i]["id"] -= diff
-            #                                             ordered.insert(index, ordered[i])
-            #                                             deref_id += 1
-            #                                             inserts_num += 1
-            #                                             del ordered[i + 1]
-            #                                             # # we have to update the ids of the items that go after the inserted one
-            #                                             # for j in range(index + 1, len(ordered)):
-            #                                             #     ordered[j]["id"] += 1
-            #                                             logging.info(f"size is {len(ordered)}")
-            #                                             found = True
-            #                                     break
-            #                                 if found:
-            #                                     break
             index += inserts_num
             index += 1
         self.debug_derefs("PROCESSING MEMBERS")
@@ -2356,50 +2284,6 @@ class Init:
             index += inserts_num
             index += 1
 
-        # logging.info("PROCESSING OFFSETOFFS")
-        # # one more reordering pass: if we have an offsetref item with kind offsetof, make sure that
-        # # it goes before the cotaining dereference
-        # index = 0
-        # while index < len(ordered):
-        #     item = ordered[index]
-
-        #     if item["type"] == CALL:
-        #         index += 1
-        #         continue
-
-        #     deref = item["obj"]
-        #     deref_id = int(item["id"])
-        #     if "offsetrefs" in deref:
-        #         for oref in deref["offsetrefs"]:
-        #             if oref["kind"] == "offsetof":
-        #                 # we have found an offsetref that relates to member
-        #                 dst_id = oref["id"]
-        #                 # getting the deref the member oref relates to
-        #                 dst_deref = f["derefs"][dst_id]
-
-        #                 # now we need to make sure that dst_deref is located in the trace
-        #                 # before this deref
-
-        #                 ords = dst_deref["ord"]
-        #                 for o in ords:
-        #                     found = False
-        #                     if o > deref_id:
-        #                         for i  in range(len(ordered)):
-        #                             if ordered[i]["id"] == o:
-        #                                 diff = i - index
-        #                                 logging.info(f"Moving item {ordered[i]} from index {i} to index {index} size is {len(ordered)} diff {diff}")
-        #                                 ordered[i]["id"] -= diff
-        #                                 ordered.insert(index, ordered[i])
-        #                                 deref_id += 1
-        #                                 inserts_num += 1
-        #                                 del ordered[i + 1]
-        #                                 found = True
-        #                         break
-        #                     if found:
-        #                         break
-        #     index += inserts_num
-        #     index += 1
-
         logging.debug(f"ordered trace is {ordered}")
 
         for i in range(len(ordered)):
@@ -2419,9 +2303,10 @@ class Init:
                     self.trace_cache[_f_id] = ftrace
                     derefs_trace += ftrace
 
-        logging.info(f"Collected trace for function {f['name']} is")
-        for obj, f in derefs_trace:
-            self.debug_derefs(f"{f['id']} : {obj}")
+        logging.info(f"Collected trace for function {f['name']}")
+        if self.args.debug_derefs:
+            for obj, f in derefs_trace:
+                logging.info(f"{f['id']} : {obj}")
 
         return derefs_trace
 
