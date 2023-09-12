@@ -38,7 +38,7 @@ unsigned long aot_copy_from_user(void* to, const void* from, unsigned long n) {
     // "from" is not important from the security standpoint as an incorrect pointer
     // would have been filtered out by the real copy_from_user anyways
     // "to" should be able to store the data copied from the user
-    fuzz_that_data(to, from, n, 0);
+    fuzz_that_data(to, (void*)from, n, 0);
     aot_tag_memory(to, n, 0);
     return 0;
 }

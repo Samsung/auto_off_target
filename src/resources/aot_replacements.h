@@ -14,6 +14,8 @@
 int printf(const char* fmt, ...);
 void* memcpy(void* dst, const void* src, typeof(sizeof(int)) count);
 
+struct list_head;
+
 #define __replacement____put_user__(x,ptr) ({ typeof(*ptr) val; typeof(*ptr) __x = x; memcpy(&val, &__x, sizeof(__x)); 0; })
 #define __replacement____get_user__(x,ptr)  ({ fuzz_that_data(&x, ptr, sizeof(x), 0); aot_tag_memory(&x, sizeof(x), 0); 0; })
 #define __replacement____BUG_ON__(condition)({ int _c = !!(condition); if (_c) { int* ptr = 0; *ptr = 0; } })
