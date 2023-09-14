@@ -3,9 +3,8 @@
 # Copyright Samsung Electronics
 # Samsung Mobile Security Team @ Samsung R&D Poland
 
-import filecmp
 from tests import aot_execution
-from tests import file_comparison
+from tests import offtarget_comparison
 import subprocess
 import os
 
@@ -15,65 +14,8 @@ class RegressionTester:
     def __init__(self, test_case, regression_aot_path, timeout, generate_run_scripts=False):
         self.test_case = test_case
         self.regression_aot_path = regression_aot_path
-        self.exclude_from_diff = ['aot.log']
         self.timeout = timeout
         self.generate_run_scripts = generate_run_scripts
-
-        # some files con't be simply compared
-        self.special_files = {
-            'aot_literals': file_comparison.compare_aot_literals,
-            'aot.h': file_comparison.compare_C_simple,
-            'fptr_stub.c': file_comparison.FptrStubCComparator.compare_fptr_stub_c,
-        }
-
-    def assert_differences(self, comparison_output, dir):
-        files = []
-        for file in comparison_output.left_only:
-            file_path = os.path.join('test_output_dir', dir, file)
-            files.append(file_path)
-        if files:
-            self.test_case.fail(f'Unexpected files: {files}')
-
-        files = []
-        for file in comparison_output.right_only:
-            file_path = os.path.join('regression_test_output_dir', dir, file)
-            files.append(file_path)
-        if files:
-            self.test_case.fail(f'Missing files: {files}')
-
-        files = []
-        for file in comparison_output.diff_files:
-            file_path = os.path.join(dir, file)
-            if file in self.exclude_from_diff:
-                continue
-
-            file_path1 = os.path.join('test_output_dir', file_path)
-            file_path2 = os.path.join('regression_test_output_dir', file_path)
-            if file_path in self.special_files:
-                result, msg = self.special_files[file_path](file_path1, file_path2)
-                if not result:
-                    files.append(file_path)
-                    print('-' * 50 + f'\nDiff {file_path}:')
-                    print(msg)
-                    print('-' * 50)
-                continue
-
-            files.append(file_path)
-
-            print('-' * 50 + f'\nDiff {file_path}')
-            subprocess.run(['diff', file_path1, file_path2])
-            print('-' * 50)
-        if files:
-            self.test_case.fail(f'Files differ: {files}')
-
-        for subdir in comparison_output.subdirs.values():
-            if not self.assert_differences(subdir, os.path.join(dir, subdir)):
-                return False
-        return True
-
-    def compare_output(self, dir1, dir2):
-        comparison = filecmp.dircmp('test_output_dir', 'regression_test_output_dir', ignore=self.exclude_from_diff)
-        return self.assert_differences(comparison, '')
 
     def _generate_run_script(filename, command):
         with open(filename, 'w+') as f:
@@ -105,7 +47,10 @@ class RegressionTester:
         self.test_case.assertEqual(regression_aot_status, 0, "Unexpected regression AoT failure")
         self.test_case.assertEqual(aot_status, 0, "Unexpected AoT failure")
 
-        self.compare_output('test_output_dir', 'regression_test_output_dir')
+        ot_comparator = offtarget_comparison.OfftargetComparator()
+        diffs = ot_comparator.compare_offtarget('test_output_dir', 'regression_test_output_dir')
+        if len(diffs) != 0:
+            self.test_case.fail('\n'.join(diffs))
 
         os.chdir('test_output_dir')
         print('Running make')
