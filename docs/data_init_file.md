@@ -118,7 +118,7 @@ Curious to see what type of init comes out of this JSON file?
       count = 4096;
 
     char *buf;
-    aot_memory_init_ptr(&buf, sizeof(char), count + 1 /* count */, 1 /* fuzz */, // please note that we use "count" as the size (field size_dep)
+    aot_memory_init_ptr((void**) &buf, sizeof(char), count + 1 /* count */, 1 /* fuzz */, // please note that we use "count" as the size (field size_dep)
                         0);
 
     buf[count + 1 - 1] = 0; // field nullterminated

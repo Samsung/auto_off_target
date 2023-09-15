@@ -1132,7 +1132,7 @@ class CodeGen:
                     # the user data (i.e. lack of stub), we introduce a dummy symbolic object into constraints
                     str += "\t#ifdef KLEE\n"
                     str += "\tint* ptr;\n"
-                    str += "\taot_memory_init_ptr(&ptr, sizeof(int), 1, 1, \"stubptr\");\n"
+                    str += "\taot_memory_init_ptr((void**) &ptr, sizeof(int), 1, 1, \"stubptr\");\n"
                     str += "\taot_tag_memory(ptr, sizeof(int), 0);\n"
                     str += "\tif (*ptr) {\n"
                     str += "\t\t*ptr = 0;\n"

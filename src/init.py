@@ -1246,7 +1246,7 @@ class Init:
                         else:
                             str_tmp += f"\n// making extra space for the variable lenght array at the end of the struct"
                             str_tmp += f"\n{typename}* {fresh_var_name};"
-                            str_tmp += f"\naot_memory_init_ptr(&{fresh_var_name}, sizeof({typename}) + {extra_padding}, 1 /* count */, 0 /* fuzz */, \"\");"
+                            str_tmp += f"\naot_memory_init_ptr((void**) &{fresh_var_name}, sizeof({typename}) + {extra_padding}, 1 /* count */, 0 /* fuzz */, \"\");"
                             fresh_var_name = f"(*{fresh_var_name})"
 
                         if self.args.debug_vars_init:
@@ -1460,15 +1460,15 @@ class Init:
                             tagged_var_name = self._get_tagged_var_name()
                         if multiplier is None:
                             if extra_padding is None:
-                                str += "aot_memory_init_ptr(&{}, sizeof({}), {} /* count */, {} /* fuzz */, {});\n".format(
+                                str += "aot_memory_init_ptr((void**) &{}, sizeof({}), {} /* count */, {} /* fuzz */, {});\n".format(
                                     name, typename, cnt, fuzz, tagged_var_name)
                             else:
                                 # a rather rare case of extra padding being non-zero
                                 str += f"// smart init: allocating extra space for a 0-size const array member\n"
-                                str += "aot_memory_init_ptr(&{}, sizeof({}) + {}, {} /* count */, {} /* fuzz */, {});\n".format(
+                                str += "aot_memory_init_ptr((void**) &{}, sizeof({}) + {}, {} /* count */, {} /* fuzz */, {});\n".format(
                                     name, typename, extra_padding.replace("*", "", 1), cnt, fuzz, tagged_var_name)
                         else:
-                            str += "aot_memory_init_ptr(&{}, {}, {} /* count */, {} /* fuzz */, {});\n".format(
+                            str += "aot_memory_init_ptr((void**) &{}, {}, {} /* count */, {} /* fuzz */, {});\n".format(
                                 name, multiplier, cnt, fuzz, tagged_var_name)
                         if addsize and not null_terminate:
                             # use intermediate var to get around const pointers
@@ -1663,7 +1663,7 @@ class Init:
                 else:
                     # special case: non-pointer value is to be treated as a pointer
                     str += f"{typename}* {name}_ptr;\n"
-                    str += f"aot_memory_init_ptr(&{name}_ptr, sizeof({typename}), {mul}, 1 /* fuzz */, {tagged_var_name});\n"
+                    str += f"aot_memory_init_ptr((void**) &{name}_ptr, sizeof({typename}), {mul}, 1 /* fuzz */, {tagged_var_name});\n"
 
                 if value is not None:
                     str += "#ifdef KLEE\n"
