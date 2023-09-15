@@ -7,7 +7,7 @@
 #include "aot_log.h"
 
 #ifdef AOT_GET_CURRENT
-static inline struct task_struct* get_current() {
+__attribute__((gnu_inline)) __attribute__((unused)) __attribute__((no_instrument_function)) __attribute__((always_inline)) static inline struct task_struct* get_current() {
     static unsigned char buffer[4096] = { 0 };
     return buffer;
 }
@@ -21,7 +21,7 @@ static inline bool capable(int cap) {
 #endif
 
 #ifdef AOT___RANGE_OK
-static inline unsigned long __range_ok(const void* addr, unsigned long size) {
+__attribute__((gnu_inline)) __attribute__((unused)) __attribute__((no_instrument_function)) static inline unsigned long __range_ok(const void* addr, unsigned long size) {
     aot_log_msg("__range_ok -> assuming success\n");
     return 1;
 }
