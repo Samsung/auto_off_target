@@ -77,7 +77,7 @@ native-old: $(obj) $(lib)
 # as native but compiled using gcc
 .PHONY: native-gcc
 native-gcc:  COMP=gcc
-native-gcc: CFLAGS+=-fmax-errors=0 -MD -fPIE
+native-gcc: CFLAGS+=-fmax-errors=0 -MD -fPIE -flto
 native-gcc: $(obj) $(lib)
 	$(COMP) -o $@ $^ $(LDFLAGS)
 
