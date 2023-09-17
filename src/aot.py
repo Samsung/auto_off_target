@@ -143,9 +143,9 @@ class Engine:
                                      args.rdm_file)
 
         self.dbops.create_indices()
-        self.deps._get_called_functions(self.dbops.always_inc_funcs_ids)
-        logging.info(
-            f"Recursively we have {len(self.dbops.always_inc_funcs_ids)} functions to include")
+        #self.deps._get_called_functions(self.dbops.always_inc_funcs_ids)
+        #logging.info(
+        #    f"Recursively we have {len(self.dbops.always_inc_funcs_ids)} functions to include")
 
         self.deps.discover_type_duplicates()
         self.deps.discover_internal_types()
