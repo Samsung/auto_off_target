@@ -99,6 +99,35 @@ class _TreeIterator:
             return self.__next__()
 
 
+class _DerefsEntry:
+
+    def __init__(self, deref):
+        self.deref = deref
+        self.cast_data = None
+        self.offsetof_data = None
+        self.member_data = None
+        self.access_order = None
+
+    def init_data(self, init, f):
+        self.cast_data = init._get_cast_from_deref(self.deref, f)
+        if self.cast_data is not None:
+            return
+
+        self.offsetof_data = init._get_offsetof_from_deref(self.deref)
+        if self.offsetof_data is not None:
+            return
+
+        self.member_data, self.access_order = init._get_member_access_from_deref(self.deref)
+
+    def no_data(self):
+        return self.cast_data is None and \
+            self.offsetof_data is None and \
+            self.member_data is None
+
+    def __iter__(self):
+        return iter((self.deref, self.cast_data, self.offsetof_data, self.member_data, self.access_order))
+
+
 class Init:
 
     CAST_PTR_NO_MEMBER = -1
@@ -114,6 +143,7 @@ class Init:
         self.casted_pointers = {}
         self.offset_pointers = {}
         self.trace_cache = {}
+        self.derefs_cache = {}
         self.ptr_init_size = 1  # when initializing pointers use this a the number of objects
         self.array_init_max_size = 32  # when initializing arrays use this a an upper limimit
         self.tagged_vars_count = 0
@@ -2058,6 +2088,9 @@ class Init:
                 ords.append(d["ord"])
             for o in ords:
                 ordered.append({"type": DEREF, "id": o, "obj": d})
+                derefs_entry = _DerefsEntry(d)
+                derefs_entry.init_data(self, f)
+                self.derefs_cache[id(d)] = derefs_entry
                 self.debug_derefs(f"Appending deref {d}")
                 if o in ord_to_deref:
                     logging.error("Didn't expect ord to reappear")
@@ -2092,7 +2125,7 @@ class Init:
                 continue
             deref = item["obj"]
             deref_id = int(item["id"])  # id is the deref's order -> see above
-            cast_data = self._get_cast_from_deref(deref, f)
+            cast_data = self.derefs_cache[id(deref)].cast_data
             inserts_num = 0
             if cast_data is not None:
                 logging.debug("Cast data is not none")
@@ -2338,9 +2371,14 @@ class Init:
 
         derefs_trace = []
 
-        for i, item in enumerate(ordered):
+        for item in ordered:
             if item["type"] == DEREF:
-                derefs_trace.append((item["obj"], f))
+                deref = item["obj"]
+                deref_entry = self.derefs_cache[id(deref)]
+                if deref_entry.no_data():
+                    self.debug_derefs(f"Deref {deref} skipped")
+                else:
+                    derefs_trace.append((deref_entry, f))
             elif item["type"] == CALL:
                 _f_id = item["obj"]
                 _functions = set(functions)
@@ -2356,8 +2394,8 @@ class Init:
 
         logging.info(f"Collected trace for function {f['name']}")
         if self.args.debug_derefs:
-            for obj, f in _TreeIterator(derefs_trace):
-                logging.info(f"{f['id']} : {obj}")
+            for deref_entry, f in _TreeIterator(derefs_trace):
+                logging.info(f"{f['id']} : {deref_entry.deref}")
 
         return derefs_trace
 
@@ -2495,10 +2533,9 @@ class Init:
 
             active_object = base_obj
 
-            for (deref, f) in trace:
+            for (deref, cast_data, offsetof_data, member_data, access_order), f in trace:
                 self.debug_derefs(f"Deref is {deref}")
 
-                cast_data = self._get_cast_from_deref(deref, f)
                 if cast_data is not None:
                     self.debug_derefs(f"cast data is {cast_data}")
                     # current_tid = active_object.t_id
@@ -2612,196 +2649,186 @@ class Init:
                                 else:
                                     self.debug_derefs(
                                         "skipping cast due to type mismatch")
-                else:
-                    offsetof_data = self._get_offsetof_from_deref(deref)
-                    if offsetof_data is not None:
-                        # first, let's check if we don't have the containing TypeUse object already
-                        self.debug_derefs(f"deref is {deref}")
+                elif offsetof_data is not None:
+                    # first, let's check if we don't have the containing TypeUse object already
+                    self.debug_derefs(f"deref is {deref}")
 
-                        member_no = deref["member"][-1]
-                        # type[0] is the dst type
-                        base_tid = self.dbops.typemap[deref["type"]
-                                                      [-1]]["refs"][member_no]
-                        dst_tid = deref["type"][0]
+                    member_no = deref["member"][-1]
+                    # type[0] is the dst type
+                    base_tid = self.dbops.typemap[deref["type"]
+                                                  [-1]]["refs"][member_no]
+                    dst_tid = deref["type"][0]
 
-                        _base_tid = base_tid
-                        _active_tid = active_object.t_id
-                        if active_object.is_pointer:
-                            _active_tid = self.dbops._get_real_type(
-                                _active_tid)
+                    _base_tid = base_tid
+                    _active_tid = active_object.t_id
+                    if active_object.is_pointer:
+                        _active_tid = self.dbops._get_real_type(
+                            _active_tid)
 
-                        if base_tid != active_object.t_id and _base_tid != _active_tid:
-                            if base_tid in self.deps.dup_types and active_object.t_id in self.deps.dup_types[base_tid]:
-                                self.debug_derefs("dup")
-                                pass
-                            elif _base_tid in self.deps.dup_types and _active_tid in self.deps.dup_types[_base_tid]:
-                                self.debug_derefs("dup")
-                                pass
+                    if base_tid != active_object.t_id and _base_tid != _active_tid:
+                        if base_tid in self.deps.dup_types and active_object.t_id in self.deps.dup_types[base_tid]:
+                            self.debug_derefs("dup")
+                            pass
+                        elif _base_tid in self.deps.dup_types and _active_tid in self.deps.dup_types[_base_tid]:
+                            self.debug_derefs("dup")
+                            pass
+                        else:
+                            other_objs = self._match_obj_to_type(
+                                base_tid, typeuse_objects)
+                            if len(other_objs) == 1:
+                                self.debug_derefs(
+                                    f"Active object change detected: from {active_object.id} to {other_objs[0].id}")
+                                active_object = other_objs[0]
                             else:
+                                continue
+                    found = False
+                    for types, members, obj in active_object.offsetof_types:
+                        if types == deref["type"] and members == deref["member"]:
+                            # we already have that object
+                            self.debug_derefs(
+                                f"Active object changed from {active_object.id} to {obj.id}")
+                            active_object = obj
+                            found = True
+                            break
+                    if not found:
+                        # we need to allocate new TypeUse object for the destination
+                        # type of the offsetof operator
+                        self.debug_derefs("Creating new offsetof object")
+                        # we a assume that we use offsetof to
+                        new_object = TypeUse(
+                            self.dbops._get_real_type(dst_tid), dst_tid, True)
+                        # get a pointer
+                        typeuse_objects.append(new_object)
+                        new_object.name = self.codegen._get_typename_from_type(
+                            self.dbops.typemap[new_object.t_id])
+                        self.debug_derefs(
+                            f"Generated TypeUse {new_object}")
+                        active_object.offsetof_types.append(
+                            (deref["type"], deref["member"], new_object))
+                        new_object.contained_types.append(
+                            (deref["type"], deref["member"], active_object))
+                        # change active object
+                        self.debug_derefs(
+                            f"Active object changed from {active_object.id} to {new_object.id}")
+                        active_object = new_object
+                    else:
+                        self.debug_derefs("Using existing offsetof object")
+                elif member_data is not None:
+
+                    # check if we refer to the current active object !
+                    first_tid = member_data[access_order[0]]["id"]
+
+                    _first_tid = first_tid
+                    _active_tid = active_object.t_id
+                    if active_object.is_pointer:
+                        _first_tid = self.dbops._get_real_type(
+                            _first_tid)
+                        _active_tid = self.dbops._get_real_type(
+                            _active_tid)
+                    if first_tid != active_object.t_id and _first_tid != _active_tid:
+                        if first_tid in self.deps.dup_types and active_object.t_id in self.deps.dup_types[first_tid]:
+                            self.debug_derefs("dup")
+                            pass
+                        elif _first_tid in self.deps.dup_types and _active_tid in self.deps.dup_types[_first_tid]:
+                            self.debug_derefs("dup")
+                            pass
+                        else:
+                            prev_cast_found = False
+                            for _t_id, _original_tid, _is_pointer in active_object.cast_types:
+                                self.debug_derefs(
+                                    f"Checking cast history {_t_id} {_original_tid} {_is_pointer}")
+                                if _first_tid == _t_id or _first_tid == _original_tid or first_tid == _t_id or first_tid == _original_tid:
+                                    prev_cast_found = True
+                                    break
+                            if prev_cast_found:
+                                self.debug_derefs(
+                                    "Phew, we've found the previous cast that matches the type id")
+                            else:
+                                # one last check would be to see if there is a single type match among the active
+                                # objects -> this trick is aimed at helping in a situation where the sequence of
+                                # dereferences is non-monotonic - e.g. we get a pointer, store it in a variable
+                                # then we use another pointer and get back to the first one;
+                                # a heavier approach to this problem would be to perform some sort of data flow or variable
+                                # name tracking; what we do here is to assume that if we have a single matching type, it's probably
+                                # one of the objects we already created
+
                                 other_objs = self._match_obj_to_type(
-                                    base_tid, typeuse_objects)
+                                    first_tid, typeuse_objects)
                                 if len(other_objs) == 1:
                                     self.debug_derefs(
                                         f"Active object change detected: from {active_object.id} to {other_objs[0].id}")
                                     active_object = other_objs[0]
+
                                 else:
+                                    self.debug_derefs(
+                                        f"Active object id is {active_object.t_id} {_active_tid}, and id is {first_tid} {_first_tid}")
                                     continue
-                        found = False
-                        for types, members, obj in active_object.offsetof_types:
-                            if types == deref["type"] and members == deref["member"]:
-                                # we already have that object
-                                self.debug_derefs(
-                                    f"Active object changed from {active_object.id} to {obj.id}")
-                                active_object = obj
-                                found = True
-                                break
-                        if not found:
-                            # we need to allocate new TypeUse object for the destination
-                            # type of the offsetof operator
-                            self.debug_derefs("Creating new offsetof object")
-                            # we a assume that we use offsetof to
-                            new_object = TypeUse(
-                                self.dbops._get_real_type(dst_tid), dst_tid, True)
-                            # get a pointer
-                            typeuse_objects.append(new_object)
-                            new_object.name = self.codegen._get_typename_from_type(
-                                self.dbops.typemap[new_object.t_id])
-                            self.debug_derefs(
-                                f"Generated TypeUse {new_object}")
-                            active_object.offsetof_types.append(
-                                (deref["type"], deref["member"], new_object))
-                            new_object.contained_types.append(
-                                (deref["type"], deref["member"], active_object))
-                            # change active object
-                            self.debug_derefs(
-                                f"Active object changed from {active_object.id} to {new_object.id}")
-                            active_object = new_object
-                        else:
-                            self.debug_derefs("Using existing offsetof object")
-                    else:
-                        member_data, access_order = self._get_member_access_from_deref(
-                            deref)
-
-                        if member_data:
-                            self.debug_derefs("Member access is not none")
-                        else:
-                            self.debug_derefs("Member access is none")
-                        if member_data is not None:
-
-                            # check if we refer to the current active object !
-                            first_tid = member_data[access_order[0]]["id"]
-
-                            _first_tid = first_tid
-                            _active_tid = active_object.t_id
-                            if active_object.is_pointer:
-                                _first_tid = self.dbops._get_real_type(
-                                    _first_tid)
-                                _active_tid = self.dbops._get_real_type(
-                                    _active_tid)
-                            if first_tid != active_object.t_id and _first_tid != _active_tid:
-                                if first_tid in self.deps.dup_types and active_object.t_id in self.deps.dup_types[first_tid]:
-                                    self.debug_derefs("dup")
-                                    pass
-                                elif _first_tid in self.deps.dup_types and _active_tid in self.deps.dup_types[_first_tid]:
-                                    self.debug_derefs("dup")
-                                    pass
+                    self.debug_derefs(
+                        f"access order is {access_order}")
+                    for t_id in access_order:
+                        t = member_data[t_id]
+                        for i in range(len(t["usedrefs"])):
+                            member_tid = t["usedrefs"][i]
+                            if member_tid != -1:
+                                member_no = i
+                                active_tid = active_object.t_id
+                                # check if the member is already in our used members data:
+                                if active_tid in active_object.used_members and member_no in active_object.used_members[active_tid]:
+                                    # yes -> we pick the existing object
+                                    self.debug_derefs(
+                                        f"Active object changed from {active_object.id} to {active_object.used_members[active_tid][member_no].id}")
+                                    active_object = active_object.used_members[active_tid][member_no]
+                                    self.debug_derefs(
+                                        "Member detected in used members")
                                 else:
-                                    prev_cast_found = False
-                                    for _t_id, _original_tid, _is_pointer in active_object.cast_types:
-                                        self.debug_derefs(
-                                            f"Checking cast history {_t_id} {_original_tid} {_is_pointer}")
-                                        if _first_tid == _t_id or _first_tid == _original_tid or first_tid == _t_id or first_tid == _original_tid:
-                                            prev_cast_found = True
-                                            break
-                                    if prev_cast_found:
-                                        self.debug_derefs(
-                                            "Phew, we've found the previous cast that matches the type id")
-                                    else:
-                                        # one last check would be to see if there is a single type match among the active
-                                        # objects -> this trick is aimed at helping in a situation where the sequence of
-                                        # dereferences is non-monotonic - e.g. we get a pointer, store it in a variable
-                                        # then we use another pointer and get back to the first one;
-                                        # a heavier approach to this problem would be to perform some sort of data flow or variable
-                                        # name tracking; what we do here is to assume that if we have a single matching type, it's probably
-                                        # one of the objects we already created
-
-                                        other_objs = self._match_obj_to_type(
-                                            first_tid, typeuse_objects)
-                                        if len(other_objs) == 1:
+                                    # check if the member is present in the contained types:
+                                    # if yes, use the existing object
+                                    offsetof_found = False
+                                    for types, members, obj in active_object.contained_types:
+                                        if types[-1] == t_id and member_no == members[-1]:
                                             self.debug_derefs(
-                                                f"Active object change detected: from {active_object.id} to {other_objs[0].id}")
-                                            active_object = other_objs[0]
-
-                                        else:
-                                            self.debug_derefs(
-                                                f"Active object id is {active_object.t_id} {_active_tid}, and id is {first_tid} {_first_tid}")
-                                            continue
-                            self.debug_derefs(
-                                f"access order is {access_order}")
-                            for t_id in access_order:
-                                t = member_data[t_id]
-                                for i in range(len(t["usedrefs"])):
-                                    member_tid = t["usedrefs"][i]
-                                    if member_tid != -1:
-                                        member_no = i
-                                        active_tid = active_object.t_id
-                                        # check if the member is already in our used members data:
-                                        if active_tid in active_object.used_members and member_no in active_object.used_members[active_tid]:
-                                            # yes -> we pick the existing object
-                                            self.debug_derefs(
-                                                f"Active object changed from {active_object.id} to {active_object.used_members[active_tid][member_no].id}")
-                                            active_object = active_object.used_members[active_tid][member_no]
-                                            self.debug_derefs(
-                                                "Member detected in used members")
-                                        else:
-                                            # check if the member is present in the contained types:
-                                            # if yes, use the existing object
-                                            offsetof_found = False
-                                            for types, members, obj in active_object.contained_types:
-                                                if types[-1] == t_id and member_no == members[-1]:
-                                                    self.debug_derefs(
-                                                        "This member was used in a prior offsetof")
-                                                    if active_tid not in active_object.used_members:
-                                                        active_object.used_members[active_tid] = {
-                                                        }
-                                                    active_object.used_members[active_tid][member_no] = obj
-                                                    self.debug_derefs(
-                                                        f"Active object changed from {active_object.id} to {obj.id}")
-                                                    active_object = obj
-                                                    offsetof_found = True
-                                            if offsetof_found:
-                                                continue
-                                            self.debug_derefs(
-                                                "Creating new member")
-                                            # no -> we create a new object
-                                            new_object = TypeUse(self.dbops._get_real_type(
-                                                member_tid), member_tid, self.dbops.typemap[member_tid]["class"] == "pointer")
-                                            typeuse_objects.append(new_object)
-                                            new_object.name = self.codegen._get_typename_from_type(
-                                                self.dbops.typemap[new_object.t_id])
-                                            self.debug_derefs(
-                                                f"Generated TypeUse {new_object}")
-
-                                            active_type = self.dbops.typemap[active_tid]
-                                            obj_type = self.dbops.typemap[t_id]
-                                            if active_type["class"] == "record_forward" and active_tid != t_id and obj_type["class"] == "record":
-                                                self.debug_derefs(
-                                                    f"Updating object type from record fwd to record {active_tid} -> {t_id}")
-                                                for k in active_object.used_members.keys():
-                                                    if k == obj.t_id:
-                                                        active_object.used_members[t_id] = active_object.used_members[k]
-                                                active_object.t_id = t_id
-                                                active_object.original_tid = t_id
-
-                                            # take a note that the member is used
-                                            if active_object.t_id not in active_object.used_members:
-                                                active_object.used_members[active_object.t_id] = {
+                                                "This member was used in a prior offsetof")
+                                            if active_tid not in active_object.used_members:
+                                                active_object.used_members[active_tid] = {
                                                 }
-                                            active_object.used_members[active_object.t_id][member_no] = new_object
-                                            # update active object
+                                            active_object.used_members[active_tid][member_no] = obj
                                             self.debug_derefs(
-                                                f"Active object changed from {active_object.id} to {new_object.id}")
-                                            active_object = new_object
+                                                f"Active object changed from {active_object.id} to {obj.id}")
+                                            active_object = obj
+                                            offsetof_found = True
+                                    if offsetof_found:
+                                        continue
+                                    self.debug_derefs(
+                                        "Creating new member")
+                                    # no -> we create a new object
+                                    new_object = TypeUse(self.dbops._get_real_type(
+                                        member_tid), member_tid, self.dbops.typemap[member_tid]["class"] == "pointer")
+                                    typeuse_objects.append(new_object)
+                                    new_object.name = self.codegen._get_typename_from_type(
+                                        self.dbops.typemap[new_object.t_id])
+                                    self.debug_derefs(
+                                        f"Generated TypeUse {new_object}")
+
+                                    active_type = self.dbops.typemap[active_tid]
+                                    obj_type = self.dbops.typemap[t_id]
+                                    if active_type["class"] == "record_forward" and active_tid != t_id and obj_type["class"] == "record":
+                                        self.debug_derefs(
+                                            f"Updating object type from record fwd to record {active_tid} -> {t_id}")
+                                        for k in active_object.used_members.keys():
+                                            if k == obj.t_id:
+                                                active_object.used_members[t_id] = active_object.used_members[k]
+                                        active_object.t_id = t_id
+                                        active_object.original_tid = t_id
+
+                                    # take a note that the member is used
+                                    if active_object.t_id not in active_object.used_members:
+                                        active_object.used_members[active_object.t_id] = {
+                                        }
+                                    active_object.used_members[active_object.t_id][member_no] = new_object
+                                    # update active object
+                                    self.debug_derefs(
+                                        f"Active object changed from {active_object.id} to {new_object.id}")
+                                    active_object = new_object
             ret_val.append((t_id, base_obj))
 
         return ret_val

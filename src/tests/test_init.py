@@ -4,7 +4,7 @@
 # Samsung Mobile Security Team @ Samsung R&D Poland
 
 import unittest
-from init import Init
+from init import _TreeIterator
 
 
 class TestInit(unittest.TestCase):
@@ -16,7 +16,7 @@ class TestInit(unittest.TestCase):
         list4 = [list2, [8], [list3], [[9]]]
         expected_list = [4, 1, 2, 3, 5, 8, 1, 2, 3, 4, 1, 2, 3, 5, 6, 9]
 
-        iterator = Init._TreeIterator(list4)
+        iterator = _TreeIterator(list4)
 
         result_len = iterator.len()
         result_list = [item for item in iterator]
