@@ -842,7 +842,7 @@ class OTGenerator:
             if create_header and g_id in global_fwd_str:
                 str_header += self.codegen._get_global_clash_ifdef(g_id, fid)
 
-                if fid == OTGenerator.AOT_HEADER_ID and g["linkage"] != "internal":
+                if fid == OTGenerator.AOT_HEADER_ID and g["linkage"] != "internal" and not global_fwd_str[g_id].startswith("extern"):
                     prefix = "extern "
                 else:
                     prefix = ""
