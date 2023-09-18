@@ -144,6 +144,7 @@ class Init:
         self.offset_pointers = {}
         self.trace_cache = {}
         self.derefs_cache = {}
+        self.obj_match_cache = {}
         self.ptr_init_size = 1  # when initializing pointers use this a the number of objects
         self.array_init_max_size = 32  # when initializing arrays use this a an upper limimit
         self.tagged_vars_count = 0
@@ -2411,8 +2412,11 @@ class Init:
         self.debug_derefs(f"matching object to type {t_id}")
         matched_objs = []
 
-        # return matched_objs
         for obj in objects:
+            if (obj.id, t_id) in self.obj_match_cache:
+                if self.obj_match_cache[(obj.id, t_id)]:
+                    matched_objs.append(obj)
+                continue
 
             _active_tid = obj.t_id
             _t_id = t_id
@@ -2431,14 +2435,12 @@ class Init:
             if base_type["class"] == "record_forward":
                 base_type_recfwd = True
 
-            if t_id == obj.t_id or _t_id == _active_tid:
-                matched_objs.append(obj)
-            elif t_id in self.deps.dup_types and obj.t_id in self.deps.dup_types[t_id]:
-                matched_objs.append(obj)
-            elif _t_id in self.deps.dup_types and _active_tid in self.deps.dup_types[_t_id]:
-                matched_objs.append(obj)
-            elif (base_type_recfwd or _active_type_recfw) and (base_type["str"] == _active_type["str"]):
-                # we assume that we came across a record forward
+            obj_matched = False
+            if t_id == obj.t_id or _t_id == _active_tid or \
+                    (t_id in self.deps.dup_types and obj.t_id in self.deps.dup_types[t_id]) or \
+                    (t_id in self.deps.dup_types and _active_tid in self.deps.dup_types[_t_id]) or \
+                    ((base_type_recfwd or _active_type_recfw) and (base_type["str"] == _active_type["str"])):
+                obj_matched = True
                 matched_objs.append(obj)
             # we want to avoid matching void* in historic casts
             elif not self._is_void_ptr(base_type) and base_type["str"] != "void":
@@ -2463,7 +2465,10 @@ class Init:
                         break
 
                 if prev_cast_found:
+                    obj_matched = True
                     matched_objs.append(obj)
+
+            self.obj_match_cache[(obj.id, t_id)] = obj_matched
 
         if adjust_recfwd and len(matched_objs) == 1:
             # we have exactly one match
