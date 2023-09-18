@@ -15,8 +15,8 @@ import os
 import sys
 import collections
 import difflib
-import shutil
 import json
+import re
 
 class CodeGen:
     # this is a special value returned by function stubs returning a pointer
@@ -285,6 +285,7 @@ class CodeGen:
                     '__attribute__((warn_unused_result("")))', "")
                 decl = decl.replace(
                     '__attribute__((overloadable))', "")
+                decl = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", decl)  
                 str += self._get_func_clash_ifdef(f, fid, True)
                 str += f"\n\n{decl};\n"
                 str += self._get_func_clash_endif(f, fid)
@@ -301,6 +302,7 @@ class CodeGen:
                     '__attribute__((warn_unused_result("")))', "")
                 decl = decl.replace(
                     '__attribute__((overloadable))', "")
+                decl = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", decl)  
                 str += self._get_func_clash_ifdef(f, fid, True)
                 str += f"\n\n{decl};\n"
                 str += self._get_func_clash_endif(f, fid)
@@ -323,11 +325,13 @@ class CodeGen:
             body = self._filter_out_asm_in_fdecl(body)
             body = body.replace('__attribute__((warn_unused_result("")))', "")
             body = body.replace('__attribute__((overloadable))', "")
+            body = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", body)
             str += "{};\n".format(body)
             body = f["declbody"]
             body = self._filter_out_asm_in_fdecl(body)
             body = body.replace('__attribute__((warn_unused_result("")))', "")
             body = body.replace('__attribute__((overloadable))', "")
+            body = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", body)  
 
             str += "{};\n".format(body)
             str += self._get_func_clash_endif(f_id, fid)
@@ -475,8 +479,10 @@ class CodeGen:
                         tmp += self._get_func_clash_endif(f_id, fid)
                         tmp += "\n\n"
                     # (function_id,unrolled_function_body_text,unique_unrolled_macro_map)
-                    func_data_list.append((tmp.replace('__attribute__((warn_unused_result("")))', "").replace('__attribute__((overloadable))',""),
-                                           self._get_unique_unrolled_macro_map(unrolled_macro_map)))
+                    tmp = tmp.replace('__attribute__((warn_unused_result("")))', "")
+                    tmp = tmp.replace('__attribute__((overloadable))', "")
+                    tmp = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", tmp)
+                    func_data_list.append((tmp, self._get_unique_unrolled_macro_map(unrolled_macro_map)))
             str += self._flush_function_code(func_data_list,common_unrolled_macro_map)
         else:
             for f_id in functions:
