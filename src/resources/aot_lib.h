@@ -33,3 +33,86 @@ static inline int access_ok(const void* addr, unsigned long size) {
     return 1;
 }
 #endif
+
+void* malloc(size_t size);
+void free(void* ptr);
+
+#ifdef AOT_MEMDUP_USER
+void *memdup_user(const void * _src, size_t len);
+#endif
+
+#ifdef AOT_COPY_FROM_USER
+unsigned long copy_from_user(void *to, const void *from , unsigned long n);
+#endif
+
+#ifdef AOT___COPY_FROM_USER
+unsigned long __copy_from_user(void *to, const void *from , unsigned long n);
+#endif
+
+#ifdef AOT_COPY_TO_USER
+unsigned long copy_to_user(void *to, const void *from, unsigned long n);
+#endif
+
+#ifdef AOT___COPY_TO_USER
+unsigned long __copy_to_user(void *to, const void *from, unsigned long n);
+#endif
+
+#ifdef AOT_KMALLOC
+void* kmalloc(unsigned long size, unsigned flags);
+#endif
+
+#ifdef AOT___KMALLOC
+void* __kmalloc(unsigned long size, unsigned flags);
+#endif
+
+#ifdef AOT_KZALLOC
+void* kzalloc(unsigned long size, unsigned flags);
+#endif
+
+#ifdef AOT_KFREE
+void kfree(const void* ptr);
+#endif
+
+#ifdef AOT_PRINTK
+int printk(const char *fmt, ...);
+#endif
+
+#ifdef AOT__PRINTK
+int _printk(const char *fmt, ...);
+#endif
+
+#ifdef AOT_MUTEX_LOCK
+void mutex_lock(void* m);
+#endif
+
+#ifdef AOT_MUTEX_UNLOCK
+void mutex_unlock(void *m);
+#endif
+
+#ifdef AOT_SPIN_LOCK
+void spin_lock(void* l);
+#endif
+
+#ifdef AOT_SPIN_LOCK_BH
+void spin_lock_bh(void* l);
+#endif
+
+#ifdef AOT_SPIN_UNLOCK
+void spin_unlock(void* l);
+#endif
+
+#ifdef AOT_SPIN_UNLOCK_BH
+void spin_unlock_bh(void* l);
+#endif
+
+#ifdef AOT_KSTRDUP
+char* kstrdup(const char* s, unsigned flags);
+#endif
+
+#ifdef AOT_KSTRNDUP
+char* kstrndup(const char* s, unsigned long max, unsigned flags);
+#endif
+
+#ifdef AOT_STRLCPY
+size_t strlcpy(char *dst, const char *src, size_t siz);
+#endif

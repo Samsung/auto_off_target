@@ -251,6 +251,11 @@ class CodeGen:
 
     # -------------------------------------------------------------------------
 
+    def _is_lib_func(self, fid):
+        if fid in self.dbops.lib_funcs_ids:
+            return True
+        return False
+
     # @belongs: codegen
     def _get_func_decls(self, fid, functions, static_functions=[], section_header=True):
         str = ""
@@ -258,10 +263,10 @@ class CodeGen:
         #    str += "\n\n/* ----------------------------- */\n" +\
         #        "/* Function declarations section */\n" +\
         #        "/* ----------------------------- */\n"
-        funcs = [f for f in functions if self.dbops.fnidmap[f] is not None]
+        funcs = [f for f in functions if self.dbops.fnidmap[f] is not None and self._is_lib_func(f) is False]
         # a function cannot be func and funcdelc at the same time
-        remaining = [f for f in functions if f not in funcs]
-        funcdecls = [f for f in remaining if self.dbops.fdmap[f] is not None]
+        remaining = [f for f in functions if f not in funcs and self._is_lib_func(f) is False]
+        funcdecls = [f for f in remaining if self.dbops.fdmap[f] is not None and self._is_lib_func(f) is False]
 
         # there is one special case in funcs: inline functions with external linkage
         # those should be declared as non-inline in multiple places and keep inline
@@ -278,6 +283,8 @@ class CodeGen:
                 decl = self._filter_out_asm_in_fdecl(decl)
                 decl = decl.replace(
                     '__attribute__((warn_unused_result("")))', "")
+                decl = decl.replace(
+                    '__attribute__((overloadable))', "")
                 str += self._get_func_clash_ifdef(f, fid, True)
                 str += f"\n\n{decl};\n"
                 str += self._get_func_clash_endif(f, fid)
@@ -292,6 +299,8 @@ class CodeGen:
                 decl = self._filter_out_asm_in_fdecl(decl)
                 decl = decl.replace(
                     '__attribute__((warn_unused_result("")))', "")
+                decl = decl.replace(
+                    '__attribute__((overloadable))', "")
                 str += self._get_func_clash_ifdef(f, fid, True)
                 str += f"\n\n{decl};\n"
                 str += self._get_func_clash_endif(f, fid)
@@ -313,10 +322,13 @@ class CodeGen:
             body = body.replace("inline ", "")
             body = self._filter_out_asm_in_fdecl(body)
             body = body.replace('__attribute__((warn_unused_result("")))', "")
+            body = body.replace('__attribute__((overloadable))', "")
             str += "{};\n".format(body)
             body = f["declbody"]
             body = self._filter_out_asm_in_fdecl(body)
             body = body.replace('__attribute__((warn_unused_result("")))', "")
+            body = body.replace('__attribute__((overloadable))', "")
+
             str += "{};\n".format(body)
             str += self._get_func_clash_endif(f_id, fid)
         return str
@@ -463,7 +475,8 @@ class CodeGen:
                         tmp += self._get_func_clash_endif(f_id, fid)
                         tmp += "\n\n"
                     # (function_id,unrolled_function_body_text,unique_unrolled_macro_map)
-                    func_data_list.append((tmp.replace('__attribute__((warn_unused_result("")))', ""),self._get_unique_unrolled_macro_map(unrolled_macro_map)))
+                    func_data_list.append((tmp.replace('__attribute__((warn_unused_result("")))', "").replace('__attribute__((overloadable))',""),
+                                           self._get_unique_unrolled_macro_map(unrolled_macro_map)))
             str += self._flush_function_code(func_data_list,common_unrolled_macro_map)
         else:
             for f_id in functions:
