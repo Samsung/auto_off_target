@@ -29,6 +29,19 @@ void* memcpy(void* dst, const void* src, typeof(sizeof(int)) count);
 #define __user
 #define __replacement__barrier__() ({;})
 
+// newer AOSP introduced fortified versions of some of libc functions
+// in order to detect them correctly in AoT we need to see the original calls
+#define __underlying_memcpy memcpy
+#define __underlying_memmove memmove
+#define __underlying_memset memset
+#define __underlying_memchr memchr
+#define __underlying_memcmp memcmp
+#define __underlying_strcat strcat
+#define __underlying_strcpy strcpy
+#define __underlying_strlen strlen
+#define __underlying_strncat strncat
+#define __underlying_strncpy strncpy
+
 static inline void __macrocall__list_for_each__(struct list_head* pos, struct list_head* head) { (void)pos; (void)head; }
 static inline void __macrocall__list_for_each_continue__(struct list_head* pos, struct list_head* head) { (void)pos; (void)head; }
 static inline void __macrocall__list_for_each_prev__(struct list_head* pos, struct list_head* head) { (void)pos; (void)head; }
