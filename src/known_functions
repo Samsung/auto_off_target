@@ -1659,3 +1659,13 @@ fuzz_that_data_default
 get_fuzz_data_bitfield
 aot_log_init
 aot_log_msg
+__underlying_memcpy
+__underlying_memmove
+__underlying_memset
+__underlying_memchr
+__underlying_memcmp
+__underlying_strcat
+__underlying_strcpy
+__underlying_strlen
+__underlying_strncat
+__underlying_strncpy
