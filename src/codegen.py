@@ -251,8 +251,12 @@ class CodeGen:
 
     # -------------------------------------------------------------------------
 
-    def _is_lib_func(self, fid):
+    def _is_excluded_func(self, fid):
         if fid in self.dbops.lib_funcs_ids:
+            return True
+        elif fid in self.dbops.builtin_funcs_ids:
+            return True
+        elif fid in self.dbops.replacement_funcs_ids:
             return True
         return False
 
@@ -263,10 +267,10 @@ class CodeGen:
         #    str += "\n\n/* ----------------------------- */\n" +\
         #        "/* Function declarations section */\n" +\
         #        "/* ----------------------------- */\n"
-        funcs = [f for f in functions if self.dbops.fnidmap[f] is not None and self._is_lib_func(f) is False]
+        funcs = [f for f in functions if self.dbops.fnidmap[f] is not None and self._is_excluded_func(f) is False]
         # a function cannot be func and funcdelc at the same time
-        remaining = [f for f in functions if f not in funcs and self._is_lib_func(f) is False]
-        funcdecls = [f for f in remaining if self.dbops.fdmap[f] is not None and self._is_lib_func(f) is False]
+        remaining = [f for f in functions if f not in funcs and self._is_excluded_func(f) is False]
+        funcdecls = [f for f in remaining if self.dbops.fdmap[f] is not None and self._is_excluded_func(f) is False]
 
         # there is one special case in funcs: inline functions with external linkage
         # those should be declared as non-inline in multiple places and keep inline

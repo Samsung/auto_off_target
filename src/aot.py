@@ -468,6 +468,13 @@ class Engine:
         static_functions = {}
         self.static_and_inline_funcs = {}
 
+        self.deps._filter_out_builtin_functions(self.cutoff.internal_funcs)
+        self.deps._filter_out_builtin_functions(self.cutoff.external_funcs)
+        #self.deps._filter_out_builtin_functions(self.static_and_inline_funcs)
+        self.deps._filter_out_replacement_functions(self.cutoff.internal_funcs)
+        self.deps._filter_out_replacement_functions(self.cutoff.external_funcs)
+        #self.deps._filter_out_replacement_functions(self.static_and_inline_funcs)
+
         for func in self.cutoff.internal_funcs:
             function = self.dbops.fnidmap[func]
             if function is None:
@@ -1011,6 +1018,8 @@ class Engine:
 
 
         # self.include_std_headers = [ f"<{h}>" for h in self.include_std_headers ]
+        self.deps._filter_out_builtin_functions(self.otgen.all_funcs)
+        self.deps._filter_out_replacement_functions(self.otgen.all_funcs)
         str_header, str_file, filename, func_ids, globals_ids, types, internal_defs = self.otgen._create_src_file(
             OTGenerator.AOT_HEADER_ID, self.otgen.all_funcs, all_global_ids, [], static_functions, create_header=True)
         if self.dynamic_init:

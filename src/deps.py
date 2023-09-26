@@ -322,6 +322,12 @@ class Deps:
 
     # -------------------------------------------------------------------------
 
+    def _filter_out_replacement_functions(self, functions):
+        functions.difference_update(set(self.dbops.replacement_funcs_ids))
+        return functions
+
+    # -------------------------------------------------------------------------
+
     # @belongs: deps
     def _filter_out_asm_functions(self, functions):
         if self.args.include_asm:

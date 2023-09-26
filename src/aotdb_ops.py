@@ -78,6 +78,7 @@ class AotDbOps:
         self.all_funcs_with_asm = set()  # ids of funcs that include assembly
         self.static_funcs_map = {}       # get list of file ids by static func id
         self.builtin_funcs_ids = set()   # get a list of ids of builtin funcs
+        self.replacement_funcs_ids = set() # get a list of ids of macro replacement funcs
         self.fpointer_map = {}           # get function pointers info
 
         # the third group are precomputed sets which represent entire
@@ -169,7 +170,8 @@ class AotDbOps:
 
             # get builtin func ids, funcs with asm and a map of static funcs
             logging.info("Getting builtin functions")
-            prefix = "__builtin"
+            prefix_builtin = "__builtin"
+            prefix_replacement = "__replacement__"
 
             # if json_data is not None:
             #     funcs = json_data['funcs']
@@ -180,8 +182,11 @@ class AotDbOps:
             for f in funcs:
                 n = f["name"]
                 f_id = f["id"]
-                if n.startswith(prefix):
+                if n.startswith(prefix_builtin):
                     self.builtin_funcs_ids.add(f_id)
+                if n.startswith(prefix_replacement):
+                    self.replacement_funcs_ids.add(f_id)
+
                 # get all functions with asm
                 if not self.include_asm:
                     if self._func_contains_assembly(f):
@@ -196,14 +201,18 @@ class AotDbOps:
             funcdecls = self.db["funcdecls"]
             for f in funcdecls:
                 n = f["name"]
-                if n.startswith(prefix):
+                if n.startswith(prefix_builtin):
                     self.builtin_funcs_ids.add(f["id"])
+                if n.startswith(prefix_replacement):
+                    self.replacement_funcs_ids.add(f["id"])
 
             unresolved = self.db['unresolvedfuncs']
             for f in unresolved:
                 n = f["name"]
-                if n.startswith(prefix):
+                if n.startswith(prefix_builtin):
                     self.builtin_funcs_ids.add(f["id"])
+                if n.startswith(prefix_replacement):
+                    self.replacement_funcs_ids.add(f["id"])
 
             tmp_static_funcs_map = []
             for f_id in self.static_funcs_map:
@@ -216,6 +225,7 @@ class AotDbOps:
                 "version": self.version,
                 "func_ids": list(self.known_funcs_ids),
                 "builtin_ids": list(self.builtin_funcs_ids),
+                "replacement_ids": list(self.replacement_funcs_ids),
                 "asm_ids": list(self.all_funcs_with_asm),
                 "lib_funcs": list(self.lib_funcs),
                 "lib_funcs_ids": list(self.lib_funcs_ids),
@@ -375,6 +385,7 @@ class AotDbOps:
                 "The version stored in the db is not the current version - will not use known data")
         else:
             self.builtin_funcs_ids = set()
+            self.replacement_funcs_ids = set()
             self.all_funcs_with_asm = set()
             self.static_funcs_map = {}
 
@@ -392,6 +403,8 @@ class AotDbOps:
                 self.known_funcs_ids.add(f_id)
             for f_id in known_data['builtin_ids']:
                 self.builtin_funcs_ids.add(f_id)
+            for f_id in known_data['replacement_ids']:
+                self.replacement_funcs_ids.add(f_id)
             for f_id in known_data['asm_ids']:
                 self.all_funcs_with_asm.add(f_id)
 
