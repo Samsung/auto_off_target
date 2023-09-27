@@ -76,10 +76,18 @@ native-old: $(obj) $(lib)
 
 # as native but compiled using gcc
 .PHONY: native-gcc
-native-gcc:  COMP=gcc
+native-gcc: COMP=gcc
 native-gcc: CFLAGS+=-fmax-errors=0 -MD -fPIE -flto
 native-gcc: $(obj) $(lib)
 	$(COMP) -o $@ $^ $(LDFLAGS)
+
+# as native but compiled using gcc with fanalyzer
+.PHONY: fanalyzer
+fanalyzer: DEF_WARNS := $(shell gcc --help=warnings -Q | grep enabled | cut -d " " -f 3 | sed 's\-W\-Wno-\' | grep -v "\-Wno-analyzer")
+fanalyzer: COMP=gcc
+fanalyzer: CFLAGS+=-fmax-errors=0 -MD -fPIE $(DEF_WARNS) -fanalyzer
+fanalyzer: $(obj) $(lib)
+        $(COMP) -o $@ $^ $(LDFLAGS)
 
 # address sanitizer
 .PHONY: asan
