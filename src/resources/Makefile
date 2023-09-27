@@ -59,7 +59,7 @@ endif
 
 # native: the default linux native target
 .PHONY: native
-native: CFLAGS+=-ferror-limit=0 -fno-integrated-cc1 -MD
+native: CFLAGS+=-ferror-limit=0 -fno-integrated-cc1 -MD -w
 native: $(obj) $(lib)
 	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
@@ -70,14 +70,14 @@ stats:
 
 # as native but should work with clang < 10.0
 .PHONY: native-old
-native-old: CFLAGS+=-ferror-limit=0 -MD
+native-old: CFLAGS+=-ferror-limit=0 -MD -w
 native-old: $(obj) $(lib)
 	$(COMP) -o $@ $^ $(LDFLAGS)
 
 # as native but compiled using gcc
 .PHONY: native-gcc
 native-gcc: COMP=gcc
-native-gcc: CFLAGS+=-fmax-errors=0 -MD -fPIE
+native-gcc: CFLAGS+=-fmax-errors=0 -MD -fPIE -w
 native-gcc: $(obj) $(lib)
 	$(COMP) -o $@ $^ $(LDFLAGS)
 
@@ -91,27 +91,27 @@ fanalyzer: $(obj) $(lib)
 
 # address sanitizer
 .PHONY: asan
-asan: CFLAGS+=-fsanitize=address -MD
+asan: CFLAGS+=-fsanitize=address -MD -w
 asan: $(obj) $(lib)
 	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # memory sanitizer
 .PHONY: msan
-msan: CFLAGS+=-fsanitize=memory -MD
+msan: CFLAGS+=-fsanitize=memory -MD -w
 msan: $(obj) $(lib)
 	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # undefined behaviour sanitizer
 .PHONY: ubsan
-ubsan: CFLAGS+=-fsanitize=undefined -MD
+ubsan: CFLAGS+=-fsanitize=undefined -MD -w
 ubsan: $(obj) $(lib)	
 	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # data flow sanitizer
 # aot_dsan.c.lib contains the callbacks which can't be instrumented with dfsan and is compiled separately
 .PHONY: dfsan
-dfsan: CFLAGSDFSAN=-fno-sanitize=dataflow -MD -mllvm -dfsan-event-callbacks -g -DDFSAN -fPIE
-dfsan: CFLAGS=-fsanitize=dataflow -MD -mllvm -dfsan-event-callbacks -g -DDFSAN -I${KFLAT_LIB_PATH} -fsanitize-ignorelist=dfsan_ignore_list.txt
+dfsan: CFLAGSDFSAN=-fno-sanitize=dataflow -MD -mllvm -dfsan-event-callbacks -g -DDFSAN -fPIE -w
+dfsan: CFLAGS=-fsanitize=dataflow -MD -mllvm -dfsan-event-callbacks -g -w -DDFSAN -I${KFLAT_LIB_PATH} -fsanitize-ignorelist=dfsan_ignore_list.txt
 dfsan: COMP=clang-15
 dfsan: $(obj) $(lib)	
 	cp aot_dfsan.c.lib aot_dfsan.c
@@ -128,7 +128,7 @@ afl: COMP=afl-clang-fast
 else
 afl: COMP=afl-clang-lto
 endif
-afl: COMP+=-DAFL
+afl: COMP+=-DAFL -w
 afl: $(obj) $(lib)
 	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
@@ -144,7 +144,7 @@ klee: $(obj)
 # SYMCC
 .PHONY: symcc
 symcc: COMP=symcc
-symcc: COMP+=-DAFL
+symcc: COMP+=-DAFL -w
 symcc: $(obj) $(lib)
 	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 	mkdir -p "symcc_results"
@@ -152,7 +152,7 @@ symcc: $(obj) $(lib)
 
 # code coverage
 .PHONY: gcov
-gcov: CFLAGS+=-fprofile-instr-generate -fcoverage-mapping -MD
+gcov: CFLAGS+=-fprofile-instr-generate -fcoverage-mapping -MD -w
 gcov: $(obj) $(lib)
 	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
@@ -164,7 +164,7 @@ debug: $(obj) $(lib)
 
 # for generating on-device PoCs
 .PHONY: recall
-recall: CFLAGS+=-DAOT_RECALL_BINARY -g
+recall: CFLAGS+=-DAOT_RECALL_BINARY -g -w
 recall: $(obj) $(lib)
 	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
