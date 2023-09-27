@@ -289,6 +289,8 @@ class CodeGen:
                     '__attribute__((warn_unused_result("")))', "")
                 decl = decl.replace(
                     '__attribute__((overloadable))', "")
+                decl = decl.replace(
+                    '__attribute__((always_inline))', "")
                 decl = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", decl)  
                 str += self._get_func_clash_ifdef(f, fid, True)
                 str += f"\n\n{decl};\n"
