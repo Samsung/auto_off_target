@@ -171,7 +171,7 @@ class AotDbOps:
             # get builtin func ids, funcs with asm and a map of static funcs
             logging.info("Getting builtin functions")
             prefix_builtin = "__builtin"
-            prefix_replacement = "__replacement__"
+            prefix_replacement = [ "__replacement__", "__macrocall__" ]
 
             # if json_data is not None:
             #     funcs = json_data['funcs']
@@ -184,8 +184,9 @@ class AotDbOps:
                 f_id = f["id"]
                 if n.startswith(prefix_builtin):
                     self.builtin_funcs_ids.add(f_id)
-                if n.startswith(prefix_replacement):
-                    self.replacement_funcs_ids.add(f_id)
+                for prefix in prefix_replacement:
+                    if n.startswith(prefix):
+                        self.replacement_funcs_ids.add(f_id)
 
                 # get all functions with asm
                 if not self.include_asm:
@@ -203,16 +204,18 @@ class AotDbOps:
                 n = f["name"]
                 if n.startswith(prefix_builtin):
                     self.builtin_funcs_ids.add(f["id"])
-                if n.startswith(prefix_replacement):
-                    self.replacement_funcs_ids.add(f["id"])
+                for prefix in prefix_replacement:
+                    if n.startswith(prefix):
+                        self.replacement_funcs_ids.add(f["id"])
 
             unresolved = self.db['unresolvedfuncs']
             for f in unresolved:
                 n = f["name"]
                 if n.startswith(prefix_builtin):
                     self.builtin_funcs_ids.add(f["id"])
-                if n.startswith(prefix_replacement):
-                    self.replacement_funcs_ids.add(f["id"])
+                for prefix in prefix_replacement:
+                    if n.startswith(prefix):
+                        self.replacement_funcs_ids.add(f["id"])
 
             tmp_static_funcs_map = []
             for f_id in self.static_funcs_map:
