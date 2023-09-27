@@ -87,7 +87,7 @@ fanalyzer: DEF_WARNS := $(shell gcc --help=warnings -Q | grep enabled | cut -d "
 fanalyzer: COMP=gcc
 fanalyzer: CFLAGS+=-fmax-errors=0 -MD -fPIE $(DEF_WARNS) -fanalyzer
 fanalyzer: $(obj) $(lib)
-        $(COMP) -o $@ $^ $(LDFLAGS)
+	$(COMP) -o $@ $^ $(LDFLAGS)
 
 # address sanitizer
 .PHONY: asan
