@@ -272,11 +272,18 @@ class CodeGen:
         remaining = [f for f in functions if f not in funcs and self._is_excluded_func(f) is False]
         funcdecls = [f for f in remaining if self.dbops.fdmap[f] is not None and self._is_excluded_func(f) is False]
 
+        attributes = ""
+
         # there is one special case in funcs: inline functions with external linkage
         # those should be declared as non-inline in multiple places and keep inline
         # definition in their corresponding source file
         for f in funcs:
             if f not in static_functions:
+
+                if f in self.otgen.ot_funcs:
+                    attributes = "__attribute__ ((tainted_args))"
+                else:
+                    attributes = ""
                 func = self.dbops.fnidmap[f]
                 decl = func["declbody"]
                 if f in self.dbops.lib_funcs_ids:
@@ -293,7 +300,7 @@ class CodeGen:
                     '__attribute__((always_inline))', "")
                 decl = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", decl)  
                 str += self._get_func_clash_ifdef(f, fid, True)
-                str += f"\n\n{decl};\n"
+                str += f"\n\n{decl}{attributes};\n"
                 str += self._get_func_clash_endif(f, fid)
 
         str += "\n// Func decls\n"
@@ -308,6 +315,8 @@ class CodeGen:
                     '__attribute__((warn_unused_result("")))', "")
                 decl = decl.replace(
                     '__attribute__((overloadable))', "")
+                decl = decl.replace(
+                    '__attribute__((always_inline))', "")
                 decl = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", decl)  
                 str += self._get_func_clash_ifdef(f, fid, True)
                 str += f"\n\n{decl};\n"
@@ -320,6 +329,11 @@ class CodeGen:
                 # note: the keys of the static_inline_headers dict are in fact the
                 # ids of static inline functions
                 continue
+            if f_id in self.otgen.ot_funcs:
+                attributes = "__attribute__ ((tainted_args))"
+            else:
+                attributes = ""
+
             f = self.dbops.fnidmap[f_id]
             name = f["name"]
             str += self._get_func_clash_ifdef(f_id, fid, True)
@@ -331,15 +345,17 @@ class CodeGen:
             body = self._filter_out_asm_in_fdecl(body)
             body = body.replace('__attribute__((warn_unused_result("")))', "")
             body = body.replace('__attribute__((overloadable))', "")
+            body = body.replace('__attribute__((always_inline))', "")
             body = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", body)
             str += "{};\n".format(body)
             body = f["declbody"]
             body = self._filter_out_asm_in_fdecl(body)
             body = body.replace('__attribute__((warn_unused_result("")))', "")
             body = body.replace('__attribute__((overloadable))', "")
+            body = body.replace('__attribute__((always_inline))', "")
             body = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", body)  
 
-            str += "{};\n".format(body)
+            str += "{}{};\n".format(body, attributes)
             str += self._get_func_clash_endif(f_id, fid)
         return str
 
@@ -487,6 +503,7 @@ class CodeGen:
                     # (function_id,unrolled_function_body_text,unique_unrolled_macro_map)
                     tmp = tmp.replace('__attribute__((warn_unused_result("")))', "")
                     tmp = tmp.replace('__attribute__((overloadable))', "")
+                    tmp = tmp.replace('__attribute__((always_inline))', "")
                     tmp = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", tmp)
                     func_data_list.append((tmp, self._get_unique_unrolled_macro_map(unrolled_macro_map)))
             str += self._flush_function_code(func_data_list,common_unrolled_macro_map)

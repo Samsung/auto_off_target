@@ -51,6 +51,8 @@ class OTGenerator:
         self.funcs_init_data = {}
         self.globs_init_data = {}
 
+        self.ot_funcs = set()
+
     # -------------------------------------------------------------------------
 
     def set_fid_to_filename(self, fid, filename):

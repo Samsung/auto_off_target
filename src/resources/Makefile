@@ -89,6 +89,13 @@ fanalyzer: CFLAGS+=-fmax-errors=0 -MD -fPIE $(DEF_WARNS) -fanalyzer
 fanalyzer: $(obj) $(lib)
 	$(COMP) -o $@ $^ $(LDFLAGS)
 
+.PHONY: fanalyzer-taint
+fanalyzer-taint: DEF_WARNS := $(shell gcc --help=warnings -Q | grep enabled | cut -d " " -f 3 | sed 's\-W\-Wno-\' | grep -v "\-Wno-analyzer")
+fanalyzer-taint: COMP=gcc
+fanalyzer-taint: CFLAGS+=-fmax-errors=0 -MD -fPIE $(DEF_WARNS) -fanalyzer -fanalyzer-checker=taint
+fanalyzer-taint: $(obj) $(lib)
+	$(COMP) -o $@ $^ $(LDFLAGS)
+
 # address sanitizer
 .PHONY: asan
 asan: CFLAGS+=-fsanitize=address -MD -w

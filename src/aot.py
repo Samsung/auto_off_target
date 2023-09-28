@@ -320,7 +320,6 @@ class Engine:
             logging.info("adding basedir {}".format(dir))
             basedirs.add(dir)
 
-
         self.deps._get_called_functions(self.functions)
         # TODO: filter out external functions -> consider adding a filter to the
         # get_called_functions method (this might cover the globals too)
@@ -411,6 +410,7 @@ class Engine:
             self.internal_defs = set()
             for f in function_ids:
                 self.functions.add(f)
+                self.otgen.ot_funcs.add(f)
 
             # we have to add the main functions we focus on
             for f in function_ids:
