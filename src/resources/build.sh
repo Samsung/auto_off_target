@@ -28,6 +28,6 @@ make clean &>/dev/null && make afl    &>afl_build.log    || compile_fail "afl"
 make clean &>/dev/null && make klee   &>klee_build.log   || compile_fail "klee"
 make clean &>/dev/null && make symcc  &>symcc.log 	 || compile_fail "symcc"
 make clean &>/dev/null && make debug  &>debug_build.log  || compile_fail "debug" 
-make clean &>/dev/null && make native &>native_build.log || compile_fail "native"
 make clean &>/dev/null && make fanalyzer &>fanalyzer_build.log
 make clean &>/dev/null && make fanalyzer-taint &>fanalyzer_taint_build.log
+make clean &>/dev/null && make native &>native_build.log || compile_fail "native"
