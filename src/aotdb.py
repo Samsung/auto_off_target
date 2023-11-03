@@ -17,8 +17,8 @@ from dbjson2ftdb import FtdbFrontend
 
 
 class DbType(Enum):
-    FTDB = 1
-    INVALID = 3
+    FTDB = "ftdb"
+    INVALID = "unsupported"
 
 
 def connection_factory(db_type):

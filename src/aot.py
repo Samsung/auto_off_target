@@ -1385,7 +1385,8 @@ def prepare_parser(*db_frontends):
                         help=f"Analyze record types")
     parser.add_argument("--debug-vars-init", action='store_true', default=False,
                         help=f"Print debug info on vars init")
-    parser.add_argument("--db-type", choices=['ftdb'], default='ftdb')
+    parser.add_argument(
+        "--db-type", choices=[aotdb.DbType.FTDB], default=aotdb.DbType.FTDB)
     parser.add_argument("--fptr-analysis", action="store_true",
                         help="When used, based on lightweight static analysis the code of possible functions that could be invoked through the function pointer calls are also added to the generated output")
     parser.add_argument("--dump-ids", action="store_true",
@@ -1445,7 +1446,7 @@ def main():
 
     parser = prepare_parser(db_frontend)
     args = parser.parse_args()
-    
+
     retcode = 0
     try:
         engine = Engine()

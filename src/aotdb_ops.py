@@ -20,7 +20,7 @@ import numpy as np
 import os
 import random
 import sys
-import lzma
+import aotdb
 
 class AotDbOps:
 
@@ -443,7 +443,7 @@ class AotDbOps:
         # logging.info(f"Recursively we have {len(self.always_inc_funcs_ids)} functions to include")
 
         if self.fptr_analysis:
-            if self.db_type == 'ftdb':
+            if self.db_type == aotdb.DbType.FTDB:
                 # if we're using db.img
                 logging.info("Generating function pointers information")
                 fpointers = self.deps._infer_functions(self.db.db)
