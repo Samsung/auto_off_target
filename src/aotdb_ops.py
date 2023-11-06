@@ -474,23 +474,16 @@ class AotDbOps:
         logging.info(
             f"Generating cache matrix for collection {collection_name}")
         index = self.db.create_local_index(collection_name, "name")
-        data_count = index[AotDbOps.DATA]["data"]
-        row_ind_count = index[AotDbOps.ROW_IND]["data"]
-        col_ind_count = index[AotDbOps.COL_IND]["data"]
 
-        data = []
-        row_ind = []
-        col_ind = []
-        for i in range(data_count):
-            data += index[f"{AotDbOps.DATA}_{i}"]["data"]
-        for i in range(row_ind_count):
-            row_ind += index[f"{AotDbOps.ROW_IND}_{i}"]["data"]
-        for i in range(col_ind_count):
-            col_ind += index[f"{AotDbOps.COL_IND}_{i}"]["data"]
-
-        np_data = np.array(data)
-        np_row_ind = np.array(row_ind)
-        np_col_ind = np.array(col_ind)
+        if self.db_type == aotdb.DbType.FTDB:
+            data = index[AotDbOps.DATA]
+            row_ind = index[AotDbOps.ROW_IND]
+            col_ind = index[AotDbOps.COL_IND]
+            np_data = np.array(data["data"])
+            np_row_ind = np.array(row_ind["data"])
+            np_col_ind = np.array(col_ind["data"])
+        else:
+            logging.warning(f"Unsupported DB type {self.db_type}")
         size = index[AotDbOps.MATRIX_SIZE]['data']
 
         matrix = csr_matrix(
@@ -534,25 +527,15 @@ class AotDbOps:
         matrix = csr_matrix(
             (np_data, (np_row_ind, np_col_ind)), shape=(size, size))
         logging.info("Matrix created")
-        # need to break the matrix data due to the mongo limit of a single document size
-        logging.info(f"sizes: data={sys.getsizeof(data)} row_ind={sys.getsizeof(row_ind)} col_ind={sys.getsizeof(col_ind)}")
-
-        data_names = [ (AotDbOps.DATA, data), (AotDbOps.ROW_IND, row_ind), (AotDbOps.COL_IND, col_ind) ]
-
-        for name, data in data_names:
-            length = len(data)
-            divs = 1
-            base_len = 10000
-            if length > base_len:
-                divs = length // base_len + 1 
-
+        if self.db_type == aotdb.DbType.FTDB:
             self.db.store_in_collection(
-            collection_name, {"name": name, "data": divs})
-            for i in range(divs):
-                start = i * base_len            
-                end = (i + 1) * base_len
-                self.db.store_in_collection(
-                    collection_name, {"name": f"{name}_{i}", "data": data[start:end]})
+                collection_name, {"name": AotDbOps.DATA, "data": data})
+            self.db.store_in_collection(
+                collection_name, {"name": AotDbOps.ROW_IND, "data": row_ind})
+            self.db.store_in_collection(
+                collection_name, {"name": AotDbOps.COL_IND, "data": col_ind})
+        else:
+            logging.warning(f"Unsupported DB type {self.db_type}")
         self.db.store_in_collection(
             collection_name, {"name": AotDbOps.MATRIX_SIZE, "data": size})
 
