@@ -16,7 +16,7 @@ import logging
 from dbjson2ftdb import FtdbFrontend
 
 
-class DbType(Enum):
+class DbType(str, Enum):
     FTDB = "ftdb"
     INVALID = "unsupported"
 
