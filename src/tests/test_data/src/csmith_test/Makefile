@@ -9,7 +9,6 @@ all: test_program
 clean:
 	rm -f test_program
 	rm -f $(objects)
-	rm -f .nfsdb .nfsdb.stats
 
 test_program: $(objects)
 	$(CC) -o test_program $(objects)

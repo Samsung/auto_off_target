@@ -24,6 +24,7 @@ AOT_ARGS="--product test_product
         --fptr-analysis"
 
 generate_data () {
+    cas parse && cas postprocess && cas cache &&
     cas lm deps --cached &&
     PYTHONPATH=$CAS_DIR python3 $AOT_ROOT/tests/extract_ftdb_info.py &&
     $CAS_DIR/clang-proc/create_json_db -P $CAS_DIR/clang-proc/clang-proc &&
@@ -32,10 +33,10 @@ generate_data () {
 }
 
 for build in $@ ; do
-    cd $build &&
+    cd $build/etrace_data &&
     generate_data &&
     cd - &&
     mkdir -p test_data/$(basename $build) &&
-    cp -f $build/db.img test_data/$(basename $build) &&
-    cp -f $build/rdm.json test_data/$(basename $build)
+    cp -f $build/etrace_data/db.img test_data/$(basename $build) &&
+    cp -f $build/etrace_data/rdm.json test_data/$(basename $build)
 done
