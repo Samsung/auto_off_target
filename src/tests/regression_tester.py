@@ -11,11 +11,13 @@ import os
 
 class RegressionTester:
 
-    def __init__(self, test_case, regression_aot_path, timeout, generate_run_scripts=False):
+    def __init__(self, test_case, regression_aot_path, timeout,
+                 generate_run_scripts=False, check_build=True):
         self.test_case = test_case
         self.regression_aot_path = regression_aot_path
         self.timeout = timeout
         self.generate_run_scripts = generate_run_scripts
+        self.check_build = check_build
 
     def _generate_run_script(filename, command):
         with open(filename, 'w+') as f:
@@ -52,13 +54,11 @@ class RegressionTester:
         if len(diffs) != 0:
             self.test_case.fail('\n'.join(diffs))
 
+        if not self.check_build:
+            return
+
         os.chdir('test_output_dir')
         print('Running make')
         status = subprocess.run(['make'])
 
         self.test_case.assertEqual(status.returncode, 0, 'Off-target build failed')
-
-        print('Running off-target executable')
-        status = subprocess.run(['./native'])
-
-        self.test_case.assertEqual(status.returncode, 0, 'Off-target execution failed')

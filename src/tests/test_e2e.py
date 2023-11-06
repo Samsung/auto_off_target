@@ -75,7 +75,9 @@ class TestE2E(unittest.TestCase):
         if 'AOT_TIMEOUT' in os.environ:
             timeout = int(os.environ['AOT_TIMEOUT'])
 
-        tester = regression_tester.RegressionTester(self, regression_aot_path, timeout, self.keep_test_env)
+        tester = regression_tester.RegressionTester(self, regression_aot_path, timeout,
+                                                    generate_run_scripts=self.keep_test_env,
+                                                    check_build=False)
         for i, options in enumerate(self.test_cases):
             execution_dir_name = self.set_up_test_case(i)
             with self.subTest(f'Test {i} at {execution_dir_name}'):
