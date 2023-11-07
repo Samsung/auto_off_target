@@ -10,9 +10,10 @@ set -u
 export PATH=${CAS_DIR}:$PATH
 
 echo "Pulling test project sources" &&
-./pull_test_src.sh &&
+git submodule update --init --recursive &&
 
 echo "Tracing test project builds and creating BAS database" &&
+./cleanup_test_data.sh &&
 ./build_test_src.sh &&
 
 echo "Generating FTDB database for the project"

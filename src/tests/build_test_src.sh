@@ -13,5 +13,5 @@ then
     exit 1
 fi
 
-(cd test_data/src/csmith_test && make clean && etrace -w etrace_data make) &&
+(cd test_data/src/csmith_test && etrace -w etrace_data make) &&
 (cd test_data/src/tinycc && ./configure && etrace -w etrace_data make)

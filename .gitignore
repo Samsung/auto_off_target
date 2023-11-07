@@ -11,4 +11,3 @@ etrace_data
 src/tests/test_data/csmith_test
 src/tests/test_data/tinycc
 src/tests/test_data/src/csmith_test/test_program
-src/tests/test_data/src/tinycc
