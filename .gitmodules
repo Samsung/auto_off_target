@@ -3,3 +3,7 @@
 	url = https://github.com/TinyCC/tinycc.git
 	branch = ff2a372a9af5a7eb16548940f779a24c20767d4f
 	ignore = untracked
+[submodule "src/tests/tree-sitter-c"]
+	path = src/tests/tree-sitter-c
+	url = https://github.com/tree-sitter/tree-sitter-c.git
+	ignore = untracked

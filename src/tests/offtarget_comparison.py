@@ -19,7 +19,7 @@ class OfftargetComparator:
     def __init__(self):
         self.special_files = {
             'aot_literals': file_comparison.compare_aot_literals,
-            'aot.h': file_comparison.compare_C_simple,
+            'aot.h': file_comparison.CComparator.compare_C_simple,
             'fptr_stub.c': file_comparison.FptrStubCComparator.compare_fptr_stub_c,
         }
         self.exclude_from_diff = ['aot.log']
@@ -44,7 +44,10 @@ class OfftargetComparator:
             if file in self.special_files:
                 result, difference = self.special_files[file](file_path1, file_path2)
                 if not result:
-                    self.differences.append(difference)
+                    self.differences.append(
+                        f'Files {file_path1} and {file_path2} differ:\n'
+                        f'{difference}'
+                    )
                 continue
 
             try:

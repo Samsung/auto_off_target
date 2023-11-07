@@ -9,8 +9,11 @@ set -u
 
 export PATH=${CAS_DIR}:$PATH
 
-echo "Pulling test project sources" &&
+echo "Pulling test project and tree-sitter-c sources" &&
 git submodule update --init --recursive &&
+
+echo "Building tree-sitter language" &&
+python3 tree_sitter_c.py &&
 
 echo "Tracing test project builds and creating BAS database" &&
 ./cleanup_test_data.sh &&
