@@ -30,8 +30,11 @@ function that returns `True` if files are the same according to some criterion.
 ## Test data
 
 Data required for tests has to be generated using CAS (information on CAS
-setup can be found in [CAS repository](https://github.com/Samsung/CAS)). Make
-sure `CAS_DIR` env variable is set to CAS root directory.
+setup can be found in [CAS repository](https://github.com/Samsung/CAS)). 
+
+Make sure the following env variables are set:
+- `CAS_DIR` points to CAS root directory
+- `PYTHONPATH` includes `CAS_DIR` (this is needed for libftdb)
 
 To generate all required files run `setup_test_data.sh`. Make sure you run it
 from `tests` directory.
@@ -52,3 +55,5 @@ Then run tests using `pytest` (see `pytest` documentation for additional options
 ```
 AOT_REGRESSION_PATH=<REGRESSION_AOT_ROOT>/src/aot.py pytest -s
 ```
+
+If you would like to keep the test environment data, please set the `KEEP_TEST_ENV=True` env variable.
