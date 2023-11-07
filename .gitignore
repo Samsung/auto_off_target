@@ -6,6 +6,7 @@
 *.swp
 *.zip
 *.o
+venv
 etrace_data
 src/tests/test_data/csmith_test
 src/tests/test_data/tinycc

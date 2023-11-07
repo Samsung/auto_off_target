@@ -56,13 +56,15 @@ TIMEOUT_EXIT_CODE = 123
 
 
 def _run_with_timeout(timeout, func):
+    def wrapper():
+        try:
+            aot.main()
+        except SystemExit as e:
+            return e.code
     try:
-        func_timeout.func_timeout(timeout, aot.main)
+        return func_timeout.func_timeout(timeout, wrapper)
     except func_timeout.FunctionTimedOut:
         return TIMEOUT_EXIT_CODE
-    except SystemExit as e:
-        return e.code
-    return 0
 
 
 # TODO: in the future we should probably return some more execution information
