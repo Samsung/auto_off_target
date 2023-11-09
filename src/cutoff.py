@@ -32,7 +32,6 @@ class CutOff:
     CUT_OFF_NAMED_MODULES = 'named_modules'  # currently unsupported
 
     # function stats details
-    FUNC_STATS_NONE = 'none'
     FUNC_STATS_BASIC = 'basic'
     FUNC_STATS_DETAILED = 'detailed'
 

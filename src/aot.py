@@ -90,7 +90,10 @@ class Engine:
         self.include_asm = args.include_asm
 
         self.external_inclusion_margin = args.external_inclusion_margin
-
+        if self.external_inclusion_margin > 1 and args.func_stats != CutOff.FUNC_STATS_DETAILED:
+            logging.warning(f"Since external inclusion margin > 1, going to use detailed function stats")
+            args.func_stats = CutOff.FUNC_STATS_DETAILED
+        
         self.cut_off = args.cut_off
 
         self.use_real_filenames = args.use_real_filenames
@@ -1323,7 +1326,7 @@ def prepare_parser(*db_frontends):
     parser.add_argument('--co-files', nargs="+", default="",
                         help='a list of files for use with the --cut-off option')
 
-    parser.add_argument('--func-stats', choices=[CutOff.FUNC_STATS_NONE, CutOff.FUNC_STATS_BASIC, CutOff.FUNC_STATS_DETAILED],
+    parser.add_argument('--func-stats', choices=[CutOff.FUNC_STATS_BASIC, CutOff.FUNC_STATS_DETAILED],
                         default=CutOff.FUNC_STATS_BASIC,
                         help='print out function stats (e.g. how many functions they pull in')
     parser.add_argument('--known-funcs-file', default=None,
