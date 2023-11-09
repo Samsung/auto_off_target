@@ -1220,7 +1220,7 @@ class Deps:
             else:
                 if filter_on:
                     cutoff = set(self.dbops.known_funcs_ids)
-                    logging.info(f"Will use {len(cutoff)} known ids")
+                    logging.debug(f"Will use {len(cutoff)} known ids")
                     if 0 == len(cutoff):
                         cutoff = None
                 else:
@@ -1289,12 +1289,12 @@ class Deps:
         functions |= fcalls
 
         if filter_on:
-            logging.info(f"functions size before filtering {len(functions)}")
+            logging.debug(f"functions size before filtering {len(functions)}")
             # filter out knonw functions before returning results
             if discover_known:
                 self._discover_known_functions(functions)
             self._filter_out_known_functions(functions)
-            logging.info(f"functions size after filtering {len(functions)}")
+            logging.debug(f"functions size after filtering {len(functions)}")
 
         self._filter_out_builtin_functions(functions)
 

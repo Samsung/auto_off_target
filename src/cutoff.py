@@ -109,8 +109,14 @@ class CutOff:
             logging.debug("checking funref {} ".format(fid))
             ext = False  # deciding if the function is external or not
 
+            fname = ""
+            f = self.dbops.fnidmap[fid]
+            if f is not None:
+                fname = f['name']
             if fid in self.dbops.always_inc_funcs_ids:
                 logging.info(f"Including internal func {fid}")
+            elif fid in self.dbops.known_funcs_ids:
+                logging.info(f"{fid} {fname} is a known function")
             else:
                 if self.args.cut_off == CutOff.CUT_OFF_MODULE:
                     if fid not in self.fid_to_mods:
@@ -191,14 +197,15 @@ class CutOff:
                 # logging.debug(
                 #    "Function {} is inside of base module {}".format(fid, base_fid))
                 tmp_f = self.dbops.fnidmap[fid]
-                if tmp_f is None:
+                if tmp_f is None and fid not in self.dbops.known_funcs_ids:
                     # we've hit an unresolved function or a funcdecl
                     external_funcs.add(fid)
                     continue
                 if fid not in internal_funcs:
                     internal_funcs.add(fid)
-                    self._get_internal_funcs(
-                        tmp_f, internal_funcs, external_funcs)
+                    if tmp_f is not None:
+                        self._get_internal_funcs(
+                            tmp_f, internal_funcs, external_funcs)
 
     # -------------------------------------------------------------------------
 
@@ -301,21 +308,24 @@ class CutOff:
         logging.info("Printing internal functions:")
         for fid in self.internal_funcs:
             f = self.dbops.fnidmap[fid]
-            logging.info(
-                "- [internal] {} @ {}".format(f["name"], f["location"]))
+            if f is not None:
+                logging.info(
+                    "- [internal] {} @ {}".format(f["name"], f["location"]))
 
         logging.info("Printing first external functions:")
         for fid in self.external_funcs:
             f = self.dbops.fnidmap[fid]
             if f is None:
+                # if it's not a function (funcdecl or unresovled), we wouldn't know how many others it calls
                 # try in funcdecls functions
                 f = self.dbops.fdmap[fid]
                 if f is None:
                     # try in unresolved
                     f = self.dbops.umap[fid]
                     logging.info("- [external] {}".format(f["name"]))
-                    continue
-
+                else:
+                    logging.info("- [external] {}".format(fid))
+                continue
             if self.args.func_stats == CutOff.FUNC_STATS_DETAILED:
                 # let's check how many functions would that function pull in
                 query = set()
@@ -335,40 +345,33 @@ class CutOff:
                     # will be added to stats_cache, which means that the number of called functions is 0
                     subtree_count = 0
                 else:
-                    tmp = self.dbops.fnidmap[fid]
-                    if tmp is not None:
-                        # let's see if we can tell whether the function doesn't call
-                        # any others
-                        if "funrefs" not in tmp or len(tmp["funrefs"]) == 0:
-                            self.stats_cache[fid] = set([fid])
+                    # let's see if we can tell whether the function doesn't call
+                    # any others
+                    if "funrefs" not in f or len(f["funrefs"]) == 0:
+                        self.stats_cache[fid] = set([fid])
+                        subtree_count = 0
+                    else:
+                        funcs = set(f["funrefs"])
+                        self.deps._discover_known_functions(funcs)
+                        self.deps._filter_out_known_functions(funcs)
+                        self.deps._filter_out_builtin_functions(funcs)
+                        if len(funcs) == 0:
                             subtree_count = 0
                         else:
-                            funcs = set(tmp["funrefs"])
-                            self.deps._discover_known_functions(funcs)
-                            self.deps._filter_out_known_functions(funcs)
-                            self.deps._filter_out_builtin_functions(funcs)
-                            if len(funcs) == 0:
+                            found = False
+                            for id in funcs:
+                                if id in self.dbops.fnidmap:
+                                    found = True
+                                    # at least one of the called functions is a func
+                                    break
+
+                            if not found:
+                                # all of the called functions are either funcdecls or unresolved
+                                # which will be external anyway
                                 subtree_count = 0
-                            else:
-                                found = False
-                                for id in funcs:
-                                    if id in self.dbops.fnidmap:
-                                        found = True
-                                        # at least one of the called functions is a func
-                                        break
 
-                                if not found:
-                                    # all of the called functions are either funcdecls or unresolved
-                                    # which will be external anyway
-                                    subtree_count = 0
-
-                            if subtree_count == 0:
-                                self.stats_cache[fid] = set([fid])
-                    else:
-                        # for funcdecls we wouldn't know how many
-                        # other functions they call and also we would never
-                        # include them as internal
-                        pass
+                        if subtree_count == 0:
+                            self.stats_cache[fid] = set([fid])
                 if subtree_count == -1:
                     logging.info(
                         "- [external] {} @ {}".format(f["name"], f["location"]))
