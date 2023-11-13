@@ -1534,7 +1534,7 @@ class Init:
                             brk = False
                             if not single_init and self.args.single_init_only:
                                 str_tmp = ""
-                            else:                            
+                            else:
                                 str_tmp, alloc_tmp, brk = self._generate_var_init(name,
                                                                                 _dst_t,
                                                                                 res_var,
@@ -1723,7 +1723,7 @@ class Init:
                 tmp_t = self.dbops.typemap[t_id]
                 if tmp_t:
                     tmp_t = self.dbops._get_typedef_dst(tmp_t)
-                    if tmp_t["class"] != "builtin":
+                    if tmp_t["class"] != "builtin" and tmp_t["class"] != "enum":
                         go_deeper = True
                         break
 
