@@ -82,7 +82,8 @@ class CComparator:
         def nop(self, captures1, captures2):
             return True, ''
         self.special_nodes = {CComparator.COMMENT_QUERY: nop}
-        self.special_nodes |= special_nodes
+        for query, comparator in special_nodes.items():
+            self.special_nodes[query] = comparator
         self.unordered_types = ['declaration', 'function_definition']
 
         self.ignored_nodes1 = []
