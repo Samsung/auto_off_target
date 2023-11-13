@@ -34,11 +34,11 @@ static inline int access_ok(const void* addr, unsigned long size) {
 }
 #endif
 
-void* malloc(size_t size);
+void* malloc(typeof(sizeof(int)) size);
 void free(void* ptr);
 
 #ifdef AOT_MEMDUP_USER
-void *memdup_user(const void * _src, size_t len);
+void *memdup_user(const void * _src, typeof(sizeof(int)) len);
 #endif
 
 #ifdef AOT_COPY_FROM_USER
@@ -114,5 +114,5 @@ char* kstrndup(const char* s, unsigned long max, unsigned flags);
 #endif
 
 #ifdef AOT_STRLCPY
-size_t strlcpy(char *dst, const char *src, size_t siz);
+typeof(sizeof(int)) strlcpy(char *dst, const char *src, typeof(sizeof(int)) siz);
 #endif
