@@ -24,7 +24,9 @@ class TestE2E(unittest.TestCase):
         self.test_data_dir = os.path.join(os.path.dirname(__file__), self.test_data_dir)
         self.ignore_test_data_dirs = ['src']
 
-        self.keep_test_env = 'KEEP_TEST_ENV' in os.environ and os.environ['KEEP_TEST_ENV'] == 'True'
+        self.keep_test_env = False
+        if 'KEEP_TEST_ENV' in os.environ:
+            self.keep_test_env = os.environ['KEEP_TEST_ENV'] == 'True'
 
         test_cases_path = os.path.join(self.test_data_dir, 'test_cases.json')
 
@@ -75,9 +77,13 @@ class TestE2E(unittest.TestCase):
         if 'AOT_TIMEOUT' in os.environ:
             timeout = int(os.environ['AOT_TIMEOUT'])
 
+        check_build = False
+        if 'AOT_TEST_BUILD' in os.environ:
+            check_build = os.environ['AOT_TEST_BUILD'] == 'True'
+
         tester = regression_tester.RegressionTester(self, regression_aot_path, timeout,
                                                     generate_run_scripts=self.keep_test_env,
-                                                    check_build=False)
+                                                    check_build=check_build)
         for i, options in enumerate(self.test_cases):
             execution_dir_name = self.set_up_test_case(i)
             with self.subTest(f'Test {i} at {execution_dir_name}'):

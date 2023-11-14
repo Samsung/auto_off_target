@@ -7,7 +7,7 @@ default).
 ## test_cases.json
 
 `test_cases.json` contains a list of test cases, each one having key-value
-pairs corresponding to options with which AoT is run. (`"config": "cfg.json"
+pairs corresponding to options with which AoT is run. (`"config": "cfg.json"`
 corresponds to running `./aot.py` with `--config cfg.json`, `"init": ""`
 corresponds to `--init`).
 
@@ -19,13 +19,18 @@ for a test project located in `test_data/src/`.
 
 ## Regression tests
 
-Regression tests need a path to the `aot.py` in version of AoT which we want
+Regression tests need a path to `aot.py` in the version of AoT which we want
 to compare the results to. You have to provide it in `AOT_REGRESSION_PATH` env
 variable.
 
-Generated files are compared directly unless they are specified in
-`special_files` map in `RegressionTester` class, which maps the file name to a
-function that returns `True` if files are the same according to some criterion.
+The tests first import the `db.img` database file, then generate an off-target
+using both the current AoT version and the version from `AOT_REGRESSION_PATH`.
+Generated files are then compared to see if anything changed between versions.
+
+File comparison is performed directly using `filecmp` module unless a file is
+specified in `special_files` map in `RegressionTester` class, which maps the
+file name to a function that returns `True` if files are the same according to
+some custom criterion.
 
 ## Test data
 
@@ -57,3 +62,6 @@ AOT_REGRESSION_PATH=<REGRESSION_AOT_ROOT>/src/aot.py pytest -s
 ```
 
 If you would like to keep the test environment data, please set the `KEEP_TEST_ENV=True` env variable.
+
+If you want the tests to check if the off-target build is successful, you can set
+the `AOT_TEST_BUILD=True` env variable.
