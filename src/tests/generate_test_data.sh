@@ -23,20 +23,30 @@ AOT_ARGS="--product test_product
         --import-json db.json 
         --fptr-analysis"
 
-generate_data () {
-    cas parse && cas postprocess && cas cache &&
-    cas lm deps --cached &&
-    PYTHONPATH=$CAS_DIR python3 $AOT_ROOT/tests/extract_ftdb_info.py &&
-    $CAS_DIR/clang-proc/create_json_db -P $CAS_DIR/clang-proc/clang-proc &&
-    PYTHONPATH=$CAS_DIR $AOT_ROOT/aot.py $AOT_ARGS &&
-    rm -Rf off-target
-}
+CAS_OPTIONS='--verbos --debug'
 
-for build in $@ ; do
-    cd $build/etrace_data &&
-    generate_data &&
-    cd - &&
-    mkdir -p test_data/$(basename $build) &&
-    cp -f $build/etrace_data/db.img test_data/$(basename $build) &&
-    cp -f $build/etrace_data/rdm.json test_data/$(basename $build)
-done
+(
+    cd test_data/src/$1/etrace_data ||
+        { echo "No etrace data for $1" ; exit 2; }
+    cas $CAS_OPTIONS parse ||
+        { echo "parse fail" ; exit 2; }
+    cas $CAS_OPTIONS postprocess ||
+        { echo "postprocess fail" ; exit 2; }
+    cas $CAS_OPTIONS cache ||
+        { echo "cache fail" ; exit 2; }
+    cas $CAS_OPTIONS lm deps --cached ||
+        { echo "lm deps fail" ; exit 2; }
+    PYTHONPATH=$CAS_DIR python3 $AOT_ROOT/tests/extract_ftdb_info.py ||
+        { echo "extract_ftdb_info.py fail" ; exit 2; }
+    $CAS_DIR/clang-proc/create_json_db -P $CAS_DIR/clang-proc/clang-proc ||
+        { echo "create_json_db fail" ; exit 2; }
+    PYTHONPATH=$CAS_DIR $AOT_ROOT/aot.py $AOT_ARGS ||
+        { echo "AoT fail" ; exit 2; }
+    rm -Rf off-target
+) || exit 2
+
+mkdir -p test_data/$1
+cp -f test_data/src/$1/etrace_data/db.img test_data/$1 ||
+    { echo "test_data/src/$1/etrace_data/db.img not found" ; exit 2; }
+cp -f test_data/src/$1/etrace_data/rdm.json test_data/$1 ||
+    { echo "test_data/src/$1/etrace_data/rdm.json not found" ; exit 2; }
