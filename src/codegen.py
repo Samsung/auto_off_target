@@ -1203,7 +1203,7 @@ class CodeGen:
 
     # @belongs: codegen
     def _load_snippet(self, name):
-        snippet_path = f"{os.path.abspath(os.path.dirname(sys.argv[0]))}/resources/{name}.snippet"
+        snippet_path = f"{os.path.abspath(os.path.dirname(__file__))}/resources/{name}.snippet"
 
         if not os.path.isfile(snippet_path):
             logging.error(f"Snippet {snippet_path} not found!")
