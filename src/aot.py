@@ -1334,7 +1334,7 @@ def prepare_parser(*db_frontends):
                              'from off-target code generation')
     parser.add_argument('--lib-funcs-file', default=None,
                         help='experimental')
-    parser.add_argument('--libc-includes', default=False,
+    parser.add_argument('--libc-includes', action='store_true',
                         help='Include libc headers in the generated files')
     parser.add_argument('--include-std-headers', nargs="+", default="",
                         help='a list of standard headers to include, e.g., stdbool.h')
