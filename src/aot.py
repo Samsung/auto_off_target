@@ -746,7 +746,7 @@ class Engine:
                 g = self.dbops.globalsidmap[g_id]
                 if self.dump_global_hashes:
                     gmodule = ''
-                    if len(g["mids"]) == 0:
+                    if g["mids"] is None or len(g["mids"]) == 0:
                         logging.warning("Global '{0}' belongs to the unknown module (.mids is empty)".format(g["name"]))
                     else:
                         if len(g["mids"]) > 1:
