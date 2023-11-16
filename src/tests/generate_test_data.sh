@@ -38,7 +38,7 @@ CAS_OPTIONS='--verbos --debug'
         { echo "lm deps fail" ; exit 2; }
     PYTHONPATH=$CAS_DIR python3 $AOT_ROOT/tests/extract_ftdb_info.py ||
         { echo "extract_ftdb_info.py fail" ; exit 2; }
-    $CAS_DIR/clang-proc/create_json_db -P $CAS_DIR/clang-proc/clang-proc ||
+    $CAS_DIR/clang-proc/create_json_db --macro-expansion -P $CAS_DIR/clang-proc/clang-proc ||
         { echo "create_json_db fail" ; exit 2; }
     PYTHONPATH=$CAS_DIR $AOT_ROOT/aot.py $AOT_ARGS ||
         { echo "AoT fail" ; exit 2; }
