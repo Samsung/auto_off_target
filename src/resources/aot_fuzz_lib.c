@@ -28,6 +28,50 @@ unsigned int aot_file_present;          // true if the user provided an input fi
 FILE* aot_dfsan_logf;
 #endif 
 
+
+
+
+int read_fuzzing_data_direct(unsigned char* fuzzbuff, int len) {
+    aot_file_present = 1;
+    aot_fuzz_buffer = malloc(len);
+    aot_fuzz_buffer_ptr = aot_fuzz_buffer;
+    memcpy(aot_fuzz_buffer, fuzzbuff, len);
+    aot_fuzz_buffer_capacity = len;
+    return 0;
+}
+
+
+
+int read_fuzzing_data_file(int argc, char* argv[]) {
+    if (argc<2) {
+        return 0;
+    }
+
+    aot_file_present = 1;
+    FILE* f = fopen(argv[1], "rb");
+    if(f == NULL) {
+        printf("Fopen failed to open file %s (%d:%s)\n", argv[1], errno, strerror(errno));
+        exit(1);
+    }
+
+    // get the file size
+    fseek(f, 0L, SEEK_END);
+    unsigned long filesize = ftell(f);
+    fseek(f, 0L, SEEK_SET);
+    //printf("file size is %ld\\n", filesize);
+
+    aot_fuzz_buffer = malloc(filesize);
+    aot_fuzz_buffer_ptr = aot_fuzz_buffer;
+    fread(aot_fuzz_buffer, sizeof(unsigned char), filesize, f);
+    fclose(f);
+
+    aot_fuzz_buffer_capacity = filesize;
+
+    return 0;
+}
+
+
+
 int init_fuzzing(int argc, char* argv[]) {
     #ifdef DFSAN
     char dir[512] = { 0 };
@@ -83,28 +127,10 @@ int init_fuzzing(int argc, char* argv[]) {
                     exit(1);
             }
     }
-    aot_file_present = 1;
-    FILE* f = fopen(argv[1], "rb");
-    if(f == NULL) {
-        printf("Fopen failed to open file %s (%d:%s)\n", argv[1], errno, strerror(errno));
-        exit(1);
-    }
-
-    // get the file size
-    fseek(f, 0L, SEEK_END);
-    unsigned long filesize = ftell(f);
-    fseek(f, 0L, SEEK_SET);
-    //printf("file size is %ld\\n", filesize);
-
-    aot_fuzz_buffer = malloc(filesize);
-    aot_fuzz_buffer_ptr = aot_fuzz_buffer;
-    fread(aot_fuzz_buffer, sizeof(unsigned char), filesize, f);
-    fclose(f);
-
-    aot_fuzz_buffer_capacity = filesize;
-
-    return 0;
 }
+
+
+
 
 // a default implementation of fuzz_that_data
 int fuzz_that_data_default(void* ptr, void* src, unsigned long size) {

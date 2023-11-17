@@ -20,6 +20,8 @@ extern unsigned char* aot_fuzz_buffer_ptr;     // stores where we currently are 
 extern unsigned long aot_fuzz_buffer_capacity; // stores the number of bytes read from the fuzzer
 
 int init_fuzzing(int argc, char* argv[]);
+int read_fuzzing_data_direct(unsigned char* fuzzbuff, int len);
+int read_fuzzing_data_file(int argc, char* argv[]);
 int fuzz_that_data(void* ptr, void* src, unsigned long size, const char* name);
 
 // getting fuzzer data to initialize a bitfield
