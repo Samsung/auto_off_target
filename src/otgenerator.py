@@ -118,7 +118,7 @@ class OTGenerator:
         if self.args.init:
             str += "\n"
             str += "\t#ifdef __AFL_HAVE_MANUAL_CONTROL\n"
-            str += "\t#__AFL_FUZZ_INIT()\n"
+            str += "\t__AFL_FUZZ_INIT()\n"
             str += "\t#endif\n"
             str += "\n"
             for id in self.fid_to_filename:
@@ -151,12 +151,12 @@ class OTGenerator:
         if self.args.init:
             str += "\tinit_fuzzing(AOT_argc, AOT_argv);\n"
             str += "\t#ifdef __AFL_HAVE_MANUAL_CONTROL\n"
-            str += "\t#unsigned char *fuzzbuff = __AFL_FUZZ_TESTCASE_BUF;\n"
+            str += "\tunsigned char *fuzzbuff = __AFL_FUZZ_TESTCASE_BUF;\n"
             str += "\twhile (__AFL_LOOP(10000)) {\n"
             str += "\tint len = __AFL_FUZZ_TESTCASE_LEN;\n"
-            str += "\tread_fuzzing_data_direct(fuzzbuff, len)\n"
+            str += "\tread_fuzzing_data_direct(fuzzbuff, len);\n"
             str += "\t#else\n"
-            str += "\tread_fuzzing_data_file(AOT_argc, AOT_argv)\n"
+            str += "\tread_fuzzing_data_file(AOT_argc, AOT_argv);\n"
             str += "\t#endif\n"
             str += "\tchar* tmpname = 0;\n"
 
