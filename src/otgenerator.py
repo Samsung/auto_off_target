@@ -104,6 +104,7 @@ class OTGenerator:
 
         if self.args.afl != 'none':
             str += "\n#include <stdio.h>"
+            str += "\n#include <unistd.h>"
 
         if self.args.verify_struct_layout:
             str += "\n\n" + self.codegen._load_snippet("verify_layout_decl")
