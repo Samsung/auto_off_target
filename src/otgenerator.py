@@ -822,7 +822,7 @@ class OTGenerator:
             failed_count += failed
 
         globals_defs = "\n\n// Global vars definitions\n\n"
-
+        globs_with_typedef = []
         # globals forward
         str_header += "\n/* Forward decls of global vars */\n"
         for g_id in global_fwd_str:
@@ -837,6 +837,7 @@ class OTGenerator:
                     skip = True
                     if g_id in global_defs_str:  # that's true only if global is defined in this file
                         globals_defs += f"{global_defs_str[g_id]}\n"
+                        globs_with_typedef.append(g_id)
                         del global_defs_str[g_id]
 
                 if skip:
@@ -896,6 +897,12 @@ class OTGenerator:
                 globals_defs += f"{global_defs_str[g_id]}\n"
                 self.global_trigger_name_list.add("%s" % (g["hash"].replace(
                     "/", "__").replace(".", "____").replace("-", "___")))
+
+            for g_id in globs_with_typedef:
+                g = self.dbops.globalsidmap[g_id]
+                self.global_trigger_name_list.add("%s" % (g["hash"].replace(
+                    "/", "__").replace(".", "____").replace("-", "___")))
+
 
             str += globals_defs
 
