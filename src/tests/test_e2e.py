@@ -12,6 +12,15 @@ import uuid
 from tests import regression_tester
 
 
+class E2ETestCase:
+
+    def __init__(self, d):
+        self.options = d['options']
+        self.build_offtarget = True
+        if 'build_offtarget' in d:
+            self.build_offtarget = d['build_offtarget']
+
+
 class TestE2E(unittest.TestCase):
 
     @classmethod
@@ -34,10 +43,7 @@ class TestE2E(unittest.TestCase):
         with open(test_cases_path) as test_cases_file:
             data = json.load(test_cases_file)
             for case in data:
-                options = {}
-                for k, v in case.items():
-                    options[k] = v
-                self.test_cases.append(options)
+                self.test_cases.append(E2ETestCase(case))
 
     @classmethod
     def tearDownClass(self):
@@ -77,15 +83,10 @@ class TestE2E(unittest.TestCase):
         if 'AOT_TIMEOUT' in os.environ:
             timeout = int(os.environ['AOT_TIMEOUT'])
 
-        check_build = False
-        if 'AOT_TEST_BUILD' in os.environ:
-            check_build = os.environ['AOT_TEST_BUILD'] == 'True'
-
         tester = regression_tester.RegressionTester(self, regression_aot_path, timeout,
-                                                    generate_run_scripts=self.keep_test_env,
-                                                    check_build=check_build)
-        for i, options in enumerate(self.test_cases):
+                                                    generate_run_scripts=self.keep_test_env)
+        for i, test_case in enumerate(self.test_cases):
             execution_dir_name = self.set_up_test_case(i)
             with self.subTest(f'Test {i} at {execution_dir_name}'):
-                tester.run_regression(options.copy())
+                tester.run_regression(test_case)
             self.clean_up_test_case()

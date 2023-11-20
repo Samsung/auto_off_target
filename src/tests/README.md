@@ -6,10 +6,18 @@ default).
 
 ## test_cases.json
 
-`test_cases.json` contains a list of test cases, each one having key-value
-pairs corresponding to options with which AoT is run. (`"config": "cfg.json"`
-corresponds to running `./aot.py` with `--config cfg.json`, `"init": ""`
-corresponds to `--init`).
+`test_cases.json` contains a list of test cases. `"options"` field contains
+key-value pairs corresponding to options with which AoT is run. Test case
+```json
+{
+    "config": "cfg.json",
+    "init": ""
+}
+```
+corresponds to running `./aot.py --config cfg.json --init`.
+
+`"build_offtarget"` field decides if we want to check if the generated off-target
+build is successful. The default value is `true`.
 
 For each test case all files in the folder are copied to a temporary directory
 and AoT tests are run.
@@ -62,6 +70,3 @@ AOT_REGRESSION_PATH=<REGRESSION_AOT_ROOT>/src/aot.py pytest -s
 ```
 
 If you would like to keep the test environment data, please set the `KEEP_TEST_ENV=True` env variable.
-
-If you want the tests to check if the off-target build is successful, you can set
-the `AOT_TEST_BUILD=True` env variable.

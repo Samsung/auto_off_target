@@ -11,13 +11,12 @@ import os
 
 class RegressionTester:
 
-    def __init__(self, test_case, regression_aot_path, timeout,
-                 generate_run_scripts=False, check_build=True):
-        self.test_case = test_case
+    def __init__(self, test, regression_aot_path, timeout,
+                 generate_run_scripts=False):
+        self.test = test
         self.regression_aot_path = regression_aot_path
         self.timeout = timeout
         self.generate_run_scripts = generate_run_scripts
-        self.check_build = check_build
 
     def _generate_run_script(filename, command):
         with open(filename, 'w+') as f:
@@ -36,7 +35,9 @@ class RegressionTester:
         RegressionTester._generate_run_script('run_regression.sh',
                                               f'{self.regression_aot_path} {args}')
 
-    def run_regression(self, options):
+    def run_regression(self, test_case):
+        options = test_case.options.copy()
+
         if self.generate_run_scripts:
             self.generate_scripts(options)
 
@@ -46,19 +47,19 @@ class RegressionTester:
         options['output-dir'] = 'regression_test_output_dir'
         regression_aot_status = aot_execution.run_shell_aot(self.regression_aot_path, options, timeout=self.timeout)
 
-        self.test_case.assertEqual(regression_aot_status, 0, "Unexpected regression AoT failure")
-        self.test_case.assertEqual(aot_status, 0, "Unexpected AoT failure")
+        self.test.assertEqual(regression_aot_status, 0, "Unexpected regression AoT failure")
+        self.test.assertEqual(aot_status, 0, "Unexpected AoT failure")
 
         ot_comparator = offtarget_comparison.OfftargetComparator()
         diffs = ot_comparator.compare_offtarget('test_output_dir', 'regression_test_output_dir')
         if len(diffs) != 0:
-            self.test_case.fail('\n'.join(diffs))
+            self.test.fail('\n'.join(diffs))
 
-        if not self.check_build:
+        if not test_case.build_offtarget:
             return
 
         os.chdir('test_output_dir')
         print('Running make')
         status = subprocess.run(['make'])
 
-        self.test_case.assertEqual(status.returncode, 0, 'Off-target build failed')
+        self.test.assertEqual(status.returncode, 0, 'Off-target build failed')
