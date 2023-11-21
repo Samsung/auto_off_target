@@ -1231,6 +1231,31 @@ class CodeGen:
                 (fptr_stub_def, function["id"]))
         return fptr_stub_def
 
+    # -------------------------------------------------------------------------
+    # For a given function ID generates symbol name as it would appear in kallsyms or
+    # kernel stack trace
+    # For example for function 'myfun' in module 'mymodule' we should get:
+    # '"myfun [mymodule]"'
+    # and for the same function in vmlinux:
+    # '"myfun"' 
+    # @belongs: codegen
+    def _get_function_kernel_name(self, function_name, function_id):
+        to_module_name = lambda name: os.path.basename(name).replace('.ko', '')
+
+        function = self.dbops.fnidmap[function_id]
+        if function is None:
+            # it's stub or external function - return only its name
+            return function_name
+        
+        symbol_name = function['name']
+        if function['mids'] is None:
+            return symbol_name
+        
+        modules = list(filter(lambda x: to_module_name(self.dbops.modidmap[x]) != 'vmlinux', function['mids']))
+        if len(modules) == 1:
+            symbol_name += f' [{to_module_name(self.dbops.modidmap[modules[0]])}]'
+        return symbol_name
+
    # -------------------------------------------------------------------------
 
     # comment out inline assembly code and keep stats

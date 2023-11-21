@@ -45,7 +45,7 @@ void* fptrstub_search(const char* symbol) {
 
 	for(unsigned long long i = 0; i < array_size; i++)
 		if(!strcmp(symbol, fptrstub_pair_array[i].symbol))
-			return &fptrstub_pair_array[i];
+			return fptrstub_pair_array[i].address;
 	
 	return (void*) 0;
 }
