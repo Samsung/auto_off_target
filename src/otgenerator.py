@@ -119,7 +119,7 @@ class OTGenerator:
 
         if self.args.init:
             str += "\n"
-            str += "\t#ifdef __AFL_HAVE_MANUAL_CONTROL\n"
+            str += "\t#if defined AFL_PERSISTENT && defined __AFL_HAVE_MANUAL_CONTROL\n"
             str += "\t__AFL_FUZZ_INIT()\n"
             str += "\t#endif\n"
             str += "\n"
@@ -152,7 +152,7 @@ class OTGenerator:
 
         if self.args.init:
             str += "\tinit_fuzzing(AOT_argc, AOT_argv);\n"
-            str += "\t#ifdef __AFL_HAVE_MANUAL_CONTROL\n"
+            str += "\t#if defined AFL_PERSISTENT && defined __AFL_HAVE_MANUAL_CONTROL\n"
             str += "\tunsigned char *fuzzbuff = __AFL_FUZZ_TESTCASE_BUF;\n"
             str += "\twhile (__AFL_LOOP(10000)) {\n"
             str += "\tint len = __AFL_FUZZ_TESTCASE_LEN;\n"
@@ -328,7 +328,7 @@ class OTGenerator:
             str += "\taot_kflat_fini();\n\n"
 
         str += "\taot_GC();\n"
-        str += "\t#ifdef __AFL_HAVE_MANUAL_CONTROL\n"
+        str += "\t#if defined AFL_PERSISTENT && defined __AFL_HAVE_MANUAL_CONTROL\n"
         str += "\t}\n"
         str += "\t#endif\n"
         str += "    return 0;\n"

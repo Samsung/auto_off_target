@@ -139,6 +139,18 @@ afl: COMP+=-DAFL -w
 afl: $(obj) $(lib)
 	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
+.PHONY: afl-persistent
+afl: export AFL_USE_ASAN=1
+#afl: export AFL_HARDEN=1
+ifeq ($(shell which afl-clang-lto),)
+afl: COMP=afl-clang-fast
+else
+afl: COMP=afl-clang-lto
+endif
+afl: COMP+=-DAFL -w -DAFL_PERSISTENT
+afl: $(obj) $(lib)
+	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
 # KLEE
 .PHONY: klee
 klee: CFLAGS+=-emit-llvm -DKLEE -MD -w
