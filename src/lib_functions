@@ -22,3 +22,6 @@ kstrdup
 kstrndup
 memdup_user
 strlcpy
+vmalloc
+vzalloc
+vfree

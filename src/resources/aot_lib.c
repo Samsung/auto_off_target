@@ -257,3 +257,24 @@ strlcpy(char *dst, const char *src, size_t siz)
 }
 
 #endif
+
+#ifdef AOT_VMALLOC
+void* vmalloc(unsigned long size) {
+    return malloc(size);
+}
+#endif
+
+#ifdef AOT_VZALLOC
+void* vzalloc(unsigned long size) {
+    void* mem = malloc(size);
+    if(mem)
+        memset(mem, 0, size);
+    return mem;
+}
+#endif
+
+#ifdef AOT_VFREE
+void vfree(void* mem) {
+    free(mem);
+}
+#endif

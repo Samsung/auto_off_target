@@ -116,3 +116,15 @@ char* kstrndup(const char* s, unsigned long max, unsigned flags);
 #ifdef AOT_STRLCPY
 typeof(sizeof(int)) strlcpy(char *dst, const char *src, typeof(sizeof(int)) siz);
 #endif
+
+#ifdef AOT_VMALLOC
+void* vmalloc(unsigned long size);
+#endif
+
+#ifdef AOT_VZALLOC
+void* vzalloc(unsigned long size);
+#endif
+
+#ifdef AOT_VFREE
+void vfree(void* mem);
+#endif
