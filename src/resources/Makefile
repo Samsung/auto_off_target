@@ -140,15 +140,15 @@ afl: $(obj) $(lib)
 	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 .PHONY: afl-persistent
-afl: export AFL_USE_ASAN=1
+afl-persistent: export AFL_USE_ASAN=1
 #afl: export AFL_HARDEN=1
 ifeq ($(shell which afl-clang-lto),)
-afl: COMP=afl-clang-fast
+afl-persistent: COMP=afl-clang-fast
 else
-afl: COMP=afl-clang-lto
+afl-persistent: COMP=afl-clang-lto
 endif
-afl: COMP+=-DAFL -w -DAFL_PERSISTENT
-afl: $(obj) $(lib)
+afl-persistent: COMP+=-DAFL -w -DAFL_PERSISTENT
+afl-persistent: $(obj) $(lib)
 	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # KLEE
