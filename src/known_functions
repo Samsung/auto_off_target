@@ -4,7 +4,6 @@ sem_open
 _exit
 _Exit
 _flushlbf
-_tolower
 _toupper
 __fbufsize
 __flbf
@@ -124,7 +123,6 @@ backtrace_symbols
 backtrace_symbols_fd
 basename
 basename
-bcmp
 bcopy
 bind
 bindtextdomain

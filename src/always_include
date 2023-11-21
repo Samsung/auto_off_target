@@ -20,3 +20,5 @@ simple_strtol
 simple_strtoull
 strscpy
 __write_once_size
+_tolower
+bcmp
