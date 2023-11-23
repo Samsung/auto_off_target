@@ -1,0 +1,58 @@
+{
+    "source": {
+        "db_type": "ftdb",
+        "db": "db.img",
+        "config": "cfg.json",
+        "functions": "main@tcc.c tccgen_compile@tccgen.c decl"
+    },
+    "data_dir": "tinycc",
+    "cases": [
+        {
+            "options": {
+                "init": "",
+                "dynamic-init": "",
+                "include-std-headers": "<stdint.h> <stdio.h>",
+                "func-stats": "basic",
+                "external-inclusion-margin": "1",
+                "cut-off": "functions",
+                "co-funcs": "tcc_run",
+                "fptr-analysis": "",
+                "ignore-recursion-errors": "",
+                "unroll-macro-defs": "",
+                "verify-struct-layout": "",
+                "dump-smart-init": ""
+            },
+            "build_offtarget": false
+        },
+        {
+            "options": {
+                "func-stats": "basic",
+                "external-inclusion-margin": "5",
+                "cut-off": "none",
+                "fptr-analysis": "",
+                "used-types-only": "",
+                "dbjson2": ""
+            },
+            "build_offtarget": false
+        },
+        {
+            "options": {
+                "func-stats": "basic",
+                "external-inclusion-margin": "5",
+                "cut-off": "dirs",
+                "co-dirs": "lib",
+                "use-real-filenames": ""
+            }
+        },
+        {
+            "options": {
+                "init": "",
+                "func-stats": "basic",
+                "cut-off": "none",
+                "unroll-macro-defs": "",
+                "dump-smart-init": ""
+            },
+            "build_offtarget": false
+        }
+    ]
+}

@@ -8,7 +8,7 @@
 *.o
 venv
 etrace_data
-src/tests/test_data/csmith_test
-src/tests/test_data/tinycc
+src/tests/test_data/csmith_test/db.img
+src/tests/test_data/tinycc/db.img
 src/tests/test_data/src/csmith_test/test_program
 test_env

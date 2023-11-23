@@ -1,0 +1,41 @@
+{
+    "source": {
+        "db_type": "ftdb",
+        "db": "db.img",
+        "config": "cfg.json",
+        "functions": "test"
+    },
+    "data_dir": "csmith_test",
+    "cases": [
+        {
+            "options": {
+                "init": "",
+                "dynamic-init": "",
+                "libc-includes": "",
+                "func-stats": "detailed",
+                "cut-off": "none",
+                "fptr-analysis": "",
+                "unroll-macro-defs": "",
+                "use-real-filenames": "",
+                "verify-struct-layout": "",
+                "dump-global-hashes": "",
+                "dump-smart-init": "",
+                "dump-ids": ""
+            }
+        },
+        {
+            "options": {
+                "init": "",
+                "func-stats": "detailed",
+                "cut-off": "files",
+                "co-files": "tccgen.c"
+            }
+        },
+        {
+            "options": {
+                "func-stats": "basic",
+                "cut-off": "none"
+            }
+        }
+    ]
+}

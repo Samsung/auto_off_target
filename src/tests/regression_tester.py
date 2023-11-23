@@ -11,9 +11,8 @@ import os
 
 class RegressionTester:
 
-    def __init__(self, test, regression_aot_path, timeout,
+    def __init__(self, regression_aot_path, timeout,
                  generate_run_scripts=False):
-        self.test = test
         self.regression_aot_path = regression_aot_path
         self.timeout = timeout
         self.generate_run_scripts = generate_run_scripts
@@ -35,9 +34,7 @@ class RegressionTester:
         RegressionTester._generate_run_script('run_regression.sh',
                                               f'{self.regression_aot_path} {args}')
 
-    def run_regression(self, test_case):
-        options = test_case.options.copy()
-
+    def run_regression(self, test, options, build_offtarget):
         if self.generate_run_scripts:
             self.generate_scripts(options)
 
@@ -47,19 +44,23 @@ class RegressionTester:
         options['output-dir'] = 'regression_test_output_dir'
         regression_aot_status = aot_execution.run_shell_aot(self.regression_aot_path, options, timeout=self.timeout)
 
-        self.test.assertEqual(regression_aot_status, 0, "Unexpected regression AoT failure")
-        self.test.assertEqual(aot_status, 0, "Unexpected AoT failure")
+        test.assertEqual(regression_aot_status, 0, "Unexpected regression AoT failure")
+        test.assertEqual(aot_status, 0, "Unexpected AoT failure")
 
         ot_comparator = offtarget_comparison.OfftargetComparator()
         diffs = ot_comparator.compare_offtarget('test_output_dir', 'regression_test_output_dir')
         if len(diffs) != 0:
-            self.test.fail('\n'.join(diffs))
+            test.fail('\n'.join(diffs))
 
-        if not test_case.build_offtarget:
+        build_all = False
+        if 'TEST_BUILD_ALL' in os.environ:
+            build_all = os.environ['TEST_BUILD_ALL'].lower() == 'true'
+
+        if not build_offtarget and not build_all:
             return
 
         os.chdir('test_output_dir')
         print('Running make')
         status = subprocess.run(['make'])
 
-        self.test.assertEqual(status.returncode, 0, 'Off-target build failed')
+        test.assertEqual(status.returncode, 0, 'Off-target build failed')

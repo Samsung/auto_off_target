@@ -48,5 +48,3 @@ CAS_OPTIONS='--verbos --debug'
 mkdir -p test_data/$1
 cp -f test_data/src/$1/etrace_data/db.img test_data/$1 ||
     { echo "test_data/src/$1/etrace_data/db.img not found" ; exit 2; }
-cp -f test_data/src/$1/etrace_data/rdm.json test_data/$1 ||
-    { echo "test_data/src/$1/etrace_data/rdm.json not found" ; exit 2; }
