@@ -42,18 +42,23 @@ class RegressionTester:
         if self.generate_run_scripts:
             self.generate_scripts(options)
 
-        options['output-dir'] = 'test_output_dir'
-        aot_status = aot_execution.run_aot(options, timeout=self.timeout)
+        log = ''
 
         options['output-dir'] = 'regression_test_output_dir'
-        regression_aot_status = aot_execution.run_shell_aot(self.regression_aot_path, options, timeout=self.timeout)
-
-        if regression_aot_status != 0:
+        status, run_log = aot_execution.run_shell_aot(self.regression_aot_path, options,
+                                                      timeout=self.timeout, capture_output=True)
+        if status != 0:
+            log += run_log + '\n'
             success = False
             msg += 'Unexpected regression AoT failure\n'
-        if aot_status != 0:
+
+        options['output-dir'] = 'test_output_dir'
+        status, run_log = aot_execution.run_aot(options, timeout=self.timeout, capture_output=True)
+        if status != 0:
+            log += run_log + '\n'
             success = False
             msg += 'Unexpected AoT failure\n'
+            return success, msg, log
 
         ot_comparator = offtarget_comparison.OfftargetComparator()
         diffs = ot_comparator.compare_offtarget('test_output_dir', 'regression_test_output_dir')
@@ -65,14 +70,16 @@ class RegressionTester:
         if 'TEST_BUILD_ALL' in os.environ:
             build_all = os.environ['TEST_BUILD_ALL'].lower() == 'true'
 
-        if aot_status != 0 or (not build_offtarget and not build_all):
-            return success, msg
+        if not build_offtarget and not build_all:
+            return success, msg, log
 
         os.chdir('test_output_dir')
-        print('Running make')
-        status = subprocess.run(['make'])
+        status = subprocess.run(['make'], capture_output=True)
 
         if status.returncode != 0:
             success = False
+            log += 'Running make\n'
+            log += status.stdout.decode()
+            log += status.stderr.decode()
             msg += 'Off-target build failed\n'
-        return success, msg
+        return success, msg, log

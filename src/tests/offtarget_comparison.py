@@ -66,6 +66,13 @@ class OfftargetComparator:
         return True
 
     def compare_offtarget(self, dir1, dir2):
+        if not os.path.exists(dir1):
+            self.differences.append(f'{dir1} does not exist\n')
+        if not os.path.exists(dir2):
+            self.differences.append(f'{dir2} does not exist\n')
+        if self.differences:
+            return self.differences
+
         comparison = filecmp.dircmp(dir1, dir2, ignore=self.exclude_from_diff)
         self._assert_differences(comparison, dir1, dir2)
         return self.differences

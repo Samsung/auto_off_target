@@ -97,7 +97,6 @@ class TestE2E(unittest.TestCase):
 
         original_cwd = os.getcwd()
         os.chdir(execution_dir_name)
-        print(f'Working in directory: {execution_dir_name}')
 
         data_dir = os.path.join(os.path.dirname(__file__), 'test_data', test_config.data_dir)
         shutil.copytree(data_dir, execution_dir_name, dirs_exist_ok=True)
@@ -106,31 +105,40 @@ class TestE2E(unittest.TestCase):
         tester = RegressionTester(regression_aot_path, timeout,
                                     generate_run_scripts=keep_test_env)
         options = TestE2E._prepare_options(test_config, function, case)
-        success, msg = tester.run_regression(options, case.build_offtarget)
+        success, msg, log = tester.run_regression(options, case.build_offtarget)
 
         # cleanup test env
         os.chdir(original_cwd)
         if not keep_test_env:
             temp_dir.cleanup()
         
-        return success, msg, execution_dir_name
+        return success, msg, log, execution_dir_name
 
     def test_regression(self):
-        test_cases = []
+        test_args = []
         for test_config in self.test_configs:
             for function in test_config.source.functions:
                 for i, case in enumerate(test_config.cases):
-                    test_cases.append((test_config, function, i, case, self.keep_test_env,
+                    test_args.append((test_config, function, i, case, self.keep_test_env,
                                        self.regression_aot_path, self.timeout))
         
         process_pool = multiprocessing.pool.Pool()
-        results = process_pool.starmap(TestE2E._run_test_case, test_cases)
+
+        results = []
+        for test_case in test_args:
+            results.append(process_pool.apply_async(TestE2E._run_test_case, test_case))
+
         process_pool.close()
 
-        for test_case, result in zip(test_cases, results):
+        for test_case, result in zip(test_args, results):
             test_config, function, i, case, _, _, _ = test_case
-            success, msg, exec_dir = result
+            success, msg, log, exec_dir = result.get()
             exec_dir_postfix =  f' at {exec_dir}' if self.keep_test_env else ''
-            with self.subTest(f'Test {test_config.name} ({function}) [{i}]{exec_dir_postfix}'):
+            test_title = f'Test {test_config.name} ({function}) [{i}]{exec_dir_postfix}'
+            with self.subTest(test_title):
                 if not success:
+                    print(f'\n\033[31m=== {test_title} failed ===\033[0m\n\n'
+                          f'{log}\n\n'
+                          'Messages:\n'
+                          f'{msg}', end='')
                     self.fail(msg)

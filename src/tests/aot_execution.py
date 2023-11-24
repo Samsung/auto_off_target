@@ -11,6 +11,7 @@ import tempfile
 import os
 import shutil
 import func_timeout
+import io
 
 
 class ExecutionContext:
@@ -44,15 +45,34 @@ def prepare_args(options):
     return args
 
 
-def run_shell_aot(aot_path, options, timeout=None, show_output=True):
+class ExecutionStatus:
+
+    def __init__(self, code, log):
+        self.code = code
+        self.log = log
+
+
+def run_shell_aot(aot_path, options, timeout=None, capture_output=False):
     command = [aot_path] + prepare_args(options)
     joined_command = ' '.join(command)
-    print(f'Running shell AoT with {joined_command}')
-    status = subprocess.run(command, capture_output=not show_output, timeout=timeout)
-    return status.returncode
+
+    log = ''
+    if capture_output:
+        log += f'Running shell AoT with {joined_command}\n'
+    else:
+        print(f'Running shell AoT with {joined_command}')
+
+    status = subprocess.run(command, capture_output=capture_output, timeout=timeout)
+
+    if capture_output:
+        log += status.stdout.decode()
+        log += status.stderr.decode()
+
+    return status.returncode, log
 
 
-TIMEOUT_EXIT_CODE = 123
+TIMEOUT_EXIT_CODE = 100
+EXCEPTION_EXIT_CODE = 101
 
 
 def _run_with_timeout(timeout, func):
@@ -61,6 +81,8 @@ def _run_with_timeout(timeout, func):
             aot.main()
         except SystemExit as e:
             return e.code
+        except Exception as _:
+            return EXCEPTION_EXIT_CODE
     try:
         return func_timeout.func_timeout(timeout, wrapper)
     except func_timeout.FunctionTimedOut:
@@ -68,13 +90,18 @@ def _run_with_timeout(timeout, func):
 
 
 # TODO: in the future we should probably return some more execution information
-def run_aot(options, timeout=None, show_output=True):
+def run_aot(options, timeout=None, capture_output=True):
     sys.argv = ['./aot.py'] + prepare_args(options)
     joined_argv = ' '.join(sys.argv)
 
-    if show_output:
+    log = ''
+    if not capture_output:
         print(f'Running AoT with {joined_argv}')
-        return _run_with_timeout(timeout, aot.main)
+        return _run_with_timeout(timeout, aot.main), log
     else:
-        with contextlib.redirect_stdout(None), contextlib.redirect_stderr(None):
-            return _run_with_timeout(timeout, aot.main)
+        log += f'Running AoT with {joined_argv}\n'
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+            exit_code = _run_with_timeout(timeout, aot.main)
+            log += out.getvalue()
+            return exit_code, log
