@@ -9,6 +9,7 @@ import os
 import json
 import shutil
 import uuid
+import multiprocessing.pool
 from tests.regression_tester import RegressionTester
 
 
@@ -64,7 +65,7 @@ class TestE2E(unittest.TestCase):
             with open(test_config) as f:
                 data = json.load(f)
                 config = TestE2E.Config(**data)
-                config.name = test_config
+                config.name = os.path.basename(test_config)
                 self.test_configs.append(config)
 
     def _prepare_options(test_config, function, case):
@@ -81,10 +82,11 @@ class TestE2E(unittest.TestCase):
             options[k] = v
         return options
 
-    def _run_test_case(self, test_config, function, i, case):
+    def _run_test_case(test_config, function, i, case,
+                       keep_test_env, regression_aot_path, timeout):
         # setup test env
         temp_dir = None
-        if self.keep_test_env:
+        if keep_test_env:
             execution_dir_name = os.path.join(os.path.dirname(__file__),
                                               'test_env',
                                               f'test{i}_{uuid.uuid4()}')
@@ -101,19 +103,34 @@ class TestE2E(unittest.TestCase):
         shutil.copytree(data_dir, execution_dir_name, dirs_exist_ok=True)
 
         # test
-        with self.subTest(f'Test {test_config.name} ({function}) [{i}] at {execution_dir_name}'):
-            tester = RegressionTester(self.regression_aot_path, self.timeout,
-                                      generate_run_scripts=self.keep_test_env)
-            options = TestE2E._prepare_options(test_config, function, case)
-            tester.run_regression(self, options, case.build_offtarget)
+        tester = RegressionTester(regression_aot_path, timeout,
+                                    generate_run_scripts=keep_test_env)
+        options = TestE2E._prepare_options(test_config, function, case)
+        success, msg = tester.run_regression(options, case.build_offtarget)
 
         # cleanup test env
         os.chdir(original_cwd)
-        if not self.keep_test_env:
+        if not keep_test_env:
             temp_dir.cleanup()
+        
+        return success, msg, execution_dir_name
 
     def test_regression(self):
+        test_cases = []
         for test_config in self.test_configs:
             for function in test_config.source.functions:
                 for i, case in enumerate(test_config.cases):
-                    self._run_test_case(test_config, function, i, case)
+                    test_cases.append((test_config, function, i, case, self.keep_test_env,
+                                       self.regression_aot_path, self.timeout))
+        
+        process_pool = multiprocessing.pool.Pool()
+        results = process_pool.starmap(TestE2E._run_test_case, test_cases)
+        process_pool.close()
+
+        for test_case, result in zip(test_cases, results):
+            test_config, function, i, case, _, _, _ = test_case
+            success, msg, exec_dir = result
+            exec_dir_postfix =  f' at {exec_dir}' if self.keep_test_env else ''
+            with self.subTest(f'Test {test_config.name} ({function}) [{i}]{exec_dir_postfix}'):
+                if not success:
+                    self.fail(msg)

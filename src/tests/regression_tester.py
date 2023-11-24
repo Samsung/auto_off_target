@@ -26,7 +26,9 @@ class RegressionTester:
 
     def generate_scripts(self, options):
         aot_path = os.path.join(os.path.dirname(__file__), '..', 'aot.py')
-        args = ' '.join(aot_execution.prepare_args(options))
+        args = ''
+        for part in aot_execution.prepare_args(options):
+            args += f' "{part}"'
         RegressionTester._generate_run_script('run.sh',
                                               f'{aot_path} {args}')
         RegressionTester._generate_run_script('run_debug.sh',
@@ -34,7 +36,9 @@ class RegressionTester:
         RegressionTester._generate_run_script('run_regression.sh',
                                               f'{self.regression_aot_path} {args}')
 
-    def run_regression(self, test, options, build_offtarget):
+    def run_regression(self, options, build_offtarget):
+        success, msg = True, ''
+
         if self.generate_run_scripts:
             self.generate_scripts(options)
 
@@ -44,23 +48,31 @@ class RegressionTester:
         options['output-dir'] = 'regression_test_output_dir'
         regression_aot_status = aot_execution.run_shell_aot(self.regression_aot_path, options, timeout=self.timeout)
 
-        test.assertEqual(regression_aot_status, 0, "Unexpected regression AoT failure")
-        test.assertEqual(aot_status, 0, "Unexpected AoT failure")
+        if regression_aot_status != 0:
+            success = False
+            msg += 'Unexpected regression AoT failure\n'
+        if aot_status != 0:
+            success = False
+            msg += 'Unexpected AoT failure\n'
 
         ot_comparator = offtarget_comparison.OfftargetComparator()
         diffs = ot_comparator.compare_offtarget('test_output_dir', 'regression_test_output_dir')
         if len(diffs) != 0:
-            test.fail('\n'.join(diffs))
+            success = False
+            msg += '\n'.join(diffs)
 
         build_all = False
         if 'TEST_BUILD_ALL' in os.environ:
             build_all = os.environ['TEST_BUILD_ALL'].lower() == 'true'
 
-        if not build_offtarget and not build_all:
-            return
+        if aot_status != 0 or (not build_offtarget and not build_all):
+            return success, msg
 
         os.chdir('test_output_dir')
         print('Running make')
         status = subprocess.run(['make'])
 
-        test.assertEqual(status.returncode, 0, 'Off-target build failed')
+        if status.returncode != 0:
+            success = False
+            msg += 'Off-target build failed\n'
+        return success, msg
