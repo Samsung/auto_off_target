@@ -26,10 +26,14 @@ class TestE2E(unittest.TestCase):
 
     class Source:
 
-        def __init__(self, db_type, db, config, functions=None, functions_file=None):
+        def __init__(self, db_type, config, db=None, functions=None, functions_file=None,
+                    product=None, version=None, build_type=None):
             self.db_type = db_type
             self.db = db
             self.cfg = config
+            self.product = product
+            self.version = version
+            self.build_type = build_type
             if functions_file is not None:
                 test_data_path = os.path.join(os.path.dirname(__file__), 'test_data')
                 with open(os.path.join(test_data_path, functions_file), 'r') as f:
@@ -40,6 +44,23 @@ class TestE2E(unittest.TestCase):
             if not isinstance(functions, list):
                 functions = [functions]
             self.functions = functions
+        
+        def options(self):
+            options = {
+                'db-type': self.db_type,
+                'config': self.cfg,
+            }
+            if self.db_type == 'mongo':
+                options['mongo-direct'] = ''
+                options['product'] = self.product
+                options['version'] = self.version
+                options['build-type'] = self.build_type
+            elif self.db_type == 'ftdb':
+                options['db'] = self.db
+                options['product'] = 'test_product'
+                options['version'] = 'test_version'
+                options['build-type'] = 'userdebug'
+            return options
 
     class Case:
 
@@ -77,15 +98,8 @@ class TestE2E(unittest.TestCase):
                 self.test_configs.append(config)
 
     def _prepare_options(test_config, function, case):
-        options = {
-            'product': 'test_product',
-            'version': 'test_version',
-            'build-type': 'userdebug',
-            'db-type': test_config.source.db_type,
-            'db': test_config.source.db,
-            'config': test_config.source.cfg,
-            'functions': function,
-        }
+        options = test_config.source.options()
+        options['functions'] = function
         for k, v in case.options.items():
             options[k] = v
         return options
