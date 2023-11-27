@@ -1471,6 +1471,8 @@ def main():
         logging.error("It's an exceptional execution")
         logger.exception(e)
         retcode = 1
+    except SystemExit as e:
+        retcode = e.code
     finally:
 
         engine.deinit()
