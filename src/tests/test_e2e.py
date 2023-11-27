@@ -26,10 +26,17 @@ class TestE2E(unittest.TestCase):
 
     class Source:
 
-        def __init__(self, db_type, db, config, functions):
+        def __init__(self, db_type, db, config, functions=None, functions_file=None):
             self.db_type = db_type
             self.db = db
             self.cfg = config
+            if functions_file is not None:
+                test_data_path = os.path.join(os.path.dirname(__file__), 'test_data')
+                with open(os.path.join(test_data_path, functions_file), 'r') as f:
+                    self.functions = []
+                    for function in f.readlines():
+                        self.functions.append(function.strip())
+                return
             if not isinstance(functions, list):
                 functions = [functions]
             self.functions = functions
