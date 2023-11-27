@@ -42,7 +42,8 @@
                 "cut-off": "dirs",
                 "co-dirs": "lib",
                 "use-real-filenames": ""
-            }
+            },
+            "build_offtarget": false
         },
         {
             "options": {

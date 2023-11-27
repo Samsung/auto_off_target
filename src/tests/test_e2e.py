@@ -10,6 +10,7 @@ import json
 import shutil
 import uuid
 import multiprocessing.pool
+import progressbar
 from tests.regression_tester import RegressionTester
 
 
@@ -89,7 +90,7 @@ class TestE2E(unittest.TestCase):
         if keep_test_env:
             execution_dir_name = os.path.join(os.path.dirname(__file__),
                                               'test_env',
-                                              f'test{i}_{uuid.uuid4()}')
+                                              f'{test_config.name}_{i}_{uuid.uuid4()}')
             os.makedirs(execution_dir_name, exist_ok=True)
         else:
             temp_dir = tempfile.TemporaryDirectory()
@@ -114,6 +115,15 @@ class TestE2E(unittest.TestCase):
         
         return success, msg, log, execution_dir_name
 
+    def _progress_bar(max_value):
+        timer = progressbar.Timer(format='elapsed time: %(elapsed)s')
+        bar = progressbar.Bar('#')
+        eta = progressbar.AdaptiveETA()
+        progress = progressbar.SimpleProgress()
+
+        widgets = [' [', timer, '] ', bar, progress, ' (', eta, ') ']
+        return progressbar.ProgressBar(max_value=max_value, widgets=widgets)
+
     def test_regression(self):
         test_args = []
         for test_config in self.test_configs:
@@ -123,12 +133,19 @@ class TestE2E(unittest.TestCase):
                                        self.regression_aot_path, self.timeout))
         
         process_pool = multiprocessing.pool.Pool()
+        progress_bar = TestE2E._progress_bar(len(test_args))
+
+        def callback(_):
+            progress_bar.increment()
 
         results = []
         for test_case in test_args:
-            results.append(process_pool.apply_async(TestE2E._run_test_case, test_case))
+            results.append(process_pool.apply_async(TestE2E._run_test_case, test_case, 
+                                                    callback=callback))
 
         process_pool.close()
+        process_pool.join()
+        progress_bar.finish()
 
         for test_case, result in zip(test_args, results):
             test_config, function, i, case, _, _, _ = test_case
