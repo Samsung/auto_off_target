@@ -27,7 +27,7 @@ class TestE2E(unittest.TestCase):
     class Source:
 
         def __init__(self, db_type, config, db=None, functions=None, functions_file=None,
-                    product=None, version=None, build_type=None):
+                     product=None, version=None, build_type=None):
             self.db_type = db_type
             self.db = db
             self.cfg = config
@@ -44,7 +44,7 @@ class TestE2E(unittest.TestCase):
             if not isinstance(functions, list):
                 functions = [functions]
             self.functions = functions
-        
+
         def options(self):
             options = {
                 'db-type': self.db_type,
@@ -125,7 +125,7 @@ class TestE2E(unittest.TestCase):
 
         # test
         tester = RegressionTester(regression_aot_path, timeout,
-                                    generate_run_scripts=keep_test_env)
+                                  generate_run_scripts=keep_test_env)
         options = TestE2E._prepare_options(test_config, function, case)
         success, msg, log = tester.run_regression(options, case.build_offtarget)
 
@@ -133,7 +133,7 @@ class TestE2E(unittest.TestCase):
         os.chdir(original_cwd)
         if not keep_test_env:
             temp_dir.cleanup()
-        
+
         return success, msg, log, execution_dir_name
 
     def _progress_bar(max_value):
@@ -151,17 +151,18 @@ class TestE2E(unittest.TestCase):
             for function in test_config.source.functions:
                 for i, case in enumerate(test_config.cases):
                     test_args.append((test_config, function, i, case, self.keep_test_env,
-                                       self.regression_aot_path, self.timeout))
-        
-        process_pool = multiprocessing.pool.Pool()
+                                      self.regression_aot_path, self.timeout))
+
+        process_pool = multiprocessing.pool.Pool(int(os.cpu_count() / 2))
         progress_bar = TestE2E._progress_bar(len(test_args))
+        progress_bar.start()
 
         def callback(_):
             progress_bar.increment()
 
         results = []
         for test_case in test_args:
-            results.append(process_pool.apply_async(TestE2E._run_test_case, test_case, 
+            results.append(process_pool.apply_async(TestE2E._run_test_case, test_case,
                                                     callback=callback))
 
         process_pool.close()
@@ -171,7 +172,7 @@ class TestE2E(unittest.TestCase):
         for test_case, result in zip(test_args, results):
             test_config, function, i, case, _, _, _ = test_case
             success, msg, log, exec_dir = result.get()
-            exec_dir_postfix =  f' at {exec_dir}' if self.keep_test_env else ''
+            exec_dir_postfix = f' at {exec_dir}' if self.keep_test_env else ''
             test_title = f'Test {test_config.name} ({function}) [{i}]{exec_dir_postfix}'
             with self.subTest(test_title):
                 if not success:
