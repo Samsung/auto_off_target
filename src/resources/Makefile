@@ -13,7 +13,7 @@ CLANG_TIDY:=clang-tidy
 CLANG_TIDY_OPTS:= --checks="-*,readability-function-size" --config="{Checks: 'readability-function-size',CheckOptions: [{key: readability-function-size.BranchThreshold, value: '0'},{key: readability-function-size.NestingThreshold, value: '0'},{key: readability-function-size.LineThreshold, value: '0'},{key: readability-function-size.StatementThreshold, value: '0'}]}"
 
 CFLAGS = -MD
-LDFLAGS = 
+LDFLAGS = -lpthread
 COMP = clang
 
 
