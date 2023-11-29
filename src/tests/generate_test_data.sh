@@ -23,7 +23,7 @@ AOT_ARGS="--product test_product
         --import-json db.json 
         --fptr-analysis"
 
-CAS_OPTIONS='--verbos --debug'
+CAS_OPTIONS=''
 
 (
     cd test_data/src/$1/etrace_data ||
