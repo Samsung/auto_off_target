@@ -59,6 +59,14 @@ One `test_config.json` file contains a test config for one test project.
             // should be tested
             // Default value is true
             "build_offtarget": false
+
+            // Off-target builds will always be tested for functions
+            // listed in this file
+            "always_build_funcs": "build_success.dat"
+
+            // When an off-target build succeeds, the function
+            // will be appended to the end of this file
+            "success_dump": "build_success.dat"
         }
     ]
 }

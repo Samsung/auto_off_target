@@ -15,6 +15,20 @@ import progressbar
 from tests.regression_tester import RegressionTester
 
 
+TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), 'test_data')
+
+
+def _get_funcs_from_file(path):
+    with open(path, 'r') as f:
+        functions = []
+        for function in f.readlines():
+            function = function.strip()
+            if len(function) == 0:
+                continue
+            functions.append(function)
+        return functions
+
+
 class Config:
 
     def __init__(self, source, data_dir, cases):
@@ -35,11 +49,8 @@ class Source:
         self.version = version
         self.build_type = build_type
         if functions_file is not None:
-            test_data_path = os.path.join(os.path.dirname(__file__), 'test_data')
-            with open(os.path.join(test_data_path, functions_file), 'r') as f:
-                self.functions = []
-                for function in f.readlines():
-                    self.functions.append(function.strip())
+            funcs_path = os.path.join(TEST_DATA_DIR, functions_file)
+            self.functions = _get_funcs_from_file(funcs_path)
             return
         if not isinstance(functions, list):
             functions = [functions]
@@ -65,9 +76,21 @@ class Source:
 
 class Case:
 
-    def __init__(self, options, build_offtarget=True):
+    def __init__(self, options, build_offtarget=True, always_build_funcs=None,
+                 success_dump=None):
         self.options = options
         self.build_offtarget = build_offtarget
+
+        self.always_build_funcs = set()
+        if always_build_funcs is not None:
+            always_build_funcs_path = os.path.join(TEST_DATA_DIR, always_build_funcs)
+            if os.path.exists(always_build_funcs_path):
+                funcs = _get_funcs_from_file(always_build_funcs_path)
+                self.always_build_funcs = set(funcs)
+
+        self.success_dump = None
+        if success_dump is not None:
+            self.success_dump = os.path.join(TEST_DATA_DIR, success_dump)
 
 
 class TestE2E(unittest.TestCase):
@@ -124,14 +147,20 @@ class TestE2E(unittest.TestCase):
         original_cwd = os.getcwd()
         os.chdir(execution_dir_name)
 
-        data_dir = os.path.join(os.path.dirname(__file__), 'test_data', test_config.data_dir)
+        data_dir = os.path.join(TEST_DATA_DIR, test_config.data_dir)
         shutil.copytree(data_dir, execution_dir_name, dirs_exist_ok=True)
 
+        build_offtarget = case.build_offtarget or build_all or function in case.always_build_funcs
+
         # test
-        tester = RegressionTester(regression_aot_path, timeout,
-                                  build_all, keep_test_env)
+        tester = RegressionTester(regression_aot_path, timeout, keep_test_env)
         options = TestE2E._prepare_options(test_config, function, case)
-        success, msg, log = tester.run_regression(options, case.build_offtarget)
+        success, msg, log = tester.run_regression(options, build_offtarget)
+
+        if build_offtarget and success and case.success_dump is not None:
+            with open(case.success_dump, 'a+') as f:
+                if function not in _get_funcs_from_file(case.success_dump):
+                    f.write(f'{function}\n')
 
         # cleanup test env
         os.chdir(original_cwd)

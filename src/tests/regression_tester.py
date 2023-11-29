@@ -12,11 +12,10 @@ import os
 class RegressionTester:
 
     def __init__(self, regression_aot_path, timeout,
-                 build_all=False, generate_run_scripts=False):
+                 generate_run_scripts=False):
         self.regression_aot_path = regression_aot_path
         self.timeout = timeout
         self.generate_run_scripts = generate_run_scripts
-        self.build_all = build_all
 
     def _generate_run_script(filename, command):
         with open(filename, 'w+') as f:
@@ -75,7 +74,7 @@ class RegressionTester:
                 success = False
                 msg += '\n'.join(diffs)
 
-        if not build_offtarget and not self.build_all:
+        if not build_offtarget:
             return success, msg, log
 
         os.chdir('test_output_dir')
