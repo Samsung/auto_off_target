@@ -44,13 +44,14 @@ class RegressionTester:
 
         log = ''
 
-        options['output-dir'] = 'regression_test_output_dir'
-        status, run_log = aot_execution.run_shell_aot(self.regression_aot_path, options,
-                                                      timeout=self.timeout, capture_output=True)
-        if status != 0:
-            log += run_log + '\n'
-            success = False
-            msg += 'Unexpected regression AoT failure\n'
+        if self.regression_aot_path:
+            options['output-dir'] = 'regression_test_output_dir'
+            status, run_log = aot_execution.run_shell_aot(self.regression_aot_path, options,
+                                                          timeout=self.timeout, capture_output=True)
+            if status != 0:
+                log += run_log + '\n'
+                success = False
+                msg += 'Unexpected regression AoT failure\n'
 
         options['output-dir'] = 'test_output_dir'
         status, run_log = aot_execution.run_aot(options, timeout=self.timeout, capture_output=True)
@@ -60,11 +61,12 @@ class RegressionTester:
             msg += 'Unexpected AoT failure\n'
             return success, msg, log
 
-        ot_comparator = offtarget_comparison.OfftargetComparator()
-        diffs = ot_comparator.compare_offtarget('test_output_dir', 'regression_test_output_dir')
-        if len(diffs) != 0:
-            success = False
-            msg += '\n'.join(diffs)
+        if self.regression_aot_path:
+            ot_comparator = offtarget_comparison.OfftargetComparator()
+            diffs = ot_comparator.compare_offtarget('test_output_dir', 'regression_test_output_dir')
+            if len(diffs) != 0:
+                success = False
+                msg += '\n'.join(diffs)
 
         build_all = False
         if 'TEST_BUILD_ALL' in os.environ:

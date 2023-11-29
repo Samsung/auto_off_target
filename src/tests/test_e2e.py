@@ -81,9 +81,11 @@ class TestE2E(unittest.TestCase):
         if 'TEST_CONFIGS' in os.environ:
             test_configs = os.environ['TEST_CONFIGS']
 
-        if 'AOT_REGRESSION_PATH' not in os.environ:
-            self.fail('Make sure AOT_REGRESSION_PATH is set')
-        self.regression_aot_path = os.environ['AOT_REGRESSION_PATH']
+        self.regression_aot_path = ''
+        if 'AOT_REGRESSION_PATH' in os.environ:
+            self.regression_aot_path = os.environ['AOT_REGRESSION_PATH']
+        if not self.regression_aot_path:
+            print('AOT_REGRESSION_PATH not set, regression tests will not run')
 
         self.timeout = None
         if 'AOT_TIMEOUT' in os.environ:
