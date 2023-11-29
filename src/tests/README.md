@@ -1,8 +1,8 @@
 # E2E Test Suite Guide
 
 E2E Test Suite runs test cases which are configured by `test_config.json` files.
-Test config files to be used are defined by `TEST_CONFIGS` env variable, which
-is a list of space separated file paths (default points to
+Test config files to be used are defined by the
+`--test-config <config1.json> [<config2.json> ...]` option (default points to
 `test_data/test_config_csmith_test.json` and `test_data/test_config_tinycc.json`).
 
 ## `test_config.json`
@@ -66,13 +66,14 @@ One `test_config.json` file contains a test config for one test project.
 
 ## Regression tests
 
-Regression tests need a path to `aot.py` in the version of AoT which we want
-to compare the results to. You have to provide it in `AOT_REGRESSION_PATH` env
-variable.
+Regression tests need an absolute path to `aot.py` in the version of AoT which we
+want to compare the results to. You have to provide it using
+`--regression-aot <path_to_aot.py>` option.
+If this isn't provided, regression will not be performed.
 
 The tests first import the `db.img` database file, then generate an off-target
-using both the current AoT version and the version from `AOT_REGRESSION_PATH`.
-Generated files are then compared to see if anything changed between versions.
+using both the current AoT version and the regression version. Generated files
+are then compared to see if anything changed between versions.
 
 File comparison is performed directly using `filecmp` module unless a file is
 specified in `special_files` map in `RegressionTester` class, which maps the
@@ -103,11 +104,15 @@ Then generate the test data.
 cd <AOT_ROOT>/src/tests
 ./setup_test_data.sh
 ```
-Then run tests using `pytest` (see `pytest` documentation for additional options).
+Then run tests using `pytest`.
 ```
-AOT_REGRESSION_PATH=<REGRESSION_AOT_ROOT>/src/aot.py pytest --tb=line -sv test_e2e.y
+pytest --tb=line -sv --regression-aot <REGRESSION_AOT_ROOT>/src/aot.py test_e2e.py 
 ```
 
-If you would like to keep the test environment data, please set the `KEEP_TEST_ENV=True` env variable.
+## Additional options
 
-To test off-target build for all test cases you can set `TEST_BUILD_ALL=True` env variable.
+- `--keep-test-env` - stores test environment data in `test_env` directory
+- `--build-all` - tests all off-target builds regardless of specific settings
+- `--timeout <secs>` - tests all off-target builds regardless of specific settings
+
+See `pytest` documentation for other options.

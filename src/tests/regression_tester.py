@@ -12,10 +12,11 @@ import os
 class RegressionTester:
 
     def __init__(self, regression_aot_path, timeout,
-                 generate_run_scripts=False):
+                 build_all=False, generate_run_scripts=False):
         self.regression_aot_path = regression_aot_path
         self.timeout = timeout
         self.generate_run_scripts = generate_run_scripts
+        self.build_all = build_all
 
     def _generate_run_script(filename, command):
         with open(filename, 'w+') as f:
@@ -51,14 +52,20 @@ class RegressionTester:
             if status != 0:
                 log += run_log + '\n'
                 success = False
-                msg += 'Unexpected regression AoT failure\n'
+                if status == aot_execution.TIMEOUT_EXIT_CODE:
+                    msg += 'Regression AoT timeout\n'
+                else:
+                    msg += 'Unexpected regression AoT failure\n'
 
         options['output-dir'] = 'test_output_dir'
         status, run_log = aot_execution.run_aot(options, timeout=self.timeout, capture_output=True)
         if status != 0:
             log += run_log + '\n'
             success = False
-            msg += 'Unexpected AoT failure\n'
+            if status == aot_execution.TIMEOUT_EXIT_CODE:
+                msg += 'AoT timeout\n'
+            else:
+                msg += 'Unexpected AoT failure\n'
             return success, msg, log
 
         if self.regression_aot_path:
@@ -68,11 +75,7 @@ class RegressionTester:
                 success = False
                 msg += '\n'.join(diffs)
 
-        build_all = False
-        if 'TEST_BUILD_ALL' in os.environ:
-            build_all = os.environ['TEST_BUILD_ALL'].lower() == 'true'
-
-        if not build_offtarget and not build_all:
+        if not build_offtarget and not self.build_all:
             return success, msg, log
 
         os.chdir('test_output_dir')

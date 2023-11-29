@@ -81,7 +81,7 @@ def _run_with_timeout(timeout, func):
             aot.main()
         except SystemExit as e:
             return e.code
-        except Exception as _:
+        except Exception:
             return EXCEPTION_EXIT_CODE
     try:
         return func_timeout.func_timeout(timeout, wrapper)
