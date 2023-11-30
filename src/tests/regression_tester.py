@@ -8,6 +8,7 @@ from tests import offtarget_comparison
 import subprocess
 import os
 import re
+import random
 
 
 class RegressionTester:
@@ -131,10 +132,14 @@ class RegressionTester:
         if self.generate_run_scripts:
             self.generate_scripts(options)
 
-        if self.regression_aot_path:
-            self._run_regression_aot(options)
-
-        self._run_aot(options)
+        if random.random() < 0.5:
+            if self.regression_aot_path:
+                self._run_regression_aot(options)
+            self._run_aot(options)
+        else:
+            self._run_aot(options)
+            if self.regression_aot_path:
+                self._run_regression_aot(options)
 
         if not self.success:
             return
