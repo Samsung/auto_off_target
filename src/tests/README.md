@@ -28,12 +28,14 @@ One `test_config.json` file contains a test config for one test project.
 
         // A path to a file from which function names are read
         // Each line in the file is a --functions option value
+        // This path is relative to the test_config.json file
         // Overrides "functions" field
         "functions_file": "functions_file.dat"
     },
 
     // Files from this directory are copied to a temporary test directory
     // where tests are run
+    // This path is relative to the test_config.json file
     "data_dir": "tinycc",
 
     // List of test cases
@@ -62,10 +64,12 @@ One `test_config.json` file contains a test config for one test project.
 
             // Off-target builds will always be tested for functions
             // listed in this file
+            // This path is relative to the test_config.json file
             "always_build_funcs": "build_success.dat"
 
             // When an off-target build succeeds, the function
             // will be appended to the end of this file
+            // This path is relative to the test_config.json file
             "success_dump": "build_success.dat"
         }
     ]

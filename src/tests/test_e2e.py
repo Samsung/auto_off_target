@@ -15,9 +15,6 @@ import progressbar
 from tests.regression_tester import RegressionTester
 
 
-TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), 'test_data')
-
-
 def _get_funcs_from_file(path):
     with open(path, 'r') as f:
         functions = []
@@ -31,17 +28,17 @@ def _get_funcs_from_file(path):
 
 class Config:
 
-    def __init__(self, source, data_dir, cases):
-        self.source = Source(**source)
-        self.data_dir = data_dir
-        self.cases = [Case(**case) for case in cases]
+    def __init__(self, source, data_dir, cases, base_dir):
+        self.source = Source(**source, base_dir=base_dir)
+        self.data_dir = os.path.join(base_dir, data_dir)
+        self.cases = [Case(**case, base_dir=base_dir) for case in cases]
         self.name = ''
 
 
 class Source:
 
-    def __init__(self, db_type, config, db=None, functions=None, functions_file=None,
-                 product=None, version=None, build_type=None):
+    def __init__(self, db_type, config, base_dir, db=None, functions=None,
+                 functions_file=None, product=None, version=None, build_type=None):
         self.db_type = db_type
         self.db = db
         self.cfg = config
@@ -49,7 +46,7 @@ class Source:
         self.version = version
         self.build_type = build_type
         if functions_file is not None:
-            funcs_path = os.path.join(TEST_DATA_DIR, functions_file)
+            funcs_path = os.path.join(base_dir, functions_file)
             self.functions = _get_funcs_from_file(funcs_path)
             return
         if not isinstance(functions, list):
@@ -76,21 +73,21 @@ class Source:
 
 class Case:
 
-    def __init__(self, options, build_offtarget=True, always_build_funcs=None,
-                 success_dump=None):
+    def __init__(self, options, base_dir, build_offtarget=True,
+                 always_build_funcs=None, success_dump=None):
         self.options = options
         self.build_offtarget = build_offtarget
 
         self.always_build_funcs = set()
         if always_build_funcs is not None:
-            always_build_funcs_path = os.path.join(TEST_DATA_DIR, always_build_funcs)
+            always_build_funcs_path = os.path.join(base_dir, always_build_funcs)
             if os.path.exists(always_build_funcs_path):
                 funcs = _get_funcs_from_file(always_build_funcs_path)
                 self.always_build_funcs = set(funcs)
 
         self.success_dump = None
         if success_dump is not None:
-            self.success_dump = os.path.join(TEST_DATA_DIR, success_dump)
+            self.success_dump = os.path.join(os.path.abspath(base_dir), success_dump)
 
 
 class TestE2E(unittest.TestCase):
@@ -109,7 +106,7 @@ class TestE2E(unittest.TestCase):
         for test_config in test_configs:
             with open(test_config) as f:
                 data = json.load(f)
-                config = Config(**data)
+                config = Config(**data, base_dir=os.path.dirname(test_config))
                 config.name = os.path.basename(test_config)
                 self.test_configs.append(config)
 
@@ -144,15 +141,14 @@ class TestE2E(unittest.TestCase):
             temp_dir = tempfile.TemporaryDirectory()
             execution_dir_name = temp_dir.name
 
+        shutil.copytree(test_config.data_dir, execution_dir_name, dirs_exist_ok=True)
+
         original_cwd = os.getcwd()
         os.chdir(execution_dir_name)
 
-        data_dir = os.path.join(TEST_DATA_DIR, test_config.data_dir)
-        shutil.copytree(data_dir, execution_dir_name, dirs_exist_ok=True)
-
+        # test
         build_offtarget = case.build_offtarget or build_all or function in case.always_build_funcs
 
-        # test
         tester = RegressionTester(regression_aot_path, timeout, keep_test_env)
         options = TestE2E._prepare_options(test_config, function, case)
         success, msg, log = tester.run_regression(options, build_offtarget)
