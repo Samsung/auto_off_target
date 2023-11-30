@@ -17,6 +17,13 @@ class RegressionTester:
         self.timeout = timeout
         self.generate_run_scripts = generate_run_scripts
 
+        self.regression_out_dir = 'regression_test_output_dir'
+        self.out_dir = 'test_output_dir'
+
+        self.success = None
+        self.msg = None
+        self.log = None
+
     def _generate_run_script(filename, command):
         with open(filename, 'w+') as f:
             f.write('#! /bin/bash\n')
@@ -36,54 +43,78 @@ class RegressionTester:
         RegressionTester._generate_run_script('run_regression.sh',
                                               f'{self.regression_aot_path} {args}')
 
+    def _run_regression_aot(self, options):
+        options['output-dir'] = self.regression_out_dir
+        status, run_log = aot_execution.run_shell_aot(self.regression_aot_path,
+                                                      options,
+                                                      timeout=self.timeout,
+                                                      capture_output=True)
+        if status == 0:
+            return
+
+        self.success = False
+        self.log += run_log + '\n'
+        if status == aot_execution.TIMEOUT_EXIT_CODE:
+            self.msg += 'Regression AoT timeout\n'
+        else:
+            self.msg += 'Regression AoT execution failed\n'
+
+    def _run_aot(self, options):
+        options['output-dir'] = self.out_dir
+        status, run_log = aot_execution.run_aot(options,
+                                                timeout=self.timeout,
+                                                capture_output=True)
+        if status == 0:
+            return
+
+        self.success = False
+        self.log += run_log + '\n'
+        if status == aot_execution.TIMEOUT_EXIT_CODE:
+            self.msg += 'AoT timeout\n'
+        else:
+            self.msg += 'AoT execution failed\n'
+
+    def _compare_offtarget(self):
+        ot_comparator = offtarget_comparison.OfftargetComparator()
+        diffs = ot_comparator.compare_offtarget(self.out_dir, self.regression_out_dir)
+        if len(diffs) == 0:
+            return
+
+        self.success = False
+        self.log += '\n'.join(diffs) + '\n'
+        self.msg += 'Off-target comparison failed\n'
+
+    def _build_offtarget(self):
+        os.chdir(self.out_dir)
+        status = subprocess.run(['make'], capture_output=True)
+
+        if status.returncode == 0:
+            return
+
+        log = 'Running make\n'
+        log += status.stdout.decode()
+        log += status.stderr.decode()
+
+        self.success = False
+        self.log += log
+        self.msg += 'Off-target build failed\n'
+
     def run_regression(self, options, build_offtarget):
-        success, msg = True, ''
+        self.success, self.msg, self.log = True, '', ''
 
         if self.generate_run_scripts:
             self.generate_scripts(options)
 
-        log = ''
+        if self.regression_aot_path:
+            self._run_regression_aot(options)
+
+        self._run_aot(options)
+
+        if not self.success:
+            return
 
         if self.regression_aot_path:
-            options['output-dir'] = 'regression_test_output_dir'
-            status, run_log = aot_execution.run_shell_aot(self.regression_aot_path, options,
-                                                          timeout=self.timeout, capture_output=True)
-            if status != 0:
-                log += run_log + '\n'
-                success = False
-                if status == aot_execution.TIMEOUT_EXIT_CODE:
-                    msg += 'Regression AoT timeout\n'
-                else:
-                    msg += 'Unexpected regression AoT failure\n'
+            self._compare_offtarget()
 
-        options['output-dir'] = 'test_output_dir'
-        status, run_log = aot_execution.run_aot(options, timeout=self.timeout, capture_output=True)
-        if status != 0:
-            log += run_log + '\n'
-            success = False
-            if status == aot_execution.TIMEOUT_EXIT_CODE:
-                msg += 'AoT timeout\n'
-            else:
-                msg += 'Unexpected AoT failure\n'
-            return success, msg, log
-
-        if self.regression_aot_path:
-            ot_comparator = offtarget_comparison.OfftargetComparator()
-            diffs = ot_comparator.compare_offtarget('test_output_dir', 'regression_test_output_dir')
-            if len(diffs) != 0:
-                success = False
-                msg += '\n'.join(diffs)
-
-        if not build_offtarget:
-            return success, msg, log
-
-        os.chdir('test_output_dir')
-        status = subprocess.run(['make'], capture_output=True)
-
-        if status.returncode != 0:
-            success = False
-            log += 'Running make\n'
-            log += status.stdout.decode()
-            log += status.stderr.decode()
-            msg += 'Off-target build failed\n'
-        return success, msg, log
+        if build_offtarget:
+            self._build_offtarget()

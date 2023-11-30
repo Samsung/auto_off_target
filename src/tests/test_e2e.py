@@ -150,10 +150,11 @@ class TestE2E(unittest.TestCase):
         build_offtarget = case.build_offtarget or build_all or function in case.always_build_funcs
 
         tester = RegressionTester(regression_aot_path, timeout, keep_test_env)
-        options = TestE2E._prepare_options(test_config, function, case)
-        success, msg, log = tester.run_regression(options, build_offtarget)
 
-        if build_offtarget and success and case.success_dump is not None:
+        options = TestE2E._prepare_options(test_config, function, case)
+        tester.run_regression(options, build_offtarget)
+
+        if build_offtarget and tester.success and case.success_dump is not None:
             with open(case.success_dump, 'a+') as f:
                 if function not in _get_funcs_from_file(case.success_dump):
                     f.write(f'{function}\n')
@@ -163,7 +164,7 @@ class TestE2E(unittest.TestCase):
         if not keep_test_env:
             temp_dir.cleanup()
 
-        return success, msg, log, execution_dir_name
+        return tester, execution_dir_name
 
     def _progress_bar(max_value):
         timer = progressbar.Timer(format='elapsed time: %(elapsed)s')
@@ -202,13 +203,13 @@ class TestE2E(unittest.TestCase):
 
         for test_case, result in zip(test_args, results):
             test_config, function, i, case, _, _, _, _ = test_case
-            success, msg, log, exec_dir = result.get()
+            tester, exec_dir = result.get()
             exec_dir_postfix = f' at {exec_dir}' if self.keep_test_env else ''
             test_title = f'Test {test_config.name} ({function}) [{i}]{exec_dir_postfix}'
             with self.subTest(test_title):
-                if not success:
+                if not tester.success:
                     print(f'\n\033[31m=== {test_title} failed ===\033[0m\n\n'
-                          f'{log}\n\n'
+                          f'{tester.log}\n\n'
                           'Messages:\n'
-                          f'{msg}', end='')
-                    self.fail(msg)
+                          f'{tester.msg}', end='')
+                    self.fail(tester.msg)
