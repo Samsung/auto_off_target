@@ -46,7 +46,10 @@ class RegressionTester:
         RegressionTester._generate_run_script('run_regression.sh',
                                               f'{self.regression_aot_path} {args}')
 
-    def _get_execution_time(log):
+    def _get_execution_time(self, status, log):
+        if status == aot_execution.TIMEOUT_EXIT_CODE:
+            return self.timeout
+
         match = re.search(r'AOT_RUN_TIME_SECONDS: \|(\d+?(?:\.\d+))\|', log)
         if match is None:
             return None
@@ -66,7 +69,7 @@ class RegressionTester:
                                                       timeout=self.timeout,
                                                       capture_output=True)
 
-        self.regression_time = RegressionTester._get_execution_time(run_log)
+        self.regression_time = self._get_execution_time(status, run_log)
 
         if status == 0:
             return
@@ -85,7 +88,7 @@ class RegressionTester:
                                                 timeout=self.timeout,
                                                 capture_output=True)
 
-        self.aot_time = RegressionTester._get_execution_time(run_log)
+        self.aot_time = self._get_execution_time(status, run_log)
 
         if status == 0:
             return

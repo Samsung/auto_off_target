@@ -55,13 +55,17 @@ def run_shell_aot(aot_path, options, timeout=None, capture_output=False):
     else:
         print(f'Running shell AoT with {joined_command}')
 
-    status = subprocess.run(command, capture_output=capture_output, timeout=timeout)
+    try:
+        status = subprocess.run(command, capture_output=capture_output,
+                                timeout=timeout)
+        exit_code = status.returncode
+        if capture_output:
+            log += status.stdout.decode()
+            log += status.stderr.decode()
+    except subprocess.TimeoutExpired:
+        exit_code = TIMEOUT_EXIT_CODE
 
-    if capture_output:
-        log += status.stdout.decode()
-        log += status.stderr.decode()
-
-    return status.returncode, log
+    return exit_code, log
 
 
 TIMEOUT_EXIT_CODE = 100
@@ -71,7 +75,7 @@ EXCEPTION_EXIT_CODE = 101
 def _run_with_timeout(timeout, func):
     def wrapper():
         try:
-            aot.main()
+            func()
         except SystemExit as e:
             return e.code
         except Exception:
