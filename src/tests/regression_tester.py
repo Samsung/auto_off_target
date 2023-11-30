@@ -7,6 +7,7 @@ from tests import aot_execution
 from tests import offtarget_comparison
 import subprocess
 import os
+import re
 
 
 class RegressionTester:
@@ -23,6 +24,8 @@ class RegressionTester:
         self.success = None
         self.msg = None
         self.log = None
+        self.aot_time = None
+        self.regression_time = None
 
     def _generate_run_script(filename, command):
         with open(filename, 'w+') as f:
@@ -43,12 +46,28 @@ class RegressionTester:
         RegressionTester._generate_run_script('run_regression.sh',
                                               f'{self.regression_aot_path} {args}')
 
+    def _get_execution_time(log):
+        match = re.search(r'AOT_RUN_TIME_SECONDS: \|(\d+?(?:\.\d+))\|', log)
+        if match is None:
+            return None
+
+        try:
+            time = float(match.group(1))
+        except ValueError:
+            return None
+
+        return time
+
     def _run_regression_aot(self, options):
         options['output-dir'] = self.regression_out_dir
+
         status, run_log = aot_execution.run_shell_aot(self.regression_aot_path,
                                                       options,
                                                       timeout=self.timeout,
                                                       capture_output=True)
+
+        self.regression_time = RegressionTester._get_execution_time(run_log)
+
         if status == 0:
             return
 
@@ -61,9 +80,13 @@ class RegressionTester:
 
     def _run_aot(self, options):
         options['output-dir'] = self.out_dir
+
         status, run_log = aot_execution.run_aot(options,
                                                 timeout=self.timeout,
                                                 capture_output=True)
+
+        self.aot_time = RegressionTester._get_execution_time(run_log)
+
         if status == 0:
             return
 

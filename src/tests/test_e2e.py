@@ -201,9 +201,23 @@ class TestE2E(unittest.TestCase):
         process_pool.join()
         progress_bar.finish()
 
+        total_aot_time = 0
+        total_regression_time = 0
+
         for test_case, result in zip(test_args, results):
             test_config, function, i, case, _, _, _, _ = test_case
             tester, exec_dir = result.get()
+
+            if tester.aot_time is None:
+                total_aot_time = None
+            elif total_aot_time is not None:
+                total_aot_time += tester.aot_time
+
+            if tester.regression_time is None:
+                total_regression_time = None
+            elif total_regression_time is not None:
+                total_regression_time += tester.regression_time
+
             exec_dir_postfix = f' at {exec_dir}' if self.keep_test_env else ''
             test_title = f'Test {test_config.name} ({function}) [{i}]{exec_dir_postfix}'
             with self.subTest(test_title):
@@ -213,3 +227,9 @@ class TestE2E(unittest.TestCase):
                           'Messages:\n'
                           f'{tester.msg}', end='')
                     self.fail(tester.msg)
+
+        print('===============================================')
+        if total_aot_time:
+            print(f'Total AoT time: {total_aot_time}')
+        if total_regression_time:
+            print(f'Total regression AoT time: {total_regression_time}')

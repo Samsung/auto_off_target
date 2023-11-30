@@ -45,13 +45,6 @@ def prepare_args(options):
     return args
 
 
-class ExecutionStatus:
-
-    def __init__(self, code, log):
-        self.code = code
-        self.log = log
-
-
 def run_shell_aot(aot_path, options, timeout=None, capture_output=False):
     command = [aot_path] + prepare_args(options)
     joined_command = ' '.join(command)

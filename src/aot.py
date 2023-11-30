@@ -1434,11 +1434,12 @@ def main():
     start_time = datetime.now()
     (fd, logname) = tempfile.mkstemp(dir=os.getcwd())
     logging.basicConfig(filename=logname, filemode="w",
-                        level=logging.INFO, format=ColorFormatter.FORMAT, datefmt='%Y-%m-%d %H:%M:%S')
+                        format=ColorFormatter.FORMAT, datefmt='%Y-%m-%d %H:%M:%S')
     # https://stackoverflow.com/questions/13733552/logger-configuration-to-log-to-file-and-print-to-stdout
     streamlog = logging.StreamHandler(sys.stdout)
     streamlog.setFormatter(ColorFormatter())
     logging.getLogger().addHandler(streamlog)
+    logging.getLogger().setLevel(logging.INFO)
 
     logging.info("We are happily running with the following parameters:")
     argvcopy = sys.argv[:]
