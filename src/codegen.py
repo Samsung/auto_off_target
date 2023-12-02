@@ -485,7 +485,9 @@ class CodeGen:
                                 f_id, self.dbops.fnidmap[f_id]["unpreprocessed_body"], file)
                         self.generated_functions += 1
                         # if we define a function we don't need to have the extern specifier
-                        tmp = tmp.replace("extern ", "", 1)
+                        if "extern " in tmp.splitlines()[0]:
+                            tmp = tmp.replace("extern ", "", 1)
+
                         if self.args.dynamic_init and ("inline" not in self.dbops.fnidmap[f_id] or self.dbops.fnidmap[f_id]["inline"] is not True):
                             tmp += "\n%s" % (self._get_function_pointer_stub(
                                 self.dbops.fnidmap[f_id]))
