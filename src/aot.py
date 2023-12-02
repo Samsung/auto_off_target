@@ -589,10 +589,11 @@ class Engine:
         included_funcs |= set(self.static_and_inline_funcs.keys())
         for f_id in included_funcs:
             f = self.dbops.fnidmap[f_id]
-            for fref_id in f['funrefs']:
-                if fref_id in self.dbops.known_funcs_ids:
-                    self.deps.known_funcs_present.add(
-                        self.dbops._get_function_name(fref_id))
+            if f is not None:
+                for fref_id in f['funrefs']:
+                    if fref_id in self.dbops.known_funcs_ids:
+                        self.deps.known_funcs_present.add(
+                            self.dbops._get_function_name(fref_id))
         self.otgen.adjust_funcs_lib()
 
         logging.info("We have {} distinct files".format(len(files)))
