@@ -375,6 +375,9 @@ class Engine:
                             # let's make them all internal then
                             _included = set(self.cutoff.stats_cache[f_id])
                             if not self.include_asm:
+                                for id in _included:
+                                    if id in self.dbops.all_funcs_with_asm:
+                                        new_external.add(id)
                                 _included = set(
                                     [id for id in _included if id not in self.dbops.all_funcs_with_asm])
 
@@ -395,7 +398,7 @@ class Engine:
 
                 self.cutoff.external_funcs.difference_update(included)
                 self.cutoff.external_funcs |= new_external
-                logging.info(f"Included {len(included)} functions")
+                logging.info(f"Included {len(included)} functions: {included}")
                 logging.info(
                     f"Now we have {len(self.cutoff.internal_funcs)} internal and {len(self.cutoff.external_funcs)} external")
 
@@ -1156,7 +1159,7 @@ class Engine:
                 f = self.dbops.fnidmap[fid]
                 file = data["file"]
                 diff = data["diff"]
-                tmp += f'[{file}] : {f["name"]}\n'
+                tmp += f'[{file}] : {f["name"]} {fid}\n'
 
         logging.info("{}".format(tmp))
         logging.info(
