@@ -255,7 +255,6 @@ conjfN
 conjfNx
 conjl
 connect
-continue
 copysign
 copysignf
 copysignfN
@@ -956,7 +955,6 @@ memmove
 mempcpy
 memrchr
 memset
-merge
 mkdir
 mkdtemp
 mkfifo
@@ -1026,7 +1024,6 @@ nftw64
 ngettext
 nice
 nl_langinfo
-notfound
 nrand48
 nrand48_r
 ntohl
@@ -1167,7 +1164,6 @@ remainderfNx
 remainderl
 remove
 rename
-return
 rewind
 rewinddir
 rindex
@@ -1403,7 +1399,6 @@ strtouq
 strverscmp
 strxfrm
 stty
-success
 SUN_LEN
 swapcontext
 swprintf
@@ -1497,7 +1492,6 @@ truncf
 truncfN
 truncfNx
 truncl
-tryagain
 tsearch
 tss_create
 tss_delete
@@ -1523,7 +1517,6 @@ umask
 umount
 umount2
 uname
-unavail
 ungetc
 ungetwc
 unlink
