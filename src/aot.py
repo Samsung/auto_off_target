@@ -364,6 +364,11 @@ class Engine:
                 new_external = set()
                 for f_id in self.cutoff.external_funcs:
                     if f_id in self.cutoff.stats_cache:
+                        if not self.include_asm and f_id in self.dbops.all_funcs_with_asm:
+                            # this functions is external because it includes assembly
+                            # and we don't want to include assembly
+                            continue
+
                         # please note that self.stats_cache will be filled if we executed
                         # _get_function_stats (partially for basic stats, full for detailed)
                         # if the id is found in cache we will immediately know how many functions does
