@@ -15,7 +15,7 @@ import os
 import sys
 import collections
 import difflib
-import json
+import bson.json_util
 import re
 
 class CodeGen:
@@ -531,11 +531,9 @@ class CodeGen:
     def _isAnonRecordDependent(self, RT, depT):
         if RT["id"] == depT["id"]:
             return True
-        elif (depT["class"] == "const_array" or depT["class"] == "incomplete_array") and depT["refs"][0] == RT["id"]:
-            # struct { u16 index; u16 dist;} near[0];
-            return True
-        else:
-            return False
+
+        t, _ = self.init._resolve_record_type(depT["id"])
+        return t == RT
 
     # @belongs: codegen
     def _generate_verification_recipes(self):
@@ -581,7 +579,7 @@ class CodeGen:
                                 real_refs.append(
                                     (RT["refs"][i], RT["refnames"][i], RT["memberoffsets"][i-ignore_count], [], [], i in bitfield_members))
                     except Exception as e:
-                        sys.stderr.write(json.dumps(RT, indent=4)+"\n")
+                        sys.stderr.write(bson.json_util.dumps(RT, indent=4)+"\n")
                         raise e
                     while len(real_refs) > 0:
                         ref, name, offset, memberoffset_list, refname_prefix_list, is_bitfield = real_refs.pop(
