@@ -129,6 +129,11 @@ class CodeGen:
             dst_type = self.dbops.typemap[type["refs"][0]]
             name = "* {}".format(name)
             str += self._generate_var_def(dst_type, name)
+        elif cl == "vector":
+            dst_type = self.dbops.typemap[type["refs"][0]]
+            dst_type_str = dst_type["str"]
+            size = int(type["size"] / 8)
+            str += f"{dst_type_str} __attribute__ ((vector_size ({size}))) {name}"
         else:
             logging.error(
                 "Unable to generate var def {} for class {}".format(name, cl))

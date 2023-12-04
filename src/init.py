@@ -717,16 +717,6 @@ class Init:
 
     # @belongs: init
     def _get_cast_ptr_data(self, type, member_number=CAST_PTR_NO_MEMBER):
-        type_to_check = None
-        if member_number == Init.CAST_PTR_NO_MEMBER:
-            type_to_check = type
-        else:
-            # it's a structured type
-            type_to_check = self.dbops.typemap[type['refs'][member_number]]
-
-        # if not self._is_void_ptr(type_to_check):
-        #    return None, False
-
         t_id = type["id"]
         _t_id = self.dbops._get_real_type(t_id)
         _type = self.dbops.typemap[_t_id]

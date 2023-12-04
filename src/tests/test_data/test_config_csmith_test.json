@@ -3,7 +3,7 @@
         "db_type": "ftdb",
         "db": "db.img",
         "config": "cfg.json",
-        "functions": "test"
+        "functions": "test dep1_function"
     },
     "data_dir": "csmith_test",
     "cases": [
