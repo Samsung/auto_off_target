@@ -782,6 +782,8 @@ class AotDbOps:
         all_items = set()
 
         for i in items:
+            if i in all_items:
+                continue
 
             if self.globs_tree_globalrefs is not None and collection == "globals" and match_from_field == "globalrefs":
                 # = self.dbops.globs_tree_globalrefs[i][match_from_field]
