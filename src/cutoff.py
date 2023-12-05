@@ -162,7 +162,7 @@ class CutOff:
                 elif self.args.cut_off == CutOff.CUT_OFF_FILES:
                     # internal functions are the ones that reside in the
                     # specified source files
-                    src, loc, srcs = self.dbops._get_function_file(fid)
+                    src, loc = self.dbops._get_function_file(fid)
                     if src not in self.co_files:
                         ext = True
 
@@ -184,7 +184,7 @@ class CutOff:
                 if ext and self.args.cut_off != CutOff.CUT_OFF_FILES and len(self.co_files) > 0:
                     # internal functions are the ones that reside in the
                     # specified source files
-                    src, loc, srcs = self.dbops._get_function_file(fid)
+                    src, loc = self.dbops._get_function_file(fid)
                     if src in self.co_files:
                         ext = False
 
@@ -226,30 +226,25 @@ class CutOff:
     # -------------------------------------------------------------------------
 
     def _get_mods_and_dirs_for_f(self, fid):
-        src, loc, srcs = self.dbops._get_function_file(fid)
+        src, loc = self.dbops._get_function_file(fid)
         mod_paths = None
 
         # Cut-off based on modules
         if (src is None) and (loc is None):
             # that is for the unresolved functions
             mod_paths = ["/tmp/no_such_mod"]
-            #sys.exit(1)
         else:
-            # logging.debug(f"function {fid}")
             mod_paths = self.basconnector.get_module_for_source_file(
                 src, loc)
-            
+
         for mod_path in mod_paths:
             if mod_path not in self.modules:
                 self.modules[mod_path] = Module(mod_path)
             self.modules[mod_path].fids.add(fid)
             if fid not in self.fid_to_mods:
                 self.fid_to_mods[fid] = []
-            if mod_path not in self.fid_to_mods[fid]:            
+            if mod_path not in self.fid_to_mods[fid]:
                 self.fid_to_mods[fid].append(mod_path)
-            # else:
-            #    logging.error("Ambiguous function to module mapping for fid {}".format(fid))
-            #    sys.exit(1)
 
         # cut-off based on the list of function names
         # we don't really need to collect anything in that case - we will filter out
@@ -264,7 +259,6 @@ class CutOff:
         if len(dirs) != 0:
             if fid not in self.fid_to_dirs:
                 self.fid_to_dirs[fid] = dirs
-    
 
     # @base_fids: the ids of the functions we would like to create an off-target for
     # @fids: the ids of all the other functions (that we discovered recursively)
@@ -280,7 +274,7 @@ class CutOff:
         # to the list of allowed funcs
         for f in base_functions:
             self.co_funcs.add(f["name"])
-            src, loc, srcs = self.dbops._get_function_file(f["id"])
+            src, loc = self.dbops._get_function_file(f["id"])
             dirs = set()
             dirs.add(os.path.dirname(src))
             # self.co_dirs |= dirs

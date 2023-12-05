@@ -740,21 +740,13 @@ class AotDbOps:
         if function_id not in self.fnidmap:
             if function_id not in self.fdmap:
                 logging.error("Function {} not found".format(function_id))
-                return None, None, None
+                return None, None
             else:
                 function = self.fdmap[function_id]
         else:
             function = self.fnidmap[function_id]
         fid = function["fid"]
         src = self.srcidmap[fid]
-        srcs = []
-        if "fids" in function:
-            fids = function["fids"]
-            for entry in self.srcidmap.get_many([fid for fid in fids]):
-                srcs.append(entry)
-        else:
-            # if fids not present for some reason, we still have fid
-            srcs.append(src)
 
         loc = function["location"]
 
@@ -762,7 +754,7 @@ class AotDbOps:
         if -1 != end_index:
             loc = loc[:end_index]
 
-        return src, loc, srcs
+        return src, loc
 
     # -------------------------------------------------------------------------
 

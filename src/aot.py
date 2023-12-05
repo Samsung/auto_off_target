@@ -254,7 +254,7 @@ class Engine:
                     locs = set()
                     for func in tmp:
                         fid = func["id"]
-                        src, loc, srcs = self.dbops._get_function_file(fid)
+                        src, loc = self.dbops._get_function_file(fid)
                         locs.add(loc)
                         # filename = os.path.basename(src)
                         filename = src
@@ -314,7 +314,7 @@ class Engine:
         basedirs = set()
         for f in function_ids:
             self.functions.add(f)
-            src, loc, srcs = self.dbops._get_function_file(f)
+            src, loc = self.dbops._get_function_file(f)
 
             dir = os.path.dirname(src)
 
