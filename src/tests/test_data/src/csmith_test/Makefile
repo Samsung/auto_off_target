@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -w
-objects = test_program.o dep1.o dep2.o
+objects = test_program.o csmith_dep.o test_dep.o
 
 .PHONY: all clean
 
@@ -13,5 +13,5 @@ clean:
 test_program: $(objects)
 	$(CC) -o test_program $(objects)
 
-%.o : %.c
+%.o : %.c %.h
 	$(CC) -c $(CFLAGS) $< -o $@

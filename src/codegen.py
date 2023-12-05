@@ -106,7 +106,7 @@ class CodeGen:
                 str += "struct {}".format(type["str"]) + " " + name
             else:
                 str += "union {}".format(type["str"]) + " " + name
-        elif cl == "enum":
+        elif cl == "enum" or cl == "enum_forward":
             str += "enum {}".format(type["str"]) + " " + name
         elif cl == "function":
             str += type["def"].replace(" (", " ({})(".format(name))

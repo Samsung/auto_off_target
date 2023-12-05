@@ -8,7 +8,7 @@
  */
 
 #include "csmith.h"
-#include "dep1.h"
+#include "test_dep.h"
 
 static long __undefined;
 
@@ -1384,14 +1384,7 @@ static int8_t  func_60(int32_t  p_61)
 /* ---------------------------------------- */
 int csmith_main (int argc, char* argv[])
 {
-    struct test_struct s = {
-        .member1 = {{ .a = 1, .b = 2, }},
-        .member2 = {},
-        .member3 = 2137,
-        .member4 = { 2, 1, 3, 7 },
-    };
-    test_vector t = {0};
-    int asd = dep1_function(10, s, t);
+    int asd = test(argc, argv);
     int i, j, k;
     int print_hash_value = 0;
     if (argc == 2 && strcmp(argv[1], "1") == 0) print_hash_value = 1;
