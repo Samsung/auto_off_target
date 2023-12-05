@@ -13,7 +13,7 @@ CLANG_TIDY:=clang-tidy
 CLANG_TIDY_OPTS:= --checks="-*,readability-function-size" --config="{Checks: 'readability-function-size',CheckOptions: [{key: readability-function-size.BranchThreshold, value: '0'},{key: readability-function-size.NestingThreshold, value: '0'},{key: readability-function-size.LineThreshold, value: '0'},{key: readability-function-size.StatementThreshold, value: '0'}]}"
 
 CFLAGS = -MD
-LDFLAGS = -lpthread
+LDFLAGS = 
 COMP = clang
 
 
@@ -139,18 +139,6 @@ afl: COMP+=-DAFL -w
 afl: $(obj) $(lib)
 	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-.PHONY: afl-persistent
-afl-persistent: export AFL_USE_ASAN=1
-#afl: export AFL_HARDEN=1
-ifeq ($(shell which afl-clang-lto),)
-afl-persistent: COMP=afl-clang-fast
-else
-afl-persistent: COMP=afl-clang-lto
-endif
-afl-persistent: COMP+=-DAFL -w -DAFL_PERSISTENT
-afl-persistent: $(obj) $(lib)
-	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
-
 # KLEE
 .PHONY: klee
 klee: CFLAGS+=-emit-llvm -DKLEE -MD -w
@@ -158,7 +146,6 @@ klee: COMP=clang-13
 klee: LD=llvm-link-13
 klee: $(obj)
 	$(LD) -o $@.bc $^ $(extra_bc)
-
 
 # SYMCC
 .PHONY: symcc
@@ -168,12 +155,18 @@ symcc: $(obj) $(lib)
 	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 	mkdir -p "symcc_results"
 
-
 # code coverage
 .PHONY: gcov
 gcov: CFLAGS+=-fprofile-instr-generate -fcoverage-mapping -MD -w
 gcov: $(obj) $(lib)
 	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+# Frama-c parse
+.PHONY: frama
+frama: COMP=frama-c
+frama: CFLAGS=-save frama-parsed.sav -machdep gcc_x86_32
+frama:  $(src)
+	$(COMP) $(CFLAGS) $^ $(LDFLAGS)
 
 # for debugging purposes - optimizations off
 .PHONY: debug
