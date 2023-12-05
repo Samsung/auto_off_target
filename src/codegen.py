@@ -296,14 +296,7 @@ class CodeGen:
                 if "inline" in func and func["inline"] and func["linkage"] == "external":
                     if decl.startswith("inline "):
                         decl = decl.replace("inline ", "")
-                decl = self._filter_out_asm_in_fdecl(decl)
-                decl = decl.replace(
-                    '__attribute__((warn_unused_result("")))', "")
-                decl = decl.replace(
-                    '__attribute__((overloadable))', "")
-                decl = decl.replace(
-                    '__attribute__((always_inline))', "")
-                decl = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", decl)  
+                decl = self._sanitize_function_decl(decl)
                 str += self._get_func_clash_ifdef(f, fid, True)
                 str += f"\n\n{decl}{attributes};\n"
                 str += self._get_func_clash_endif(f, fid)
@@ -315,14 +308,7 @@ class CodeGen:
                 decl = func["decl"]
                 if f in self.dbops.lib_funcs_ids:
                     decl = decl.replace("static ", "extern ")
-                decl = self._filter_out_asm_in_fdecl(decl)
-                decl = decl.replace(
-                    '__attribute__((warn_unused_result("")))', "")
-                decl = decl.replace(
-                    '__attribute__((overloadable))', "")
-                decl = decl.replace(
-                    '__attribute__((always_inline))', "")
-                decl = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", decl)  
+                decl = self._sanitize_function_decl(decl) 
                 str += self._get_func_clash_ifdef(f, fid, True)
                 str += f"\n\n{decl};\n"
                 str += self._get_func_clash_endif(f, fid)
@@ -347,18 +333,9 @@ class CodeGen:
                 "{}(".format(name), "wrapper_{}_{}(".format(name, f_id))
             body = body.replace("static ", "")
             body = body.replace("inline ", "")
-            body = self._filter_out_asm_in_fdecl(body)
-            body = body.replace('__attribute__((warn_unused_result("")))', "")
-            body = body.replace('__attribute__((overloadable))', "")
-            body = body.replace('__attribute__((always_inline))', "")
-            body = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", body)
+            body = self._sanitize_function_decl(body)
             str += "{};\n".format(body)
-            body = f["declbody"]
-            body = self._filter_out_asm_in_fdecl(body)
-            body = body.replace('__attribute__((warn_unused_result("")))', "")
-            body = body.replace('__attribute__((overloadable))', "")
-            body = body.replace('__attribute__((always_inline))', "")
-            body = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", body)  
+            body = self._sanitize_function_decl(f["declbody"])
 
             str += "{}{};\n".format(body, attributes)
             str += self._get_func_clash_endif(f_id, fid)
@@ -998,7 +975,7 @@ class CodeGen:
         str = "\n// Stub code\n"
         return_type = None
         if t == TYPE_FUNC:
-            decl = function["declbody"]
+            decl = self._sanitize_function_decl(function["declbody"])
             str += decl
             func_name = function["name"]
             return_type = self.dbops.typemap[function["types"][0]]
@@ -1294,6 +1271,17 @@ class CodeGen:
             if end == len(decl) - 1:
                 # the declation end with the asm clause -> that's what we're looking for
                 decl = decl[:index] + "/*" + decl[index:end + 1] + "*/"
+        return decl
+    
+    # -------------------------------------------------------------------------
+
+    # @belongs: codegen
+    def _sanitize_function_decl(self, decl):
+        decl = self._filter_out_asm_in_fdecl(decl)
+        decl = decl.replace('__attribute__((warn_unused_result("")))', "")
+        decl = decl.replace('__attribute__((overloadable))', "")
+        decl = decl.replace('__attribute__((always_inline))', "")
+        decl = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", decl)
         return decl
 
     # -------------------------------------------------------------------------
