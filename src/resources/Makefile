@@ -13,7 +13,7 @@ CLANG_TIDY:=clang-tidy
 CLANG_TIDY_OPTS:= --checks="-*,readability-function-size" --config="{Checks: 'readability-function-size',CheckOptions: [{key: readability-function-size.BranchThreshold, value: '0'},{key: readability-function-size.NestingThreshold, value: '0'},{key: readability-function-size.LineThreshold, value: '0'},{key: readability-function-size.StatementThreshold, value: '0'}]}"
 
 CFLAGS = -MD
-LDFLAGS = 
+LDFLAGS = -lpthread
 COMP = clang
 
 
@@ -139,6 +139,19 @@ afl: COMP+=-DAFL -w
 afl: $(obj) $(lib)
 	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
+# AFL persistent mode
+.PHONY: afl-persistent
+afl-persistent: export AFL_USE_ASAN=1
+#afl: export AFL_HARDEN=1
+ifeq ($(shell which afl-clang-lto),)
+afl-persistent: COMP=afl-clang-fast
+else
+afl-persistent: COMP=afl-clang-lto
+endif
+afl-persistent: COMP+=-DAFL -w -DAFL_PERSISTENT
+afl-persistent: $(obj) $(lib)
+	$(COMP) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
 # KLEE
 .PHONY: klee
 klee: CFLAGS+=-emit-llvm -DKLEE -MD -w
@@ -164,6 +177,7 @@ gcov: $(obj) $(lib)
 # Frama-c parse
 .PHONY: frama
 frama: COMP=frama-c
+frama: LDFLAGS=
 frama: CFLAGS=-main eva_main -save frama-parsed.sav -machdep gcc_x86_32 -cpp-extra-args="-DFRAMA_REPLACEMENTS"
 frama: eva_main_path=$(shell echo `frama-c -print-libpath`/analysis-scripts/fc_stubs.c)
 frama:  $(src)
