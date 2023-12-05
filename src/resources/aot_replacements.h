@@ -16,6 +16,7 @@ void* memcpy(void* dst, const void* src, typeof(sizeof(int)) count);
 
 struct list_head;
 
+#define __uint128_t u64
 #define __replacement____put_user__(x,ptr) ({ typeof(*ptr) val; typeof(*ptr) __x = x; memcpy(&val, &__x, sizeof(__x)); 0; })
 #define __replacement____get_user__(x,ptr)  ({ fuzz_that_data(&x, ptr, sizeof(x), 0); aot_tag_memory(&x, sizeof(x), 0); 0; })
 #define __replacement____BUG_ON__(condition)({ int _c = !!(condition); if (_c) { int* ptr = 0; *ptr = 0; } })
@@ -67,5 +68,13 @@ static inline void __macrocall__list_for_each_entry_from_rcu__(struct list_head*
 static inline void __macrocall__list_entry_is_head__(struct list_head* head, unsigned long offset, void* typeptr) { (void)head; (void)offset; (void)typeptr; }
 static inline void __macrocall__list_prepare_entry__(struct list_head* head, unsigned long offset, void* typeptr) { (void)head; (void)offset; (void)typeptr; }
 static inline void __macrocall__container_of__(void* ptr, unsigned long offset, void* typeptr) { (void)ptr; (void)offset; (void)typeptr; }
+
+// Replacements for frama-C and Daikon
+#ifdef FRAMA_REPLACEMENTS
+  #define __uint128_t u64
+  #define __builtin_clzll(X) 32
+  #define __builtin_clzl(X) 32
+  #define __builtin_clz(X) 32
+#endif
 
 #endif

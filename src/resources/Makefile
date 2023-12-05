@@ -164,9 +164,10 @@ gcov: $(obj) $(lib)
 # Frama-c parse
 .PHONY: frama
 frama: COMP=frama-c
-frama: CFLAGS=-save frama-parsed.sav -machdep gcc_x86_32
+frama: CFLAGS=-main eva_main -save frama-parsed.sav -machdep gcc_x86_32 -cpp-extra-args="-DFRAMA_REPLACEMENTS"
+frama: eva_main_path=$(shell echo `frama-c -print-libpath`/analysis-scripts/fc_stubs.c)
 frama:  $(src)
-	$(COMP) $(CFLAGS) $^ $(LDFLAGS)
+	$(COMP) $(CFLAGS) $^ $(eva_main_path) $(LDFLAGS)
 
 # for debugging purposes - optimizations off
 .PHONY: debug

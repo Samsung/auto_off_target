@@ -593,7 +593,7 @@ class OTGenerator:
             str_header += "\n\n// func decls which might be useful\n"
             str_header += "void* memset(void* dst, int ch, typeof(sizeof(int)) count);\n"
             str_header += "void* memcpy(void* dst, const void* src, typeof(sizeof(int)) n);\n"
-            str_header += "void* malloc(typeof(sizeof(int)) size);\n"
+            str_header += "void* malloc(unsigned long size);\n"
             str_header += "int puts(const char* s);\n"
             str_header += "int strcmp(const char* a, const char* b);\n"
 

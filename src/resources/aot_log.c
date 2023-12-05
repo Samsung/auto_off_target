@@ -35,8 +35,10 @@ void aot_log_msg(char* fmt, ...) {
 
     va_list args;
     va_start(args, fmt);
+#ifndef FRAMA_REPLACEMENTS
     fprintf(aot_log_file, fmt, args);
     printf(fmt, args);
+#endif
     va_end(args);
 
     fflush(aot_log_file);
