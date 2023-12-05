@@ -11,14 +11,6 @@
 
 import logging
 import os
-import sys
-
-class Module:
-
-    def __init__(self, path):
-        self.fids = set()
-        self.path = path
-        self.depth = path.count("/")
 
 
 class CutOff:
@@ -53,7 +45,6 @@ class CutOff:
         # of what is considered to be an off-target border
         self.external_funcs = set()
 
-        self.modules = {}  # map modules -> functions
         self.fid_to_mods = {}  # map functions -> modules
         self.fid_to_dirs = {}  # map functions -> source directories
 
@@ -234,13 +225,9 @@ class CutOff:
             # that is for the unresolved functions
             mod_paths = ["/tmp/no_such_mod"]
         else:
-            mod_paths = self.basconnector.get_module_for_source_file(
-                src, loc)
+            mod_paths = self.basconnector.get_module_for_source_file(src, loc)
 
         for mod_path in mod_paths:
-            if mod_path not in self.modules:
-                self.modules[mod_path] = Module(mod_path)
-            self.modules[mod_path].fids.add(fid)
             if fid not in self.fid_to_mods:
                 self.fid_to_mods[fid] = []
             if mod_path not in self.fid_to_mods[fid]:
