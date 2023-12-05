@@ -120,6 +120,10 @@ class TestE2E(unittest.TestCase):
     def _set_aot_timeout(self, aot_timeout):
         self.timeout = aot_timeout
 
+    @pytest.fixture(autouse=True)
+    def _set_aot_threads(self, aot_threads):
+        self.threads = aot_threads
+
     def _prepare_options(test_config, function, case):
         options = test_config.source.options()
         options['functions'] = function
@@ -184,7 +188,7 @@ class TestE2E(unittest.TestCase):
                                       self.keep_test_env, self.build_all,
                                       self.regression_aot_path, self.timeout))
 
-        process_pool = multiprocessing.pool.Pool(int(os.cpu_count() / 2))
+        process_pool = multiprocessing.pool.Pool(self.threads)
         progress_bar = TestE2E._progress_bar(len(test_args))
         progress_bar.start()
 

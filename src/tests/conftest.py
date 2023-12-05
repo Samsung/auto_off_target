@@ -18,6 +18,7 @@ def pytest_addoption(parser):
                               os.path.join(data_dir, 'test_config_csmith_test.json')])
     parser.addoption('--regression-aot', default=None)
     parser.addoption('--aot-timeout', type=int, default=600)
+    parser.addoption('--aot-threads', type=int, default=os.cpu_count() - 1)
 
 
 @pytest.fixture
@@ -43,3 +44,8 @@ def regression_aot(pytestconfig):
 @pytest.fixture
 def aot_timeout(pytestconfig):
     return pytestconfig.getoption('aot_timeout')
+
+
+@pytest.fixture
+def aot_threads(pytestconfig):
+    return pytestconfig.getoption('aot_threads')
