@@ -1769,6 +1769,7 @@ class Init:
         # things to consider: pointer fields in structs, members of arrays
         # it seems we need to recursively initialize everything that is not a built-in type
         go_deeper = False
+        for_loop = False
         if cl not in ["builtin", "enum"]:
             # first, let's check if any of the refs in the type is non-builtin
             refs = []
@@ -1800,7 +1801,12 @@ class Init:
                     # assuming an array has only one ref
                     member_type = type["refs"][0]
                     member_type = self.dbops.typemap[member_type]
-                    if (count is None and int(loop_count) > 1) or cl == "const_array" or cl == "incomplete_array":
+                    for_loop = (
+                        (count is None and (not isinstance(loop_count, int) or loop_count > 1))
+                        or cl == "const_array"
+                        or cl == "incomplete_array"
+                    )
+                    if for_loop:
                         # please note that the loop_count could only be > 0 for an incomplete array if it
                         # was artificially increased in AoT; normally the size of such array in db.json would be 0
                         str += f"for (int {index} = 0; {index} < {loop_count}; {index}++) ""{\n"
@@ -1814,7 +1820,7 @@ class Init:
                         skip = True
 
                     tmp_name = ""
-                    if (count is None and int(loop_count) > 1) or cl == "const_array" or cl == "incomplete_array":
+                    if for_loop:
                         tmp_name = f"{name}[{index}]"
                     else:
                         tmp_name = name
@@ -2105,7 +2111,7 @@ class Init:
             str = str.replace("\n", f"\n{prefix}")
             str = str[:-(2*level)]
 
-        if is_array and go_deeper and ((count is None and loop_count > 1) or cl == "const_array" or cl == "incomplete_array"):
+        if for_loop:
             str += f"{prefix}""}\n"  # close the for loop
 
         return str, alloc, False
