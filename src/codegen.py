@@ -666,6 +666,14 @@ class CodeGen:
             # as some params might be reorered we need to keep track of the new mapping
             index_mapping[i] = i
 
+        # store the names of all function params
+        params = []
+        for i in range(len(function["locals"])):
+            if "name" in function['locals'][i] and function["locals"][i]["parm"] is True:
+                params.append(function['locals'][i]['name'])                     
+        logging.debug(f"parms length = {len(params)}, params = {params}")
+
+
         if name in self.dbops.init_data and param_names is None:
             user_init_data = self.dbops.init_data[name]
             order_to_names = {}
@@ -685,22 +693,19 @@ class CodeGen:
                 f"order_to_names {order_to_names} order_to_user_name {order_to_user_name} ")
             order_to_params = {}
             for i in range(1, len(type_ids)):  # 1 -> let's skip the return type
-                varname = ""
-                if "name" in function["locals"][i-1] and function["locals"][i-1]["parm"]:
-                    tmp = function["locals"][i-1]["name"]
-                    if tmp != "":
-                        varname = function["locals"][i-1]["name"]
-                        logging.debug(f"varname is {varname}")
-                        for ord in order_to_names:
-                            if varname in order_to_names[ord]:
-                                order_to_params[ord] = i
-                                logging.debug(
-                                    f"order_to_params[{ord}] = {i}, tid = {type_ids[i]}")
-                                if ord in order_to_user_name:
-                                    param_to_user_name[i] = order_to_user_name[ord]
-                            else:
-                                logging.debug(
-                                    f"varname {varname} not in order_to_names[{ord}]")
+                varname = params[i-1]
+                if varname != "":
+                    logging.debug(f"varname is {varname}")
+                    for ord in order_to_names:
+                        if varname in order_to_names[ord]:
+                            order_to_params[ord] = i
+                            logging.debug(
+                                f"order_to_params[{ord}] = {i}, tid = {type_ids[i]}")
+                            if ord in order_to_user_name:
+                                param_to_user_name[i] = order_to_user_name[ord]
+                        else:
+                            logging.debug(
+                                f"varname {varname} not in order_to_names[{ord}]")
             logging.debug(f"Order to names: {order_to_names}:")
             logging.debug(f"Order to params: {order_to_params}")
             order_to_params_sorted = collections.OrderedDict(
@@ -782,10 +787,8 @@ class CodeGen:
                             varname = param_to_user_name[i]
                         else:
                             n = "param_{}".format(i)
-                            if "name" in function["locals"][i-1] and function["locals"][i-1]["parm"]:
-                                tmp = function["locals"][i-1]["name"]
-                                if tmp != "":
-                                    n = function["locals"][i-1]["name"]
+                            if params[i-1] != "":
+                                n = params[i-1]
                             varname += n
                     else:
                         # if the user provided concrete param names, use them
