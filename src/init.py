@@ -1642,6 +1642,12 @@ class Init:
                             if "protected" in entry and entry["protected"] == "True":
                                 protected = True
 
+                            if "fuzz" in entry:
+                                if entry["fuzz"] is True:
+                                    fuzz = 1
+                                else:
+                                    fuzz = 0
+
                             user_init = True
                             break  # no need to look further
                 tagged_var_name = 0
