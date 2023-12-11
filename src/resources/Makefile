@@ -184,6 +184,55 @@ frama: eva_main_path=$(shell echo `frama-c -print-libpath`/analysis-scripts/fc_s
 frama:  $(src_reduced)
 	$(COMP) $(CFLAGS) $^ $(eva_main_path) $(LDFLAGS)
 
+# AFLgo build recipe
+# As of now it can be used with symcc
+
+AFLGO_FILES=${PWD}/aflgo_files
+
+
+aflgo_pre:
+	mkdir ${AFLGO_FILES} || true
+	[ -f ${PWD}/BBtargets.txt ] || ( echo File with target lines does not exist ; exit 1 )
+	rm -r ${AFLGO_FILES}/* || true
+	cp ${PWD}/BBtargets.txt ${AFLGO_FILES}/
+
+
+#aflgo1: export AFL_USE_ASAN=1
+aflgo1: COMP=$(AFLGO)/afl-clang-fast
+aflgo1: COMP+=-DAFL -w
+aflgo1: CFLAGS+=-targets=$(AFLGO_FILES)/BBtargets.txt -outdir=$(AFLGO_FILES) -flto -fuse-ld=gold -Wl,-plugin-opt=save-temps
+aflgo1: $(obj) $(lib)
+	$(COMP) $(CFLAGS) -o $(AFLGO_FILES)/$@ $^ $(LDFLAGS)
+
+.PHONY: aflgo2
+aflgo2: 
+	cat $(AFLGO_FILES)/BBnames.txt | rev | cut -d\: -f2- | rev | sort | uniq > $(AFLGO_FILES)/BBnames2.txt && mv $(AFLGO_FILES)/BBnames2.txt $(AFLGO_FILES)/BBnames.txt
+	cat $(AFLGO_FILES)/BBcalls.txt | sort | uniq > $(AFLGO_FILES)/BBcalls2.txt && mv $(AFLGO_FILES)/BBcalls2.txt $(AFLGO_FILES)/BBcalls.txt
+	${AFLGO}/scripts/genDistance.sh ${AFLGO_FILES} ${AFLGO_FILES} aflgo1
+
+
+aflgo2.5: COMP=$(AFLGO)/afl-clang-fast
+aflgo2.5: COMP+=-DAFL -w
+aflgo2.5: CFLAGS=-g -MD -distance=$(AFLGO_FILES)/distance.cfg.txt
+aflgo2.5:
+	for file in $(src) ; do \
+		$(COMP) -MD -w -g $(CFLAGS) -c $$file ; \
+	done
+
+
+#alfgo3: export AFL_USE_ASAN=1
+aflgo3: COMP=$(AFLGO)/afl-clang-fast
+aflgo3: COMP+=-DAFL -w
+aflgo3: CFLAGS=-g -MD -distance=$(AFLGO_FILES)/distance.cfg.txt
+aflgo3: $(obj) $(lib)
+	$(COMP) $(CFLAGS) -o aflgo $^ $(LDFLAGS)
+	rm $(AFLGO_FILES)/aflgo1* || true
+
+
+.PHONY: aflgo
+aflgo: | aflgo_pre aflgo1 aflgo2 aflgo2.5 aflgo3
+
+
 # for debugging purposes - optimizations off
 .PHONY: debug
 debug: CFLAGS+=-ferror-limit=0 -g -O0 -MD
