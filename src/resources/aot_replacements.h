@@ -73,7 +73,7 @@ static inline void __macrocall__container_of__(void* ptr, unsigned long offset, 
   struct __attribute__((__packed__)) u128_replacement { 
     unsigned long a[2];
   };
-  #define __uint128_t u128_replacement
+  #define __uint128_t struct u128_replacement
   #define __builtin_clzll(X) 32
   #define __builtin_clzl(X) 32
   #define __builtin_clz(X) 32
