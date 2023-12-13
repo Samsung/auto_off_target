@@ -266,21 +266,23 @@ def test_regression(
     progress_bar.finish()
 
     total_aot_time = 0
+    aot_time_loss = 0
     total_regression_time = 0
+    regression_time_loss = 0
 
     for test_case, result in zip(test_args, results):
         test_config, function, i, case, _, _, _, _ = test_case
         tester, exec_dir = result.get()
 
-        if tester.aot_time is None:
-            total_aot_time = None
-        elif total_aot_time is not None:
+        if tester.aot_time is not None:
             total_aot_time += tester.aot_time
+        else:
+            aot_time_loss += 1
 
-        if tester.regression_time is None:
-            total_regression_time = None
-        elif total_regression_time is not None:
+        if tester.regression_time is not None:
             total_regression_time += tester.regression_time
+        else:
+            regression_time_loss += 1
 
         exec_dir_postfix = f' at {exec_dir}' if keep_test_env else ''
         test_title = f'Test {test_config.name} ({function})' \
@@ -296,6 +298,12 @@ def test_regression(
     print()
     print('===============================================')
     if total_aot_time:
-        print(f'Total AoT time: {total_aot_time}')
+        postfix = ''
+        if aot_time_loss > 0:
+            postfix = f' (loss: {100 * aot_time_loss / len(results)}%)'
+        print(f'Total AoT time: {total_aot_time}{postfix}')
     if total_regression_time:
+        postfix = ''
+        if regression_time_loss > 0:
+            postfix = f' (loss: {100 * regression_time_loss / len(results)}%)'
         print(f'Total regression AoT time: {total_regression_time}')
