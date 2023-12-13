@@ -89,7 +89,7 @@ class Deps:
     #  function_id: a function where the function invocation through a pointer takes place
     #  expr: the expression of the function invocation through a pointer
     #  called_fun_id: function id that could be possible stored (and invoked) through the pointer at the given expression
-    def _infer_functions(self, json_data: dict) -> dict:
+    def _infer_functions(self, json_data):
 
         # save all funcs
         funcsaddresstaken = set()

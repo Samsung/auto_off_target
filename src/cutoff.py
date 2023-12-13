@@ -11,6 +11,7 @@
 
 import logging
 import os
+from typing import Optional
 
 
 class CutOff:
@@ -204,11 +205,15 @@ class CutOff:
     #  Returns the following list:
     #       [("expr", [func_id_0, func_id_1, ...])] or None if ID not found
     #    where,
-    #       func_id_<num>: function id that could be possible stored (and invoked) through the pointer
+    #       func_id_<num>: function id that could be possible stored
+    #                      (and invoked) through the pointer
+    #
     #       expr: the expression of the function invocation through a pointer
+    #
     #  Arguments:
-    #       func_id: ID of the function for which function_pointers should be found
-    def _get_infer_function(self, func_id: int) -> list:
+    #       func_id: ID of the function for which function_pointers should
+    #                be found
+    def _get_infer_function(self, func_id: int) -> Optional[list]:
         result = self.dbops.fpointer_map.get(func_id)
         if result is None:
             return None
