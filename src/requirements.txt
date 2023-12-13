@@ -1,9 +1,11 @@
 scipy
 toposort
+types-toposort
 psutil
 numpy == 1.23
 packaging
 tree_sitter
+types-tree-sitter
 pytest
 pytest-subtests
 coverage
