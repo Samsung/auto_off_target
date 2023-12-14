@@ -778,6 +778,8 @@ class Init:
     # @belongs: init
     def _generate_var_init(self, name, type, res_var, pointers, level=0, skip_init=False, known_type_names=None, cast_str=None, new_types=None,
                            entity_name=None, init_obj=None, fuse=None, fid=None, count=None):
+        if entity_name is None:
+            entity_name = name
         # in case of typedefs we need to get the first non-typedef type as a point of
         # reference
 
@@ -1054,19 +1056,28 @@ class Init:
                 min_value = None
                 max_value = None
                 protected = False
-                if level == 0 and self.dbops.init_data is not None and entity_name in self.dbops.init_data:
+
+                entity_name_core = entity_name
+                if entity_name is not None and "[" in entity_name:
+                    entity_name_core = entity_name[:entity_name.find("[")]
+
+                if self.dbops.init_data is not None and entity_name_core in self.dbops.init_data \
+                    and (level == 0 or self.dbops.init_data[entity_name_core]["interface"] == "global"):
                     if self.args.debug_vars_init:
                         logging.info(
                             f"Detected that {entity_name} has user-provided init")
-                    item = self.dbops.init_data[entity_name]
+                    item = self.dbops.init_data[entity_name_core]
                     for entry in item["items"]:
                         entry_type = "unknown"
                         if "type" in entry:
                             entry_type = entry["type"]
                             if " *" not in entry_type:
                                 entry_type = entry_type.replace("*", " *")
+                        name_core = name
+                        if "[" in name:
+                            name_core = name[:name.find("[")]
 
-                        if name in entry["name"] or entry_type == self.codegen._get_typename_from_type(type):
+                        if name_core in entry["name"] or entry_type == self.codegen._get_typename_from_type(type):
                             if self.args.debug_vars_init:
                                 logging.info(
                                     f"In {entity_name} we detected that item {name} of type {entry_type} has a user-specified init")
@@ -1574,19 +1585,27 @@ class Init:
                 protected = False
                 mul = 1
                 isPointer = False
-                if level == 0 and self.dbops.init_data is not None and entity_name in self.dbops.init_data:
+                entity_name_core = entity_name
+                if entity_name is not None and "[" in entity_name:
+                    entity_name_core = entity_name[:entity_name.find("[")]
+
+                if self.dbops.init_data is not None and entity_name_core in self.dbops.init_data \
+                    and (level == 0 or self.dbops.init_data[entity_name_core]["interface"] == "global"):
                     if self.args.debug_vars_init:
                         logging.info(
                             f"Detected that {entity_name} has user-provided init")
-                    item = self.dbops.init_data[entity_name]
+                    item = self.dbops.init_data[entity_name_core]
                     for entry in item["items"]:
                         entry_type = "unknown"
                         if "type" in entry:
                             entry_type = entry["type"]
                             if " *" not in entry_type:
                                 entry_type = entry_type.replace("*", " *")
+                        name_core = name
+                        if "[" in name:
+                            name_core = name[:name.find("[")]
 
-                        if name in entry["name"] or entry_type == self.codegen._get_typename_from_type(type):
+                        if name_core in entry["name"] or entry_type == self.codegen._get_typename_from_type(type):
                             if self.args.debug_vars_init:
                                 logging.info(
                                     f"In {entity_name} we detected that item {name} of type {entry_type} has a user-specified init")
@@ -1603,7 +1622,10 @@ class Init:
                             if "max_value" in entry:
                                 max_value = entry["max_value"]
                             if "user_name" in entry:
-                                name = entry["user_name"]
+                                if name == name_core:
+                                    name = entry["user_name"]
+                                else:
+                                    name = entry["user_name"] + name[name.find('['):]
                             if "size" in entry:
                                 mul = entry["size"]
                                 if "size_dep" in entry:
