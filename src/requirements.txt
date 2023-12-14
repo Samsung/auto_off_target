@@ -9,3 +9,4 @@ pytest-subtests
 coverage
 func_timeout
 progressbar2
+tqdm
