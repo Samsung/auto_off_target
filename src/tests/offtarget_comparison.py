@@ -9,34 +9,23 @@ import filecmp
 import os
 import subprocess
 import sys
-from typing import Callable, Any
-from .file_comparison import (
-    compare_aot_literals,
-    CComparator,
-    FptrStubCComparator
-)
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
+import file_comparison
 
 
 class OfftargetComparator:
-    special_files: dict[str, Callable[[str, str], tuple[bool, str]]]
-    exclude_from_diff: list[str]
-    differences: list[str]
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.special_files = {
-            'aot_literals': compare_aot_literals,
-            'aot.h': CComparator.compare_C_simple,
-            'fptr_stub.c': FptrStubCComparator.compare_fptr_stub_c,
+            'aot_literals': file_comparison.compare_aot_literals,
+            'aot.h': file_comparison.CComparator.compare_C_simple,
+            'fptr_stub.c': file_comparison.FptrStubCComparator.compare_fptr_stub_c,
         }
         self.exclude_from_diff = ['aot.log']
         self.differences = []
 
-    def _assert_differences(
-        self,
-        comparison_output: filecmp.dircmp[Any],
-        dir1: str,
-        dir2: str
-    ) -> bool:
+    def _assert_differences(self, comparison_output, dir1, dir2):
         for file in comparison_output.left_only:
             file_path = os.path.join(dir1, file)
             self.differences.append(f'Unexpected file: {file_path}')
@@ -53,8 +42,7 @@ class OfftargetComparator:
             file_path2 = os.path.join(dir2, file)
 
             if file in self.special_files:
-                comparator = self.special_files[file]
-                result, difference = comparator(file_path1, file_path2)
+                result, difference = self.special_files[file](file_path1, file_path2)
                 if not result:
                     self.differences.append(
                         f'Files {file_path1} and {file_path2} differ:\n'
@@ -77,7 +65,7 @@ class OfftargetComparator:
                 return False
         return True
 
-    def compare_offtarget(self, dir1: str, dir2: str) -> list[str]:
+    def compare_offtarget(self, dir1, dir2):
         if not os.path.exists(dir1):
             self.differences.append(f'{dir1} does not exist\n')
         if not os.path.exists(dir2):
@@ -95,6 +83,5 @@ if __name__ == '__main__':
         print(f'Usage: {os.path.basename(sys.argv[0])} dir1 dir2')
         exit(1)
 
-    comparator = OfftargetComparator()
-    for difference in comparator.compare_offtarget(sys.argv[1], sys.argv[2]):
+    for difference in OfftargetComparator().compare_offtarget(sys.argv[1], sys.argv[2]):
         print(difference)

@@ -11,11 +11,7 @@ import os
 import argparse
 
 parser = argparse.ArgumentParser(description="Generate files needed for AoT")
-parser.add_argument(
-    "--dir", "-d",
-    default=".",
-    help="Path to the directory with database files"
-)
+parser.add_argument("--dir", "-d", default=".", help="Path to the directory with database files")
 args = parser.parse_args()
 
 nfsdb_db = os.path.join(args.dir, ".nfsdb.img")
@@ -48,49 +44,49 @@ for f in deps:
         comps.add((cmap[f].eid.pid, cmap[f].eid.index))
 print(f"Number of compilations: {len(comps)}")
 
+
+# Generate compilation database
+def json_command(cmd):
+    return json.dumps(" ".join([x.rstrip()
+                                .replace("\\", "\\\\")
+                                .replace("\"", "\\\"")
+                                .replace(" ", "\\ ") for x in cmd]))
+
+
 json_vals = list()
 json_vals_openrefs = list()
 for C in comps:
     e = nfsdb[C]
     if isinstance(e, list) and len(e) == 1:
         e = e[0]
-    json_vals.append({
-        "directory": e.cwd,
-        "command": " ".join(e.argv),
-        "file": e.compilation_info.files[0].path,
-    })
-    json_vals_openrefs.append({
-        "directory": e.cwd,
-        "command": " ".join(e.argv),
-        "file": e.compilation_info.files[0].path,
-        "openfiles": sorted(list(e.parent.openpaths_with_children))
-    })
+    dir = json.dumps(e.cwd)
+    command = json_command(e.argv)
+    file = json.dumps(e.compilation_info.files[0].path)
+    json_vals.append("{\"directory\":%s,\"command\":%s,\"file\":%s}" % (dir, command, file))
+    openfiles = json.dumps(sorted([o for o in e.parent.openpaths_with_children]))
+    json_vals_openrefs.append("{\"directory\":%s,\"command\":%s,\"file\":%s,\"openfiles\":%s}" % (dir, command, file, openfiles))
 
 compile_commands_path = os.path.join(args.dir, "compile_commands.json")
 with open(compile_commands_path, "w") as f:
-    json.dump(json_vals, f, indent=4, sort_keys=False)
+    f.write(json.dumps(json.loads("[%s]" % ",".join(json_vals)), indent=4, sort_keys=False))
 print(f"Created compilation database file ({compile_commands_path})")
 
-compile_commands_refs_path = os.path.join(
-    args.dir, "compile_commands_refs.json"
-)
+compile_commands_refs_path = os.path.join(args.dir, "compile_commands_refs.json")
 with open(compile_commands_refs_path, "w") as f:
-    json.dump(json_vals_openrefs, f, indent=4, sort_keys=False)
-print(
-    "Created compilation database file with"
-    f"open references ({compile_commands_refs_path})"
-)
+    f.write(json.dumps(json.loads("[%s]" % ",".join(json_vals_openrefs)), indent=4, sort_keys=False))
+print(f"Created compilation database file with open references ({compile_commands_refs_path})")
 
 # Generate reverse dependency map file
 amdeps = dict()
 for m, T in nfsdb.linked_modules():
     amdeps[m.path] = list(set([x.path for x in nfsdb.mdeps(m.path)]))
-
-rdeps: dict[str, set[str]] = {}
+rdeps = {}
 for m in amdeps:
     for f in amdeps[m]:
-        rdeps.setdefault(f, set())
-        rdeps[f].add(m)
+        if f in rdeps:
+            rdeps[f].add(m)
+        else:
+            rdeps[f] = set([m])
 
 rdm = {}
 for f in deps:

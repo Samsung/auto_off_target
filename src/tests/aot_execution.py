@@ -7,12 +7,36 @@ import subprocess
 import aot
 import sys
 import contextlib
+import tempfile
+import os
+import shutil
 import func_timeout
 import io
-from typing import Optional, Callable, Any
 
 
-def prepare_args(options: dict[str, str]) -> list[str]:
+class ExecutionContext:
+
+    def __init__(self, data_dir=None, ignore=[]):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.cwd_path = os.getcwd()
+
+        if data_dir:
+            shutil.copytree(data_dir, self.temp_dir.name,
+                            ignore=shutil.ignore_patterns(*ignore), dirs_exist_ok=True)
+        os.chdir(self.temp_dir.name)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.cleanup()
+
+    def cleanup(self):
+        self.temp_dir.cleanup()
+        os.chdir(self.cwd_path)
+
+
+def prepare_args(options):
     args = []
     for k, v in options.items():
         args.append(f'--{k}')
@@ -21,12 +45,7 @@ def prepare_args(options: dict[str, str]) -> list[str]:
     return args
 
 
-def run_shell_aot(
-    aot_path: str,
-    options: dict[str, str],
-    timeout: Optional[int] = None,
-    capture_output: bool = False
-) -> tuple[int, str]:
+def run_shell_aot(aot_path, options, timeout=None, capture_output=False):
     command = [aot_path] + prepare_args(options)
     joined_command = ' '.join(command)
 
@@ -53,27 +72,22 @@ TIMEOUT_EXIT_CODE = 100
 EXCEPTION_EXIT_CODE = 101
 
 
-def _run_with_timeout(timeout: Optional[int], func: Callable[[], Any]) -> int:
-    def wrapper() -> int:
+def _run_with_timeout(timeout, func):
+    def wrapper():
         try:
             func()
         except SystemExit as e:
-            return e.code  # type: ignore
+            return e.code
         except Exception:
             return EXCEPTION_EXIT_CODE
-        return 0
     try:
-        return func_timeout.func_timeout(timeout, wrapper)  # type: ignore
+        return func_timeout.func_timeout(timeout, wrapper)
     except func_timeout.FunctionTimedOut:
         return TIMEOUT_EXIT_CODE
 
 
 # TODO: in the future we should probably return some more execution information
-def run_aot(
-    options: dict[str, str],
-    timeout: Optional[int] = None,
-    capture_output: bool = True
-) -> tuple[int, str]:
+def run_aot(options, timeout=None, capture_output=True):
     sys.argv = ['./aot.py'] + prepare_args(options)
     joined_argv = ' '.join(sys.argv)
 

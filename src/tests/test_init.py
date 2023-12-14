@@ -9,7 +9,7 @@ from init import _TreeIterator
 
 class TestInit(unittest.TestCase):
 
-    def test_tree_iterator(self) -> None:
+    def test_tree_iterator(self):
         list1 = [1, 2, 3]
         list2 = [4, list1, 5]
         list3 = [list1, [], list2, 6]

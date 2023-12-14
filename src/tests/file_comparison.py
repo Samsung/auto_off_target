@@ -3,16 +3,15 @@
 # Copyright Samsung Electronics
 # Samsung Mobile Security Team @ Samsung R&D Poland
 
-from tree_sitter import Node, Language, Parser
-from . import tree_sitter_c
+import tree_sitter
+import tree_sitter_c
 import re
-from typing import Iterable, Optional, Callable
 
-C_LANGUAGE = Language(tree_sitter_c.lib_path, 'c')
+C_LANGUAGE = tree_sitter.Language(tree_sitter_c.lib_path, 'c')
 
 
-def compare_aot_literals(file1: str, file2: str) -> tuple[bool, str]:
-    def read_set(file: str) -> set[str]:
+def compare_aot_literals(file1, file2):
+    def read_set(file):
         ret = set()
         with open(file) as f:
             line = f.readline()
@@ -36,17 +35,17 @@ def compare_aot_literals(file1: str, file2: str) -> tuple[bool, str]:
         return True, ''
 
 
-def _diff_str(node1: Optional[Node], node2: Optional[Node]) -> str:
+def _diff_str(node1, node2):
+    line, col = node1.start_point
+    msg = f'At {line},{col}:\n'
     if node1:
-        line, col = node1.start_point
-        msg = f'At {line},{col}:\n'
         msg += f'+{node1.text.decode().strip()}\n'
     if node2:
         msg += f'-{node2.text.decode().strip()}\n'
     return msg
 
 
-def _diff_node_lists(node_list1: list[Node], node_list2: list[Node]) -> str:
+def _diff_node_lists(node_list1, node_list2):
     msg = ''
     set1 = {node.text for node in node_list1}
     set2 = {node.text for node in node_list2}
@@ -57,45 +56,21 @@ def _diff_node_lists(node_list1: list[Node], node_list2: list[Node]) -> str:
     return msg
 
 
-def _get_capture_with_tag(
-    captures: Iterable[tuple[Node, str]],
-    tag: str
-) -> Optional[Node]:
+def _get_capture_with_tag(captures, tag):
     for capture in captures:
         if capture[1] == tag:
             return capture[0]
-    return None
 
 
 class CComparator:
-    root1: Node
-    root2: Node
-    special_nodes: dict[str, Callable[
-        [
-            'CComparator',
-            Iterable[tuple[Node, str]],
-            Iterable[tuple[Node, str]]
-        ],
-        tuple[bool, str]
-    ]]
-    unordered_types: list[str]
-    ignored_nodes1: list[Node]
-    ignored_nodes2: list[Node]
-    success: bool
-    msg: str
 
     COMMENT_QUERY = '''
     (comment) @ignore
     '''
     IGNORE_TAG = 'ignore'
 
-    def __init__(
-        self,
-        file1: str,
-        file2: str,
-        special_nodes: dict[str, Callable]
-    ) -> None:
-        parser = Parser()
+    def __init__(self, file1, file2, special_nodes):
+        parser = tree_sitter.Parser()
         parser.set_language(C_LANGUAGE)
 
         with open(file1, 'rb') as f:
@@ -104,13 +79,8 @@ class CComparator:
         with open(file2, 'rb') as f:
             self.root2 = parser.parse(f.read()).root_node
 
-        def nop(
-            self: 'CComparator',
-            captures1: Iterable[tuple[Node, str]],
-            captures2: Iterable[tuple[Node, str]]
-        ) -> tuple[bool, str]:
+        def nop(self, captures1, captures2):
             return True, ''
-
         self.special_nodes = {CComparator.COMMENT_QUERY: nop}
         for query, comparator in special_nodes.items():
             self.special_nodes[query] = comparator
@@ -122,11 +92,7 @@ class CComparator:
         self.success = True
         self.msg = ''
 
-    def _group_nodes(
-        self,
-        nodes: Iterable[Node],
-        ignored: list[Node]
-    ) -> list[Node]:
+    def _group_nodes(self, nodes, ignored):
         grouped = []
         current_group = None
         current_type = None
@@ -147,7 +113,7 @@ class CComparator:
             grouped.append(node)
         return grouped
 
-    def _unwrap_header_guard(self) -> None:
+    def _unwrap_header_guard(self):
         if len(self.root1.children) == 1 \
                 and self.root1.children[0].type == 'preproc_ifdef':
             if len(self.root2.children) == 1 \
@@ -162,11 +128,11 @@ class CComparator:
             self.success = False
             self.msg += '-Header guard'
 
-    def _handle_special_nodes(self) -> None:
+    def _handle_special_nodes(self):
         for query, comparator in self.special_nodes.items():
-            tree_sitter_query = C_LANGUAGE.query(query)
-            captures1 = tree_sitter_query.captures(self.root1)
-            captures2 = tree_sitter_query.captures(self.root2)
+            query = C_LANGUAGE.query(query)
+            captures1 = query.captures(self.root1)
+            captures2 = query.captures(self.root2)
 
             r, m = comparator(self, captures1, captures2)
             if not r:
@@ -181,16 +147,12 @@ class CComparator:
             if ignore is not None:
                 self.ignored_nodes2.append(ignore)
 
-    def compare(self) -> tuple[bool, str]:
+    def compare(self):
         self._unwrap_header_guard()
         self._handle_special_nodes()
 
-        nodes1 = self._group_nodes(
-            self.root1.named_children, self.ignored_nodes1
-        )
-        nodes2 = self._group_nodes(
-            self.root2.named_children, self.ignored_nodes2
-        )
+        nodes1 = self._group_nodes(self.root1.named_children, self.ignored_nodes1)
+        nodes2 = self._group_nodes(self.root2.named_children, self.ignored_nodes2)
 
         for node1, node2 in zip(nodes1, nodes2):
             if isinstance(node1, list) and isinstance(node2, list):
@@ -219,14 +181,11 @@ class CComparator:
 
         return self.success, self.msg
 
-    @staticmethod
-    def compare_C_simple(file1: str, file2: str) -> tuple[bool, str]:
+    def compare_C_simple(file1, file2):
         return CComparator(file1, file2, {}).compare()
 
 
 class FptrStubCComparator(CComparator):
-    fptrstub_pair_array1: list[Optional[str]]
-    fptrstub_pair_array2: list[Optional[str]]
 
     FPTRSTUB_PAIR_ARRAY_QUERY = '''
         (declaration
@@ -258,7 +217,7 @@ class FptrStubCComparator(CComparator):
         ) @ignore
     '''
 
-    def __init__(self, file1: str, file2: str):
+    def __init__(self, file1, file2):
         self.fptrstub_pair_array1 = []
         self.fptrstub_pair_array2 = []
 
@@ -268,112 +227,74 @@ class FptrStubCComparator(CComparator):
             FptrStubCComparator.INITIALIZE_FUNCTION_POINTER_STUBS_QUERY:
                 FptrStubCComparator._compare_initialize_function_pointer_stubs,
             FptrStubCComparator.AOT_KFLAT_INITIALIZE_GLOBAL_VARIABLES_QUERY:
-                FptrStubCComparator._compare_kflat_initialize_global_variables,
+                FptrStubCComparator._compare_aot_kflat_initialize_global_variables,
         })
 
-    def _compare_fptrstub_pair_array(
-        self,
-        captures1: Iterable[tuple[Node, str]],
-        captures2: Iterable[tuple[Node, str]]
-    ) -> tuple[bool, str]:
+    def _compare_fptrstub_pair_array(self, captures1, captures2):
         values1 = _get_capture_with_tag(captures1, 'value')
         values2 = _get_capture_with_tag(captures2, 'value')
 
-        children1 = [] if values1 is None else values1.named_children
-        children2 = [] if values2 is None else values2.named_children
-
-        msg = _diff_node_lists(children1, children2)
-
-        def get_fptrstub_name(node: Node) -> Optional[str]:
-            # extract function name from quotes ignoring optional module name
-            # in square brackets
+        msg =_diff_node_lists(values1.named_children, values2.named_children)
+        
+        def get_fptrstub_name(node):
+            # extract function name from quotes ignoring optional module name in square brackets
             match = re.search(r'"(\w+)(?: \[\w+\])?"', node.text.decode())
             if not match:
                 return None
             return match.group(1)
 
-        for node in children1:
+        for node in values1.named_children:
             self.fptrstub_pair_array1.append(get_fptrstub_name(node))
-        for node in children2:
+        for node in values2.named_children:
             self.fptrstub_pair_array2.append(get_fptrstub_name(node))
-
+        
         return len(msg) == 0, msg
-
-    def _compare_initialize_function_pointer_stubs(
-        self,
-        captures1: Iterable[tuple[Node, str]],
-        captures2: Iterable[tuple[Node, str]]
-    ) -> tuple[bool, str]:
+    
+    def _compare_initialize_function_pointer_stubs(self, captures1, captures2):
         body1 = _get_capture_with_tag(captures1, 'body')
         body2 = _get_capture_with_tag(captures2, 'body')
 
-        children1 = [] if body1 is None else body1.named_children
-        children2 = [] if body2 is None else body2.named_children
-
-        def validate_initialization(
-            nodes: Iterable[Node],
-            name_array: list[Optional[str]]
-        ) -> str:
+        def validate_initialization(nodes, name_array):
             initialized = set()
             msg = ''
             for node in nodes:
-                line, col = node.start_point
-
                 regex = r'fptrstub_pair_array\[(\d+)\]\.address = (\w+);'
                 match = re.match(regex, node.text.decode())
-
-                if match is None:
-                    msg += f'\tat {line},{col}: invalid line'
-                    continue
-
                 index = int(match.group(1))
                 name = match.group(2)
 
-                if index >= len(name_array):
-                    msg += f'\tat {line},{col}: index {index} is too big,' \
-                           f' array size is {len(name_array)}\n'
-                    continue
+                line, col = node.start_point
 
-                initialized.add(index)
-                name = name_array[index]
-                if name is None:
-                    msg += f'\tat {line},{col}: no function pointer name'
+                if index >= len(name_array):
+                    msg += f'\tat {line},{col}: index {index} is too big, array size is {len(name_array)}\n'
                     continue
-                if not name.endswith(name):
-                    msg += f'\tat {line},{col}: function pointer name should' \
-                           f' be {name_array[index]}\n'
+                
+                initialized.add(index)
+                if not name.endswith(name_array[index]):
+                    msg += f'\tat {line},{col}: function pointer name should be {name_array[index]}\n'
                     continue
             for i in range(len(name_array)):
                 if i not in initialized:
-                    msg += '\tfptrstub_pair_array is not initialized at' \
-                           f' index {i}\n'
+                    msg += f'\tfptrstub_pair_array is not initialized at index {i}\n'
             return msg
-
+        
         msg = ''
-        m = validate_initialization(children1, self.fptrstub_pair_array1)
+        m = validate_initialization(body1.named_children, self.fptrstub_pair_array1)
         if m:
             msg += f'initialize_function_pointer_stubs in file 1:\n{m}'
-        m = validate_initialization(children2, self.fptrstub_pair_array2)
+        m = validate_initialization(body2.named_children, self.fptrstub_pair_array2)
         if m:
             msg += f'initialize_function_pointer_stubs in file 2:\n{m}'
-
+        
         return len(msg) == 0, msg
 
-    def _compare_kflat_initialize_global_variables(
-        self,
-        captures1: Iterable[tuple[Node, str]],
-        captures2: Iterable[tuple[Node, str]]
-    ) -> tuple[bool, str]:
+    def _compare_aot_kflat_initialize_global_variables(self, captures1, captures2):
         body1 = _get_capture_with_tag(captures1, 'body')
         body2 = _get_capture_with_tag(captures2, 'body')
 
-        children1 = [] if body1 is None else body1.named_children
-        children2 = [] if body2 is None else body2.named_children
-
-        msg = _diff_node_lists(children1, children2)
+        msg = _diff_node_lists(body1.named_children, body2.named_children)
 
         return len(msg) == 0, f'aot_kflat_initialize_global_variables:\n{msg}'
 
-    @staticmethod
-    def compare_fptr_stub_c(file1: str, file2: str) -> tuple[bool, str]:
+    def compare_fptr_stub_c(file1, file2):
         return FptrStubCComparator(file1, file2).compare()

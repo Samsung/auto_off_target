@@ -5,7 +5,7 @@
 # Copyright Samsung Electronics
 # Samsung Mobile Security Team @ Samsung R&D Poland
 
-from tree_sitter import Language
+from tree_sitter import Language, Parser
 import os
 
 src_path = os.path.join(os.path.dirname(__file__), 'tree-sitter-c')
