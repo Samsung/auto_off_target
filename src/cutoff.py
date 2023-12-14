@@ -131,7 +131,7 @@ class CutOff:
                         # let's check if the modules are the same
                         # in principle we need to make sure that every module the base is compiled in,
                         # is alos on the function's list of modules
-                        if 0 != len(set(base_mods).difference(mods)):
+                        if 0 != len(base_mods.difference(mods)):
                             ext = True
                 elif self.args.cut_off == CutOff.CUT_OFF_DIRS:
                     if fid not in self.fid_to_dirs:
@@ -229,9 +229,9 @@ class CutOff:
 
         for mod_path in mod_paths:
             if fid not in self.fid_to_mods:
-                self.fid_to_mods[fid] = []
+                self.fid_to_mods[fid] = set()
             if mod_path not in self.fid_to_mods[fid]:
-                self.fid_to_mods[fid].append(mod_path)
+                self.fid_to_mods[fid].add(mod_path)
 
         # cut-off based on the list of function names
         # we don't really need to collect anything in that case - we will filter out
