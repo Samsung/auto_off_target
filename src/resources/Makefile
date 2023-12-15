@@ -81,6 +81,14 @@ native-gcc: CFLAGS+=-fmax-errors=0 -MD -fPIE -w
 native-gcc: $(obj) $(lib)
 	$(COMP) -o $@ $^ $(LDFLAGS)
 
+# Daikon dynamic invariant generator
+.PHONY: daikon
+daikon: COMP=gcc
+daikon: CFLAGS=-gdwarf-2 -O0
+daikon: LDFLAGS=-no-pie -O0
+daikon: $(obj) $(lib)
+	$(COMP) -o $@ $^ $(LDFLAGS)
+
 # as native but compiled using gcc with fanalyzer
 .PHONY: fanalyzer
 fanalyzer: DEF_WARNS := $(shell gcc --help=warnings -Q | grep enabled | cut -d " " -f 3 | sed 's\-W\-Wno-\' | grep -v "\-Wno-analyzer")
