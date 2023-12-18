@@ -41,7 +41,7 @@ class AotDbOps:
     GLOBS_GLOBALREFS = 'globs_tree_globalrefs'
 
     # #db: AotDBFrontend instance
-    def __init__(self, db, basconnector, deps, args):
+    def __init__(self, db, deps, args):
         self.deps = deps
         self.version = f"{args.product}_{args.version}_{args.build_type}"
         self.include_asm = args.include_asm
@@ -50,7 +50,6 @@ class AotDbOps:
 
         # global state available to external classes
         self.db = db
-        self.bassconnector = basconnector
 
         # the first group are a special idices to db -> they are fixed on a particular
         # member of a given type, e.g. we can instantly get by id or by name
@@ -333,7 +332,14 @@ class AotDbOps:
                 self.db.store_many_in_collection("init_data", data)
 
         if rdm_file is not None:
-            self.bassconnector.import_data_to_db(rdm_file)
+            with open(rdm_file, "r") as f:
+                bas_data = json.load(f)
+
+                items = []
+                for loc, entries in bas_data.items():
+                    items.append({"loc": loc, "entries": entries})
+
+                self.db.store_many_in_collection("BAS", items)
 
     def create_indices(self):
         # create db indices as in ctypelib
@@ -455,8 +461,10 @@ class AotDbOps:
                 exit(1)
 
         self.init_data = self.db.create_local_index("init_data", "name")
-        self.bassconnector.db_index = self.db.create_local_index(
-            "BAS", "loc", extra_field_name=None, cache_size=100000)
+        self.rdm_data = self.db.create_local_index(
+            "BAS", "loc",
+            extra_field_name=None, cache_size=100000
+        )
 
     # -------------------------------------------------------------------------
 
@@ -748,11 +756,7 @@ class AotDbOps:
         fid = function["fid"]
         src = self.srcidmap[fid]
 
-        loc = function["location"]
-
-        end_index = loc.find(":")
-        if -1 != end_index:
-            loc = loc[:end_index]
+        loc = function["location"].partition(":")[0]
 
         return src, loc
 

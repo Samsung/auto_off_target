@@ -11,7 +11,7 @@
 
 import logging
 import os
-from typing import Optional
+from typing import Optional, Set
 
 
 class CutOff:
@@ -28,10 +28,9 @@ class CutOff:
     FUNC_STATS_BASIC = 'basic'
     FUNC_STATS_DETAILED = 'detailed'
 
-    def __init__(self, dbops, args, basconnector, deps):
+    def __init__(self, dbops, args, deps):
         self.dbops = dbops
         self.args = args
-        self.basconnector = basconnector
         self.deps = deps
 
         self.co_funcs = set(args.co_funcs)
@@ -228,9 +227,14 @@ class CutOff:
         # Cut-off based on modules
         if (src is None) and (loc is None):
             # that is for the unresolved functions
-            mod_paths = ["/tmp/no_such_mod"]
+            mod_paths = {"/tmp/no_such_mod"}
         else:
-            mod_paths = self.basconnector.get_module_for_source_file(src, loc)
+            data = self.dbops.rdm_data[loc]
+
+            if data is None:
+                logging.warning(f"cannot find {loc} in rdm database")
+            else:
+                mod_paths = data["entries"]
 
         for mod_path in mod_paths:
             if fid not in self.fid_to_mods:
@@ -264,14 +268,11 @@ class CutOff:
         # to the list of allowed funcs
         # by default we'll add the files in which base functions are defined
         # to the list of allowed funcs
+
         for f in base_functions:
             self.co_funcs.add(f["name"])
-            src, loc = self.dbops._get_function_file(f["id"])
-            dirs = set()
-            dirs.add(os.path.dirname(src))
-            # self.co_dirs |= dirs
-            logging.info(f"co_dirs is {self.co_dirs}")
-            # self.co_files.add(src)
+
+        logging.info(f"co_dirs is {self.co_dirs}")
 
         for fid in fids:
             self._get_mods_and_dirs_for_f(fid)

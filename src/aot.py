@@ -17,7 +17,6 @@ import sys
 import os
 from datetime import datetime
 import resources
-from BASconnector import BASconnector
 import aotdb
 from aotdb_ops import AotDbOps
 from deps import Deps
@@ -108,28 +107,9 @@ class Engine:
         self.dump_global_hashes = args.dump_global_hashes
         self.global_hashes = []
 
-        basserver = "localhost"
-        bassconnector = None
-        if args.config:
-            with open(args.config, "r") as c:
-
-                logging.info(f"AOT_CONFIG:|{args.config}|")
-
-                cfg = json.load(c)
-                if "BASserver" not in cfg:
-                    logging.error("Cannot find BASserver in the config file.")
-                    return False
-
-                basserver = cfg["BASserver"]
-        if not args.debug_bas:
-            bassconnector = BASconnector(basserver, args.product,
-                                              args.version, args.build_type, db=db_handle)
-        else:
-            bassconnector = BASconnector(basserver, db=db_handle)
-
         self.deps = Deps(args)
-        self.dbops = AotDbOps(db_handle, bassconnector, self.deps, args)
-        self.cutoff = CutOff(self.dbops, args, bassconnector, self.deps)
+        self.dbops = AotDbOps(db_handle, self.deps, args)
+        self.cutoff = CutOff(self.dbops, args, self.deps)
         self.codegen = CodeGen(self.dbops, self.deps, self.cutoff, args)
         self.deps.set_dbops(self.dbops)
         self.deps.set_codegen(self.codegen)
