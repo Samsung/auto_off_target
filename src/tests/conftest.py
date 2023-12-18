@@ -7,6 +7,7 @@ import pytest
 import os
 import json
 from .test_e2e import Config
+from typing import List
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -41,7 +42,7 @@ def build_all(pytestconfig: pytest.Config) -> bool:
 
 
 @pytest.fixture
-def test_configs(pytestconfig: pytest.Config) -> list[Config]:
+def test_configs(pytestconfig: pytest.Config) -> List[Config]:
     test_configs = []
     for test_config in pytestconfig.getoption('test_configs'):
         with open(test_config) as f:

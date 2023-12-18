@@ -9,18 +9,18 @@ import filecmp
 import os
 import subprocess
 import sys
-from typing import Callable, Any
+from typing import Callable, Any, Dict, List, Tuple
 from .file_comparison import (
     compare_aot_literals,
     CComparator,
-    FptrStubCComparator
+    FptrStubCComparator,
 )
 
 
 class OfftargetComparator:
-    special_files: dict[str, Callable[[str, str], tuple[bool, str]]]
-    exclude_from_diff: list[str]
-    differences: list[str]
+    special_files: Dict[str, Callable[[str, str], Tuple[bool, str]]]
+    exclude_from_diff: List[str]
+    differences: List[str]
 
     def __init__(self) -> None:
         self.special_files = {
@@ -33,7 +33,7 @@ class OfftargetComparator:
 
     def _assert_differences(
         self,
-        comparison_output: filecmp.dircmp[Any],
+        comparison_output: filecmp.dircmp,
         dir1: str,
         dir2: str
     ) -> bool:
@@ -77,7 +77,7 @@ class OfftargetComparator:
                 return False
         return True
 
-    def compare_offtarget(self, dir1: str, dir2: str) -> list[str]:
+    def compare_offtarget(self, dir1: str, dir2: str) -> List[str]:
         if not os.path.exists(dir1):
             self.differences.append(f'{dir1} does not exist\n')
         if not os.path.exists(dir2):

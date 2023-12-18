@@ -9,6 +9,7 @@ import libetrace
 import json
 import os
 import argparse
+from typing import Dict, Set
 
 parser = argparse.ArgumentParser(description="Generate files needed for AoT")
 parser.add_argument(
@@ -86,7 +87,7 @@ amdeps = dict()
 for m, T in nfsdb.linked_modules():
     amdeps[m.path] = list(set([x.path for x in nfsdb.mdeps(m.path)]))
 
-rdeps: dict[str, set[str]] = {}
+rdeps: Dict[str, Set[str]] = {}
 for m in amdeps:
     for f in amdeps[m]:
         rdeps.setdefault(f, set())

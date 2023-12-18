@@ -10,12 +10,12 @@ import shutil
 import uuid
 import multiprocessing.pool
 import progressbar
-from typing import Optional, Any
+from typing import Optional, Any, Dict, List, Set, Tuple, Union
 import aotdb
 from tests.regression_tester import RegressionTester
 
 
-def _get_funcs_from_file(path: str) -> list[str]:
+def _get_funcs_from_file(path: str) -> List[str]:
     with open(path, 'r') as f:
         functions = []
         for function in f.readlines():
@@ -29,14 +29,14 @@ def _get_funcs_from_file(path: str) -> list[str]:
 class Config:
     source: 'Source'
     data_dir: str
-    cases: list['Case']
+    cases: List['Case']
     name: str
 
     def __init__(
         self,
-        source: dict[str, Any],
+        source: Dict[str, Any],
         data_dir: str,
-        cases: list[dict[str, Any]],
+        cases: List[Dict[str, Any]],
         base_dir: str,
         name: str
     ) -> None:
@@ -53,7 +53,7 @@ class Source:
     product: Optional[str]
     version: Optional[str]
     build_type: Optional[str]
-    functions: list[str]
+    functions: List[str]
 
     def __init__(
         self,
@@ -61,7 +61,7 @@ class Source:
         config: str,
         base_dir: str,
         db: Optional[str] = None,
-        functions: Optional[list[str] | str] = None,
+        functions: Optional[Union[List[str], str]] = None,
         functions_file: Optional[str] = None,
         product: Optional[str] = None,
         version: Optional[str] = None,
@@ -77,11 +77,11 @@ class Source:
             funcs_path = os.path.join(base_dir, functions_file)
             self.functions = _get_funcs_from_file(funcs_path)
             return
-        if not isinstance(functions, list):
+        if not isinstance(functions, List):
             functions = [] if functions is None else [functions]
         self.functions = functions
 
-    def options(self) -> dict[str, str]:
+    def options(self) -> Dict[str, str]:
         options = {
             'db-type': self.db_type,
             'config': self.cfg,
@@ -108,14 +108,14 @@ class Source:
 
 
 class Case:
-    options: dict[str, str]
+    options: Dict[str, str]
     build_offtarget: bool
-    always_build_funcs: set[str]
+    always_build_funcs: Set[str]
     success_dump: Optional[str]
 
     def __init__(
         self,
-        options: dict[str, str],
+        options: Dict[str, str],
         base_dir: str,
         build_offtarget: bool = True,
         always_build_funcs: Optional[str] = None,
@@ -144,7 +144,7 @@ def _prepare_options(
     test_config: Config,
     function: str,
     case: Case
-) -> dict[str, str]:
+) -> Dict[str, str]:
     options = test_config.source.options()
     options['functions'] = function
     for k, v in case.options.items():
@@ -161,7 +161,7 @@ def _run_test_case(
     build_all: bool,
     regression_aot_path: Optional[str],
     timeout: int
-) -> tuple[RegressionTester, str]:
+) -> Tuple[RegressionTester, str]:
     # setup test env
     temp_dir = None
     if keep_test_env:
@@ -227,7 +227,7 @@ def test_regression(
     subtests: pytest_subtests.SubTests,
     keep_test_env: bool,
     build_all: bool,
-    test_configs: list[Config],
+    test_configs: List[Config],
     regression_aot: str,
     aot_timeout: int,
     aot_threads: int

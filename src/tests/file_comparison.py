@@ -6,13 +6,13 @@
 from tree_sitter import Node, Language, Parser
 from . import tree_sitter_c
 import re
-from typing import Iterable, Optional, Callable
+from typing import Iterable, Optional, Callable, Dict, List, Set, Tuple
 
 C_LANGUAGE = Language(tree_sitter_c.lib_path, 'c')
 
 
-def compare_aot_literals(file1: str, file2: str) -> tuple[bool, str]:
-    def read_set(file: str) -> set[str]:
+def compare_aot_literals(file1: str, file2: str) -> Tuple[bool, str]:
+    def read_set(file: str) -> Set[str]:
         ret = set()
         with open(file) as f:
             line = f.readline()
@@ -46,7 +46,7 @@ def _diff_str(node1: Optional[Node], node2: Optional[Node]) -> str:
     return msg
 
 
-def _diff_node_lists(node_list1: list[Node], node_list2: list[Node]) -> str:
+def _diff_node_lists(node_list1: List[Node], node_list2: List[Node]) -> str:
     msg = ''
     set1 = {node.text for node in node_list1}
     set2 = {node.text for node in node_list2}
@@ -58,7 +58,7 @@ def _diff_node_lists(node_list1: list[Node], node_list2: list[Node]) -> str:
 
 
 def _get_capture_with_tag(
-    captures: Iterable[tuple[Node, str]],
+    captures: Iterable[Tuple[Node, str]],
     tag: str
 ) -> Optional[Node]:
     for capture in captures:
@@ -70,17 +70,17 @@ def _get_capture_with_tag(
 class CComparator:
     root1: Node
     root2: Node
-    special_nodes: dict[str, Callable[
+    special_nodes: Dict[str, Callable[
         [
             'CComparator',
-            Iterable[tuple[Node, str]],
-            Iterable[tuple[Node, str]]
+            Iterable[Tuple[Node, str]],
+            Iterable[Tuple[Node, str]]
         ],
-        tuple[bool, str]
+        Tuple[bool, str]
     ]]
-    unordered_types: list[str]
-    ignored_nodes1: list[Node]
-    ignored_nodes2: list[Node]
+    unordered_types: List[str]
+    ignored_nodes1: List[Node]
+    ignored_nodes2: List[Node]
     success: bool
     msg: str
 
@@ -93,7 +93,7 @@ class CComparator:
         self,
         file1: str,
         file2: str,
-        special_nodes: dict[str, Callable]
+        special_nodes: Dict[str, Callable]
     ) -> None:
         parser = Parser()
         parser.set_language(C_LANGUAGE)
@@ -106,9 +106,9 @@ class CComparator:
 
         def nop(
             self: 'CComparator',
-            captures1: Iterable[tuple[Node, str]],
-            captures2: Iterable[tuple[Node, str]]
-        ) -> tuple[bool, str]:
+            captures1: Iterable[Tuple[Node, str]],
+            captures2: Iterable[Tuple[Node, str]]
+        ) -> Tuple[bool, str]:
             return True, ''
 
         self.special_nodes = {CComparator.COMMENT_QUERY: nop}
@@ -125,8 +125,8 @@ class CComparator:
     def _group_nodes(
         self,
         nodes: Iterable[Node],
-        ignored: list[Node]
-    ) -> list[Node]:
+        ignored: List[Node]
+    ) -> List[Node]:
         grouped = []
         current_group = None
         current_type = None
@@ -181,7 +181,7 @@ class CComparator:
             if ignore is not None:
                 self.ignored_nodes2.append(ignore)
 
-    def compare(self) -> tuple[bool, str]:
+    def compare(self) -> Tuple[bool, str]:
         self._unwrap_header_guard()
         self._handle_special_nodes()
 
@@ -220,13 +220,13 @@ class CComparator:
         return self.success, self.msg
 
     @staticmethod
-    def compare_C_simple(file1: str, file2: str) -> tuple[bool, str]:
+    def compare_C_simple(file1: str, file2: str) -> Tuple[bool, str]:
         return CComparator(file1, file2, {}).compare()
 
 
 class FptrStubCComparator(CComparator):
-    fptrstub_pair_array1: list[Optional[str]]
-    fptrstub_pair_array2: list[Optional[str]]
+    fptrstub_pair_array1: List[Optional[str]]
+    fptrstub_pair_array2: List[Optional[str]]
 
     FPTRSTUB_PAIR_ARRAY_QUERY = '''
         (declaration
@@ -273,9 +273,9 @@ class FptrStubCComparator(CComparator):
 
     def _compare_fptrstub_pair_array(
         self,
-        captures1: Iterable[tuple[Node, str]],
-        captures2: Iterable[tuple[Node, str]]
-    ) -> tuple[bool, str]:
+        captures1: Iterable[Tuple[Node, str]],
+        captures2: Iterable[Tuple[Node, str]]
+    ) -> Tuple[bool, str]:
         values1 = _get_capture_with_tag(captures1, 'value')
         values2 = _get_capture_with_tag(captures2, 'value')
 
@@ -301,9 +301,9 @@ class FptrStubCComparator(CComparator):
 
     def _compare_initialize_function_pointer_stubs(
         self,
-        captures1: Iterable[tuple[Node, str]],
-        captures2: Iterable[tuple[Node, str]]
-    ) -> tuple[bool, str]:
+        captures1: Iterable[Tuple[Node, str]],
+        captures2: Iterable[Tuple[Node, str]]
+    ) -> Tuple[bool, str]:
         body1 = _get_capture_with_tag(captures1, 'body')
         body2 = _get_capture_with_tag(captures2, 'body')
 
@@ -312,7 +312,7 @@ class FptrStubCComparator(CComparator):
 
         def validate_initialization(
             nodes: Iterable[Node],
-            name_array: list[Optional[str]]
+            name_array: List[Optional[str]]
         ) -> str:
             initialized = set()
             msg = ''
@@ -361,9 +361,9 @@ class FptrStubCComparator(CComparator):
 
     def _compare_kflat_initialize_global_variables(
         self,
-        captures1: Iterable[tuple[Node, str]],
-        captures2: Iterable[tuple[Node, str]]
-    ) -> tuple[bool, str]:
+        captures1: Iterable[Tuple[Node, str]],
+        captures2: Iterable[Tuple[Node, str]]
+    ) -> Tuple[bool, str]:
         body1 = _get_capture_with_tag(captures1, 'body')
         body2 = _get_capture_with_tag(captures2, 'body')
 
@@ -375,5 +375,5 @@ class FptrStubCComparator(CComparator):
         return len(msg) == 0, f'aot_kflat_initialize_global_variables:\n{msg}'
 
     @staticmethod
-    def compare_fptr_stub_c(file1: str, file2: str) -> tuple[bool, str]:
+    def compare_fptr_stub_c(file1: str, file2: str) -> Tuple[bool, str]:
         return FptrStubCComparator(file1, file2).compare()

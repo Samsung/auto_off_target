@@ -9,10 +9,10 @@ import sys
 import contextlib
 import func_timeout
 import io
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Dict, List, Tuple
 
 
-def prepare_args(options: dict[str, str]) -> list[str]:
+def prepare_args(options: Dict[str, str]) -> List[str]:
     args = []
     for k, v in options.items():
         args.append(f'--{k}')
@@ -23,10 +23,10 @@ def prepare_args(options: dict[str, str]) -> list[str]:
 
 def run_shell_aot(
     aot_path: str,
-    options: dict[str, str],
+    options: Dict[str, str],
     timeout: Optional[int] = None,
     capture_output: bool = False
-) -> tuple[int, str]:
+) -> Tuple[int, str]:
     command = [aot_path] + prepare_args(options)
     joined_command = ' '.join(command)
 
@@ -70,10 +70,10 @@ def _run_with_timeout(timeout: Optional[int], func: Callable[[], Any]) -> int:
 
 # TODO: in the future we should probably return some more execution information
 def run_aot(
-    options: dict[str, str],
+    options: Dict[str, str],
     timeout: Optional[int] = None,
     capture_output: bool = True
-) -> tuple[int, str]:
+) -> Tuple[int, str]:
     sys.argv = ['./aot.py'] + prepare_args(options)
     joined_argv = ' '.join(sys.argv)
 

@@ -9,7 +9,7 @@ import subprocess
 import os
 import re
 import random
-from typing import Optional
+from typing import Optional, Dict
 
 
 class RegressionTester:
@@ -51,7 +51,7 @@ class RegressionTester:
             f.write(command)
         os.chmod(filename, 0o777)
 
-    def generate_scripts(self, options: dict[str, str]) -> None:
+    def generate_scripts(self, options: Dict[str, str]) -> None:
         aot_path = os.path.join(os.path.dirname(__file__), '..', 'aot.py')
         args = ''
         for part in aot_execution.prepare_args(options):
@@ -79,7 +79,7 @@ class RegressionTester:
 
         return time
 
-    def _run_regression_aot(self, options: dict[str, str]) -> None:
+    def _run_regression_aot(self, options: Dict[str, str]) -> None:
         if self.regression_aot_path is None:
             return
 
@@ -104,7 +104,7 @@ class RegressionTester:
         else:
             self.msg += 'Regression AoT execution failed\n'
 
-    def _run_aot(self, options: dict[str, str]) -> None:
+    def _run_aot(self, options: Dict[str, str]) -> None:
         options['output-dir'] = self.out_dir
 
         status, run_log = aot_execution.run_aot(
@@ -152,7 +152,7 @@ class RegressionTester:
 
     def run_regression(
         self,
-        options: dict[str, str],
+        options: Dict[str, str],
         build_offtarget: bool
     ) -> None:
         self.success, self.msg, self.log = True, '', ''
