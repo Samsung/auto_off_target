@@ -26,6 +26,7 @@ class OfftargetComparator:
         self.special_files = {
             'aot_literals': compare_aot_literals,
             'aot.h': CComparator.compare_C_simple,
+            'aot.c': CComparator.compare_C_simple,
             'fptr_stub.c': FptrStubCComparator.compare_fptr_stub_c,
         }
         self.exclude_from_diff = ['aot.log']
