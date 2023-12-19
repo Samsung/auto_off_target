@@ -2,7 +2,6 @@
     "source": {
         "db_type": "ftdb",
         "db": "db.img",
-        "config": "cfg.json",
         "functions": "test test_function"
     },
     "data_dir": "csmith_test",

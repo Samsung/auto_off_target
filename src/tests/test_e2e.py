@@ -48,7 +48,7 @@ class Config:
 
 class Source:
     db_type: aotdb.DbType
-    cfg: str
+    cfg: Optional[str]
     db: Optional[str]
     product: Optional[str]
     version: Optional[str]
@@ -58,8 +58,8 @@ class Source:
     def __init__(
         self,
         db_type: str,
-        config: str,
         base_dir: str,
+        config: Optional[str] = None,
         db: Optional[str] = None,
         functions: Optional[Union[List[str], str]] = None,
         functions_file: Optional[str] = None,
@@ -82,9 +82,8 @@ class Source:
         self.functions = functions
 
     def options(self) -> Dict[str, str]:
-        options = {
+        options: Dict[str, str] = {
             'db-type': self.db_type,
-            'config': self.cfg,
         }
         if self.db_type == 'mongo':
             options['mongo-direct'] = ''
@@ -97,6 +96,9 @@ class Source:
 
             assert self.build_type, '"build-type" field is None'
             options['build-type'] = self.build_type
+
+            assert self.cfg, '"config" field is None'
+            options['config'] = self.cfg
         elif self.db_type == 'ftdb':
             assert self.db, '"db" field is None'
             options['db'] = self.db

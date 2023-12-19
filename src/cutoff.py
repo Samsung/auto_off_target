@@ -227,7 +227,7 @@ class CutOff:
         # Cut-off based on modules
         if (src is None) and (loc is None):
             # that is for the unresolved functions
-            mod_paths = {"/tmp/no_such_mod"}
+            mod_paths = ["/tmp/no_such_mod"]
         else:
             data = self.dbops.rdm_data[loc]
 

@@ -2,7 +2,6 @@
     "source": {
         "db_type": "ftdb",
         "db": "db.img",
-        "config": "cfg.json",
         "functions": "main@tcc.c tccgen_compile@tccgen.c decl"
     },
     "data_dir": "tinycc",
