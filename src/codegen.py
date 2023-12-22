@@ -18,6 +18,8 @@ import difflib
 import bson.json_util
 import re
 
+from typing import Dict, Optional
+
 class CodeGen:
     # this is a special value returned by function stubs returning a pointer
     # it's supposed to be easily recognizable (407 == AOT)
@@ -78,7 +80,7 @@ class CodeGen:
         #  Then using the '__pf__kernel__mm__myfile____c__myfun' symbol as a 'const char*'
         #   we can acquire the 'myfun' address in the AoT
         #  The set below should contain all the symbol names along with function id for all non-inline functions available in the AoT
-        self.function_pointer_stubs = set()
+        self.function_pointer_stubs: Dict[str, int] = dict()
 
         self.funcs_with_asm = {}
 
@@ -471,8 +473,9 @@ class CodeGen:
                             tmp = tmp.replace("extern ", "", 1)
 
                         if self.args.dynamic_init and ("inline" not in self.dbops.fnidmap[f_id] or self.dbops.fnidmap[f_id]["inline"] is not True):
-                            tmp += "\n%s" % (self._get_function_pointer_stub(
-                                self.dbops.fnidmap[f_id]))
+                            fptr_stub = self._get_function_pointer_stub(self.dbops.fnidmap[f_id])
+                            if fptr_stub:
+                                tmp += "\n" + fptr_stub
                     else:
                         # this is not a stubs file but we might have a stub of a static function inside
                         tmp += self._generate_function_stub(
@@ -1176,7 +1179,9 @@ class CodeGen:
         str += "\n}\n"
         if self.args.dynamic_init and (not static or not stubs_file):
             if function is not None and ("inline" not in function or function["inline"] is not True):
-                str += "%s\n" % (self._get_function_pointer_stub(function))
+                fptr_stub = self._get_function_pointer_stub(function)
+                if fptr_stub:
+                    str += fptr_stub + "\n"
         if stubs_file:
             self.generated_stubs += 1
         if t != TYPE_FPOINTER:
@@ -1203,12 +1208,15 @@ class CodeGen:
     # For example for function 'myfun' in file 'kernel/mm/myfile.c' we should get:
     # 'int (*__pf__kernel__mm__myfile____c__myfun)(void) = myfun;'
     # @belongs: codegen
-    def _get_function_pointer_stub(self, function):
+    def _get_function_pointer_stub(self, function) -> Optional[str]:
 
         loc = function["location"].split(":")[0]
         fptr_stub_name = "%s__%s" % (loc.replace(
             "/", "__").replace("-", "___").replace(".", "____"), function["name"])
-        self.function_pointer_stubs.add((fptr_stub_name, function["id"]))
+        if fptr_stub_name in self.function_pointer_stubs:
+            return None
+        
+        self.function_pointer_stubs[fptr_stub_name] = function["id"]
         fptr_stub_def = "int (*%s)(void) = (int (*)(void))%s;" % (
             fptr_stub_name, function["name"])
         if function["id"] in self.dbops.lib_funcs_ids:

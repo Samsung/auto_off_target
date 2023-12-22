@@ -1216,11 +1216,11 @@ class Engine:
                 fptrstub_out = f.read()
             with open(os.path.join(self.out_dir, Engine.FUNCTION_POINTER_STUB_FILE_SOURCE), "wt") as f:
                 fstub_decls_out = "\n".join(["extern int (*%s)(void);" % (fstub)
-                                            for fstub, fstub_id in self.codegen.function_pointer_stubs])
+                                            for fstub, fstub_id in self.codegen.function_pointer_stubs.items()])
                 fstubs_out = "\n".join(["  { \"%s\", 0 }," % (
-                    self.codegen._get_function_kernel_name(fstub, fstub_id)) for fstub, fstub_id in self.codegen.function_pointer_stubs])
+                    self.codegen._get_function_kernel_name(fstub, fstub_id)) for fstub, fstub_id in self.codegen.function_pointer_stubs.items()])
                 fstubs_init = "\n".join(["  fptrstub_pair_array[%d].address = %s;" % (
-                    i, fstubT[0]) for i, fstubT in enumerate(self.codegen.function_pointer_stubs)])
+                    i, fstubT[0]) for i, fstubT in enumerate(self.codegen.function_pointer_stubs.items())])
                 flib_stubs = "\n".join(
                     ["%s" % (flibstub) for flibstub, flibstub_id in self.codegen.lib_function_pointer_stubs])
                 fstub_init_decls = "\n".join([f" __attribute__((weak)) void init_{x}() {{}}" for x in self.otgen.global_trigger_name_list])
@@ -1234,14 +1234,16 @@ class Engine:
                 known_funcs_decls = list()
                 known_funcs_stub_list = list()
                 used_fstubs = set(
-                    [fstub_id for fstub, fstub_id in self.codegen.function_pointer_stubs])
+                    [fstub_id for fstub, fstub_id in self.codegen.function_pointer_stubs.items()])
                 used_lib_fstubs = set(
                     [fstub_id for fstub, fstub_id in self.codegen.lib_function_pointer_stubs])
-                for f_id in self.dbops.known_funcs_ids:
+                
+                for fptr_stub, f_id in self.codegen.function_pointer_stubs.items():
+                    if f_id not in self.dbops.known_funcs_ids:
+                        continue
                     function = self.dbops.fnidmap[f_id]
                     if function and function["linkage"] != "internal" and function["id"] in used_fstubs and function["id"] not in used_lib_fstubs:
-                        known_funcs_stub_list.append(
-                            self.codegen._get_function_pointer_stub(function))
+                        known_funcs_stub_list.append(f"int (*{fptr_stub})(void) = (int (*)(void)){function['name']};")
                         known_funcs_decls.append(function["declbody"]+";")
                 f.write(fptrstub_known_funcs_out % (
                     "\n".join(known_funcs_decls), "\n".join(known_funcs_stub_list)))
