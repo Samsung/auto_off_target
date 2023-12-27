@@ -233,6 +233,7 @@ class CutOff:
 
             if data is None:
                 logging.warning(f"cannot find {loc} in rdm database")
+                mod_paths = []
             else:
                 mod_paths = data["entries"]
 
