@@ -778,6 +778,46 @@ class Init:
     # @belongs: init
     def _generate_var_init(self, name, type, res_var, pointers, level=0, skip_init=False, known_type_names=None, cast_str=None, new_types=None,
                            entity_name=None, init_obj=None, fuse=None, fid=None, count=None):
+        """Given variable name and type, generate correct variable initialization code.
+        For example:
+        name = var, type = struct A*
+        code: struct A* var = (struct A*)malloc(sizeof(struct A*));
+     
+        Notes:
+        The callers of this function are (in this order):
+        _generate_function_call: for initialization of parameters
+        generate_off_target: for initialization of globals
+        _generate_var_init: recursive calls
+        
+        :param name: the name of the initialized entity (i.e. a variable, field, global); it can be a fresh entity, e.g.
+                    a new variable introduced for purposes of initialization of arrays; constant in recursive calls
+        :param type: the recorded type of the name entity (i.e. the corresponding entry in types db); constant in 
+                    recursive calls
+        :param res_var: set only in _generate_function_call, not used anywhere; NOTE: remove, as it is not really used 
+                    anywhere? defaults to None, constant in recursive calls
+        :param pointers: a list consisting of all the pointers that have been successfully initialized in a call 
+                    of this function; not used anywhere apart from recursive calls, always empty at the top call
+        :param level: the level of nesting brackets when initializing arrays; defaults to 0, always 0 at the top call,
+                    increased when what is in arrays also needs recursive initialization
+        :param skip_init: a flag that when set true prevents initialization of further pointers; defaults to False,
+                    always False at the top call
+        :param known_type_names: names of all the record types found in the source tree of the OT, defaults to None
+        :param cast_str: at certain moments it is the type of the initialized entity used in such expressions as
+                         ((type)base)->field, defaults to None
+        :param new_types: type ids for the entities found during initialization, defaults to None
+        :param entity_name: the name of the wrapping function, only used for top-level analyses - for instance if x is 
+                            dealt with in f(void* x) then entity_name is 'f' and name is 'x', defaults to None
+        :param init_obj: TODO: unknown, defaults to None
+        :param fuse: recursion depth; if None then no limit; defaults to None
+        :param fid: the id of the root function of smart init; defaults to None
+        :param count: TODO: unknown, defaults to None
+
+        :return: (str, alloc, brk) where str is the verbatim C init code string, alloc is a boolean that says if
+                any memory was allocated for the current entity (NOTE: remove, as it is only changed within recursive
+                calls, but not read anywhere?), brk is a boolean that is True iff maximal recursion depth was reached
+                and is used to break out of the recursion loop 
+        """
+
         if entity_name is None:
             entity_name = name
         # in case of typedefs we need to get the first non-typedef type as a point of
