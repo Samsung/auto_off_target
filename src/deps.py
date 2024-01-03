@@ -184,7 +184,7 @@ class Deps:
             for fop in json_data["fops"]:
                 record = None
                 for t in json_data["types"]:
-                    if t["id"] == fop["id"]:
+                    if t["id"] == fop["type"]:
                         record = t
                         break
                 if record is not None:
