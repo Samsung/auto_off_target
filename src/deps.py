@@ -269,7 +269,10 @@ class Deps:
             if deref["offsetrefs"][0]["kind"] == "global":
                 typeId = globalDict[deref["offsetrefs"][0]["id"]]["type"]
             elif deref["offsetrefs"][0]["kind"] == "local":
-                typeId = fun["locals"][deref["offsetrefs"][0]["id"]]["type"]
+                for l in fun["locals"]:
+                    if l["id"] == deref["offsetrefs"][0]["id"]:
+                        typeId = l["type"]
+                        break
             elif deref["offsetrefs"][0]["kind"] == "param":
                 typeId = fun["params"][deref["offsetrefs"][0]["id"]]["type"]
             elif deref["offsetrefs"][0]["kind"] == "array":

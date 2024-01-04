@@ -604,7 +604,10 @@ class Init:
                             if global_type["class"] == "const_array":
                                 size = self._get_const_array_size(global_type)
                         elif base_offsetref["kind"] == "local":
-                            local_deref = func["locals"][base_offsetref["id"]]
+                            for l in func["locals"]:
+                                if l["id"] == base_offsetref["id"]:
+                                    local_deref = l
+                                    break
                             local_type = self.dbops._get_typedef_dst(
                                 self.dbops.typemap[local_deref["type"]])
                             if local_type["class"] == "const_array":
@@ -1145,9 +1148,13 @@ class Init:
                                     if dep_found and fid:
                                         f = self.dbops.fnidmap[fid]
                                         if f is not None and len(dep_names) > 0:
-                                            for index in range(1, len(f["types"])):
-                                                if "name" in f["locals"][index - 1] and f["locals"][index - 1]["parm"]:
-                                                    param_name = f["locals"][index - 1]["name"]
+                                            parms = []
+                                            for l in f["locals"]:
+                                                if l["parm"]:
+                                                    parms.append(l)
+                                            for p in parms:
+                                                if "name" in p:
+                                                    param_name = p["name"]
                                                     if param_name in dep_names:
                                                         loop_count = dep_user_name
                                                         if dep_add != 0:
@@ -1689,9 +1696,13 @@ class Init:
                                     if dep_found and fid:
                                         f = self.dbops.fnidmap[fid]
                                         if f is not None and len(dep_names) > 0:
-                                            for index in range(1, len(f["types"])):
-                                                if "name" in f["locals"][index - 1] and f["locals"][index - 1]["parm"]:
-                                                    param_name = f["locals"][index - 1]["name"]
+                                            prams = []
+                                            for l in f["locals"]:
+                                                if l["parm"]:
+                                                    parms.append(l)
+                                            for p in parms:
+                                                if "name" in p:
+                                                    param_name = p["name"]
                                                     if param_name in dep_names:
                                                         mul = dep_user_name
                                                         if dep_add != 0:
@@ -3048,13 +3059,23 @@ class Init:
                         continue
 
                     elif oref["kind"] == "local":
-                        src_tid = f["locals"][oref["id"]]["type"]
+                        local = None
+                        for l in f["locals"]:
+                            if l["id"] == oref["id"]:
+                                local = l
+                                break
+                        src_tid = local["type"]
                         # logging.error(
                         #    f"Unsupported deref type {oref['kind']}")
                         # continue
 
                     elif oref["kind"] == "parm":
-                        dst_deref = f["locals"][id]
+                        local = None
+                        for l in f["locals"]:
+                            if l["id"] == id:
+                                local = l
+                                break
+                        dst_deref = local
 
                     elif oref["kind"] == "callref":
                         # this happens when a return value of a function is casted to other type
@@ -3077,7 +3098,12 @@ class Init:
                             inited = deref["offsetrefs"][0]
                             # value that is being initialized
                             if inited["kind"] == "local":
-                                cast_tid = f["locals"][inited["id"]]["type"]
+                                local = None
+                                for l in f["locals"]:
+                                    if l["id"] == inited["id"]:
+                                        local = l
+                                        break
+                                cast_tid = local["type"]
                                 cast_type = self.dbops.typemap[cast_tid]
                     else:
                         self.debug_derefs(

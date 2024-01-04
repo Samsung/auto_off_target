@@ -841,10 +841,16 @@ class CodeGen:
                     alloc = False
                     pointers = []
                     # let's check if the param is used at all, if not, let's skip the init just like that
-                    is_used = function["locals"][i-1]["used"]
+                    local = None
+                    is_used = True
+                    for l in function["locals"]:
+                        if l["id"] == i-1:
+                            is_used = l["used"]
+                            local = l
+                            break
                     user_init = False
                     if name in self.dbops.init_data:
-                        _varname = function["locals"][i - 1]["name"]
+                        _varname = local["name"]
                         for item in self.dbops.init_data[name]["items"]:
                             if _varname in item["name"]:
                                 user_init = True
