@@ -1152,6 +1152,7 @@ class Init:
                                             for l in f["locals"]:
                                                 if l["parm"]:
                                                     parms.append(l)
+                                            l.sort(key=lambda k: k['id'])
                                             for p in parms:
                                                 if "name" in p:
                                                     param_name = p["name"]
@@ -1696,10 +1697,11 @@ class Init:
                                     if dep_found and fid:
                                         f = self.dbops.fnidmap[fid]
                                         if f is not None and len(dep_names) > 0:
-                                            prams = []
+                                            parms = []
                                             for l in f["locals"]:
                                                 if l["parm"]:
                                                     parms.append(l)
+                                            l.sort(key=lambda k: k['id'])
                                             for p in parms:
                                                 if "name" in p:
                                                     param_name = p["name"]

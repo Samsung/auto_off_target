@@ -671,11 +671,13 @@ class CodeGen:
 
         # store the names of all function params
         params = []
+        params_locals = []
         for i in range(len(function["locals"])):
             if "name" in function['locals'][i] and function["locals"][i]["parm"] is True:
-                params.append(function['locals'][i]['name'])                     
+                params_locals.append(function['locals'][i])
         logging.debug(f"parms length = {len(params)}, params = {params}")
-
+        params_locals.sort(key=lambda k : k['id'])
+        params = [p['name'] for p in params_locals]
 
         if name in self.dbops.init_data and param_names is None:
             user_init_data = self.dbops.init_data[name]
@@ -841,16 +843,10 @@ class CodeGen:
                     alloc = False
                     pointers = []
                     # let's check if the param is used at all, if not, let's skip the init just like that
-                    local = None
-                    is_used = True
-                    for l in function["locals"]:
-                        if l["id"] == i-1:
-                            is_used = l["used"]
-                            local = l
-                            break
+                    is_used = params_locals[i-1]["used"]
                     user_init = False
                     if name in self.dbops.init_data:
-                        _varname = local["name"]
+                        _varname = params_locals[i - 1]["name"]
                         for item in self.dbops.init_data[name]["items"]:
                             if _varname in item["name"]:
                                 user_init = True
@@ -915,9 +911,7 @@ class CodeGen:
         else:
             # when we don't generate parameters we extract the names
             # from db.json
-            for l in function["locals"]:
-                if l["parm"]:
-                    varnames.append(l["name"])
+            varnames = params
 
         if static:
             # in case of static functions we call their generated wrappers instead

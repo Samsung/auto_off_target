@@ -961,12 +961,16 @@ class OTGenerator:
                     str += "{\n"
                     str += "\treturn {}(".format(fname)
                     params = ""
+                    params_locals = []
                     for l in function["locals"]:
                         if l["parm"] == True:
-                            if len(params) == 0:
-                                params = l["name"]
-                            else:
-                                params = params + ", {}".format(l["name"])
+                            params_locals.append(l)
+                    params_locals.sort(key=lambda k: k["id"])
+                    for l in params_locals:
+                        if len(params) == 0:
+                            params = l["name"]
+                        else:
+                            params = params + ", {}".format(l["name"])
 
                     str += "{});\n".format(params)
                     str += "\n}\n"
