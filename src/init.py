@@ -1152,7 +1152,7 @@ class Init:
                                             for l in f["locals"]:
                                                 if l["parm"]:
                                                     parms.append(l)
-                                            l.sort(key=lambda k: k['id'])
+                                            parms.sort(key=lambda k: k['id'])
                                             for p in parms:
                                                 if "name" in p:
                                                     param_name = p["name"]
