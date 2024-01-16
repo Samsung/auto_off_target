@@ -14,6 +14,7 @@ from aotdb_api import AotDbCollection
 from aotdb_api import AotDbCollectionQuery
 from aotdb_api import AotDbFrontend
 from collections import OrderedDict
+import ftdb_indices
 
 try:
     import libftdb
@@ -61,10 +62,18 @@ class FtdbFrontend(AotDbFrontend):
             self.db = self.json_data
             # since we might be addming more to the db, we
             # don't store the data at this moment
-        self.collections = {name: FtdbCollection(name, self.db, "id")
-                            for name in self.collection_names}
+        self._init_collections()
 
         return self.json_data
+
+    def _init_collections(self):
+        self.indices = ftdb_indices.create_indices(self.db)
+
+        self.collections = dict()
+        for name in self.collection_names:
+            self.collections[name] = FtdbCollection(
+                name, self.db, "id", self.indices.get(name)
+            )
 
     def create_local_index(self, collection_name, field_name, extra_field_name=None, cache_size=0, unique=True):
         name = collection_name
@@ -205,8 +214,7 @@ class FtdbFrontend(AotDbFrontend):
                 logging.error(f"Loading data from {self.db_file} failed")
                 return False
 
-            self.collections = {name: FtdbCollection(name, self.db, "id")
-                                for name in self.collection_names}
+            self._init_collections()
 
         return True
 
@@ -374,10 +382,8 @@ class FtdbCollectionQuery(AotDbCollectionQuery):
 
 class FtdbCollection(AotDbCollection):
 
-    def __init__(self, name, db, lookup_field):
-        self.name = name
-        self.db = db
-        self.lookup_field = lookup_field
+    def __init__(self, name, db, lookup_field, indices=None):
+        super().__init__(name, db, lookup_field, indices)
 
     def __getitem__(self, key):
         return super().find_one(self.lookup_field, key)

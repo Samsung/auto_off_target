@@ -122,10 +122,11 @@ class AotDbFrontend:
 class AotDbCollection():
     name = None
 
-    def __init__(self, name, db, lookup_field):
+    def __init__(self, name, db, lookup_field, indices=None):
         self.name = name
         self.db = db
         self.lookup_field = lookup_field
+        self.indices = indices
 
     def __getitem__(self, key):
         return None
@@ -155,6 +156,9 @@ class AotDbCollection():
 
     def find_one(self, match_to_field, value):
         if self.name in self.db:
+            if self.indices and match_to_field in self.indices:
+                return self.indices[match_to_field](value)
+
             for item in self.db[self.name]:
                 if item[match_to_field] == value:
                     return item
