@@ -62,12 +62,15 @@ class FtdbFrontend(AotDbFrontend):
             self.db = self.json_data
             # since we might be addming more to the db, we
             # don't store the data at this moment
-        self._init_collections()
+        self._init_collections(False)
 
         return self.json_data
 
-    def _init_collections(self):
-        self.indices = ftdb_indices.create_indices(self.db)
+    def _init_collections(self, create_indices=True):
+        if create_indices:
+            self.indices = ftdb_indices.create_indices(self.db)
+        else:
+            self.indices = {}
 
         self.collections = dict()
         for name in self.collection_names:

@@ -121,9 +121,12 @@ class Engine:
             self.dbops, self.deps, self.codegen, self.cutoff, self.init, args)
         self.codegen.set_otgen(self.otgen)
         if args.import_json:
+            logging.info("Importing JSON, off-target will not be generated")
             self.dbops.import_aot_db(args.import_json, args.lib_funcs_file,
                                      args.always_inc_funcs_file, args.known_funcs_file, args.init_file,
                                      args.rdm_file)
+
+            exit(0)
 
         self.dbops.create_indices()
         #self.deps._get_called_functions(self.dbops.always_inc_funcs_ids)
