@@ -103,6 +103,8 @@ class AotDbOps:
         # for a given global get all globals (ids) it depends on
         self.globs_tree_globalrefs = None
 
+        self.graph_dfs_cache = dict()
+
     def __getitem__(self, key):
         return self.db[key]
 
@@ -552,12 +554,31 @@ class AotDbOps:
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def _graph_dfs(csr_matrix, item):
+    def _calculate_graph_dfs(csr_matrix, item):
         nodes = depth_first_order(
             csr_matrix, item, directed=True, return_predecessors=False)
         nodes_int = [n.item() for n in nodes]
         return nodes_int[1:]
 
+    def _graph_dfs(self, csr_matrix, item):
+        cache_key = id(csr_matrix)
+
+        matrix_cache = self.graph_dfs_cache.get(cache_key)
+
+        if matrix_cache is None:
+            value = self._calculate_graph_dfs(csr_matrix, item)
+            new_cache = {item: value}
+            self.graph_dfs_cache[cache_key] = new_cache
+            return value
+
+        result = matrix_cache.get(item)
+
+        if result is None:
+            value = self._calculate_graph_dfs(csr_matrix, item)
+            matrix_cache[item] = value
+            return value
+
+        return result
     # -------------------------------------------------------------------------
 
     # given a text file with function names (one name per line)
