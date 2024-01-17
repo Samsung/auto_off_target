@@ -221,6 +221,10 @@ class CutOff:
     # -------------------------------------------------------------------------
 
     def _get_mods_and_dirs_for_f(self, fid):
+        if fid in self.fid_to_mods:
+            # this has already been executed for this function
+            return
+
         src, loc = self.dbops._get_function_file(fid)
         mod_paths = None
 
@@ -237,25 +241,17 @@ class CutOff:
             else:
                 mod_paths = data["entries"]
 
-        for mod_path in mod_paths:
-            if fid not in self.fid_to_mods:
-                self.fid_to_mods[fid] = set()
-            if mod_path not in self.fid_to_mods[fid]:
-                self.fid_to_mods[fid].add(mod_path)
+        self.fid_to_mods[fid] = set(mod_paths)
 
         # cut-off based on the list of function names
         # we don't really need to collect anything in that case - we will filter out
         # based on names
 
         # cut-off based on the list of directories
-        dirs = set()
         if src is not None:
-            dirs.add(os.path.dirname(src))
+            self.fid_to_dirs[fid] = {os.path.dirname(src)}
         else:
-            dirs.add("/tmp/no_such_file")
-        if len(dirs) != 0:
-            if fid not in self.fid_to_dirs:
-                self.fid_to_dirs[fid] = dirs
+            self.fid_to_dirs[fid] = {"/tmp/no_such_file"}
 
     # @base_fids: the ids of the functions we would like to create an off-target for
     # @fids: the ids of all the other functions (that we discovered recursively)
