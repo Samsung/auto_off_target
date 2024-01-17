@@ -636,40 +636,49 @@ class Init:
                 record_type = t
                 record_id = t["id"]
 
-                for member_id in range(len(record_type["refs"])):
-                    m_t = self.dbops.typemap[record_type["refs"][member_id]]
+                record_refs = record_type["refs"]
+                record_refnames = record_type["refnames"]
+
+                if record_id not in self.member_usage_info:
+                    self.member_usage_info[record_id] = [
+                        {} for k in record_refs
+                    ]
+
+                for member_id, type_id in enumerate(record_refs):
+                    member_type = self.dbops.typemap[type_id]
                     # looking for a pointer struct members
-                    if self._is_pointer_like_type(m_t):
+                    if not self._is_pointer_like_type(member_type):
+                        continue
 
-                        if record_id not in self.member_usage_info:
-                            self.member_usage_info[record_id] = [
-                                {} for k in record_type["refs"]]
-                        member_data = self.member_usage_info[record_id][member_id]
+                    member_name = record_refnames[member_id]
+                    member_data = self.member_usage_info[record_id][member_id]
 
-                        if "name_size" not in member_data:
-                            sizecount = 0
-                            sizes = []
-                            sizematch = ["size", "len", "num",
-                                         "count", "sz", "n_", "cnt", "length"]
-                            for size_member_id in range(len(record_type["refs"])):
-                                size_type = self.dbops.typemap[record_type["refs"]
-                                                               [size_member_id]]
-                                if self._is_size_type(size_type):
-                                    # name matching
-                                    member_name = record_type["refnames"][member_id]
-                                    size_name = record_type["refnames"][size_member_id]
-                                    if member_name in size_name:
-                                        for match in sizematch:
-                                            if match in size_name.replace(member_name, '').lower():
-                                                sizecount += 1
-                                                sizes.append(size_member_id)
-                                                break
-                            # TODO: solve priority instead of adding all maybe
-                            if sizecount > 1:
-                                pass
-                            if len(sizes) > 0:
-                                member_data["name_size"] = set()
-                                member_data["name_size"] |= set(sizes)
+                    if "name_size" in member_data:
+                        continue
+
+                    sizes = set()
+                    sizematch = ["size", "len", "num",
+                                 "count", "sz", "n_", "cnt", "length"]
+                    for size_member_id, size_type_id in enumerate(record_refs):
+                        size_type = self.dbops.typemap[size_type_id]
+                        if not self._is_size_type(size_type):
+                            continue
+
+                        # name matching
+                        size_name = record_refnames[size_member_id]
+                        if member_name not in size_name:
+                            continue
+
+                        for match in sizematch:
+                            if match in size_name.replace(member_name, '').lower():
+                                sizes.add(size_member_id)
+                                break
+
+                    # TODO: solve priority instead of adding all maybe
+                    if len(sizes) > 1:
+                        pass
+                    if len(sizes) > 0:
+                        member_data["name_size"] = sizes
 
     # -------------------------------------------------------------------------
 
