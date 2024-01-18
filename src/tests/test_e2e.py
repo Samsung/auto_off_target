@@ -8,7 +8,7 @@ import tempfile
 import os
 import shutil
 import uuid
-import multiprocessing.pool
+from custom_multiprocessing import ProcessExecutor
 import progressbar
 from typing import Optional, Any, Dict, List, Set, Tuple, Union
 import aotdb
@@ -249,22 +249,16 @@ def test_regression(
                     aot_timeout
                 ))
 
-    process_pool = multiprocessing.pool.Pool(aot_threads)
+    process_executor = ProcessExecutor(aot_threads)
     progress_bar = _progress_bar(len(test_args))
     progress_bar.start()
 
-    def callback(_: Any) -> None:
-        progress_bar.increment()
+    results = process_executor.apply(
+        _run_test_case,
+        test_args,
+        progress_bar.increment,
+    )
 
-    results = []
-    for test_case in test_args:
-        result = process_pool.apply_async(
-            _run_test_case, test_case, callback=callback
-        )
-        results.append(result)
-
-    process_pool.close()
-    process_pool.join()
     progress_bar.finish()
 
     total_aot_time = 0
@@ -274,7 +268,7 @@ def test_regression(
 
     for test_case, result in zip(test_args, results):
         test_config, function, i, case, _, _, _, _ = test_case
-        tester, exec_dir = result.get()
+        tester, exec_dir = result
 
         if tester.aot_time is not None:
             total_aot_time += tester.aot_time
