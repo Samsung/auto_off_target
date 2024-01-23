@@ -764,8 +764,6 @@ class CodeGen:
         start_index = 0
 
         if create_params:
-            res_var = "_init_res"
-            str += "int {} = 0;\n".format(res_var)
             for tid in type_ids:
                 type = self.dbops.typemap[tid]
                 saved_i = i
@@ -858,7 +856,7 @@ class CodeGen:
                             init_data = self.otgen.funcs_init_data[function_id]
                             param_tid, init_obj = init_data[i - 1]
                         tmp, alloc, brk = self.init._generate_var_init(
-                            varname, type, res_var, pointers, known_type_names=known_type_names, new_types=new_types, entity_name=name,
+                            varname, type, pointers, known_type_names=known_type_names, new_types=new_types, entity_name=name,
                             init_obj=init_obj, fuse=0, fid=function_id)
                     elif not dyn_init_present and not is_used:
                         tmp = f"// Detected that the argument {varname} is not used - skipping init\n"

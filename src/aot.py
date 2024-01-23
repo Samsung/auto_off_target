@@ -785,7 +785,7 @@ class Engine:
                         param_tid, init_obj = self.otgen.globs_init_data[g['id']]
 
                     tmp_str, alloc, brk = self.init._generate_var_init(
-                        g["name"], self.dbops.typemap[g["type"]], "", pointers, known_type_names=known_type_names, new_types=new_types,
+                        g["name"], self.dbops.typemap[g["type"]], pointers, known_type_names=known_type_names, new_types=new_types,
                         entity_name=g['name'], fuse=0, init_obj=init_obj)
                     if filename not in contents_to_change:
                         contents_to_change[filename] = ""

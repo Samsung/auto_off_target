@@ -788,7 +788,7 @@ class Init:
     # code: struct A* var = (struct A*)malloc(sizeof(struct A*));
 
     # @belongs: init
-    def _generate_var_init(self, name, type, res_var, pointers, level=0, skip_init=False, known_type_names=None, cast_str=None, new_types=None,
+    def _generate_var_init(self, name, type, pointers, level=0, skip_init=False, known_type_names=None, cast_str=None, new_types=None,
                            entity_name=None, init_obj=None, fuse=None, fid=None, count=None):
         """Given variable name and type, generate correct variable initialization code.
         For example:
@@ -805,8 +805,6 @@ class Init:
                     a new variable introduced for purposes of initialization of arrays; constant in recursive calls
         :param type: the recorded type of the name entity (i.e. the corresponding entry in types db); constant in 
                     recursive calls
-        :param res_var: set only in _generate_function_call, not used anywhere; NOTE: remove, as it is not really used 
-                    anywhere? defaults to None, constant in recursive calls
         :param pointers: a list consisting of all the pointers that have been successfully initialized in a call 
                     of this function; not used anywhere apart from recursive calls, always empty at the top call
         :param level: the level of nesting brackets when initializing arrays; defaults to 0, always 0 at the top call,
@@ -865,10 +863,6 @@ class Init:
                 logging.info(
                     f"used type found for {t_id}. Type id is {type['id']}")
         str = ""
-        # if level == 0 and skip_init == False:
-        #     str = "{} = ".format(res_var)
-        # else:
-        #     str = ""
 
         # Init types based on type class:
         # 1) builtin:
@@ -1367,7 +1361,6 @@ class Init:
                         else:
                             _str_tmp, alloc_tmp, brk = self._generate_var_init(fresh_var_name,
                                                                             _dst_t,
-                                                                            res_var,
                                                                             pointers[:],
                                                                             level,
                                                                             skip_init,
@@ -1595,7 +1588,6 @@ class Init:
                             else:
                                 str_tmp, alloc_tmp, brk = self._generate_var_init(name,
                                                                                 _dst_t,
-                                                                                res_var,
                                                                                 pointers[:],
                                                                                 level,
                                                                                 skip_init,
@@ -1781,10 +1773,6 @@ class Init:
                 self.dbops.typemap[t_id])
             return f"// {name} of type {typename} is not used anywhere\n", False, False
 
-        # if level == 0 and skip_init == False:
-        #     str += "if (aot_check_init_status(\"{}\", {}))\n".format(name, res_var)
-        #     str += "\treturn -1;\n"
-
         # now that we have initialized the top-level object we need to make sure that
         # all potential pointers inside are initialized too
         # TBD
@@ -1853,7 +1841,6 @@ class Init:
                             f"variant E, my type is {type['id']}, loop_count is {loop_count}, cl is {cl}: {tmp_name}")
                     str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}",
                                                                       member_type,
-                                                                      res_var,
                                                                       pointers[:],
                                                                       level + 1,
                                                                       skip,
@@ -2031,7 +2018,6 @@ class Init:
                                         member_to_name[i] = f"{tmp_name}{deref_str}{field_name}"
                                         str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}{deref_str}{field_name}",
                                                                                      tmp_t,
-                                                                                     res_var,
                                                                                      pointers[:],
                                                                                      level,
                                                                                      skip_init=skip,
@@ -2085,7 +2071,6 @@ class Init:
                                                 # generate an alternative init for each of the detected casts
                                                 str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}{deref_str}{field_name}",
                                                                                             dst_t,
-                                                                                            res_var,
                                                                                             pointers[:],
                                                                                             level,
                                                                                             False,
