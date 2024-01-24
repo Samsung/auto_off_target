@@ -64,11 +64,14 @@ def create_indices(db):
             return None
 
     bas_cache = dict()
-    for bas_entry in db.BAS:
-        bas_cache[bas_entry["loc"]] = bas_entry
+    if db.BAS is not None:
+        for bas_entry in db.BAS:
+            bas_cache[bas_entry["loc"]] = bas_entry
 
-    def bas_by_loc(loc):
-        return bas_cache.get(loc)
+    init_data_cache = dict()
+    if db.init_data is not None:
+        for init_data_entry in db.init_data:
+            init_data_cache[init_data_entry["name"]] = init_data_entry
 
     return {
         "funcs": {
@@ -94,6 +97,9 @@ def create_indices(db):
             "id": source_info_by_id,
         },
         "BAS": {
-            "loc": bas_by_loc,
+            "loc": bas_cache.get,
         },
+        "init_data": {
+            "name": init_data_cache.get,
+        }
     }
