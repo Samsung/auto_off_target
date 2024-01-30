@@ -3,7 +3,10 @@
 # Copyright Samsung Electronics
 # Samsung Mobile Security Team @ Samsung R&D Poland
 
-import libftdb
+try:
+    import libftdb
+except ImportError as e:
+    print(f"Unable to import libftdb: {e}")
 
 
 def wrap_libftdb_error(func):
