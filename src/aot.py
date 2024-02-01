@@ -47,6 +47,8 @@ class Engine:
     FUNCTION_POINTER_KNOWN_FUNCS_STUB_FILE_TEMPLATE = "fptr_stub_known_funcs.c.template"
     FUNCTION_POINTER_KNOWN_FUNCS_STUB_FILE_SOURCE = "fptr_stub_known_funcs.c"
 
+    CLANG_FORMAT_SIZE_LIMIT = 50000000
+
     def __init__(self):
         self.functions = set()
         self.out_dir = Engine.DEFAULT_OUTPUT_DIR
@@ -1086,8 +1088,13 @@ class Engine:
             logging.info("Will format files with clang-format")
             to_format = ['aot.c']
             for filename in to_format:
-                subprocess.run(
-                    ["clang-format", "-i", f"{self.out_dir}/{filename}"])
+                filename = f"{self.out_dir}/{filename}"
+                try:
+                    file_size = os.path.getsize(filename)
+                except FileNotFoundError:
+                    continue
+                if file_size <= self.CLANG_FORMAT_SIZE_LIMIT:
+                    subprocess.run(["clang-format", "-i", filename])
 
         logging.info("Output generated in " + self.out_dir)
         logging.info(f"AOT_OUT_DIR: {os.path.abspath(self.out_dir)}\n")
