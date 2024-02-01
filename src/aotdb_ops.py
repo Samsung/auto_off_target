@@ -193,12 +193,12 @@ class AotDbOps:
                 if not self.include_asm:
                     if self._func_contains_assembly(f):
                         self.all_funcs_with_asm.add(f_id)
-                self.static_funcs_map[f_id] = []
+                self.static_funcs_map[f_id] = set()
 
                 if f["linkage"] == "internal":
                     for id in f["fids"]:
                         if id not in self.static_funcs_map[f_id]:
-                            self.static_funcs_map[f_id].append(id)
+                            self.static_funcs_map[f_id].add(id)
 
             funcdecls = self.db["funcdecls"]
             for f in funcdecls:
@@ -219,8 +219,8 @@ class AotDbOps:
                         self.replacement_funcs_ids.add(f["id"])
 
             tmp_static_funcs_map = []
-            for f_id in self.static_funcs_map:
-                item = {"id": f_id, "fids": self.static_funcs_map[f_id]}
+            for f_id, funcs in self.static_funcs_map.items():
+                item = {"id": f_id, "fids": list(funcs)}
                 tmp_static_funcs_map.append(item)
             self.db.store_many_in_collection(
                 "static_funcs_map", tmp_static_funcs_map)
