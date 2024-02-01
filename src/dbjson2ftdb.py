@@ -52,6 +52,25 @@ class FtdbFrontend(AotDbFrontend):
 
         return True
 
+    @staticmethod
+    def _json_indices(data):
+        function_name_index = dict()
+        for func in data["funcs"]:
+            function_name_index[func["name"]] = func
+
+        funcdecl_name_index = dict()
+        for funcdecl in data["funcdecls"]:
+            funcdecl_name_index[funcdecl["name"]] = funcdecl
+
+        return {
+            "funcs": {
+                "name": function_name_index.get,
+            },
+            "funcdecls": {
+                "name": funcdecl_name_index.get,
+            }
+        }
+
     def import_db_json(self, json_file):
         with open(json_file, "r") as f:
             logging.info("Loading JSON data from file")
@@ -62,16 +81,12 @@ class FtdbFrontend(AotDbFrontend):
             self.db = self.json_data
             # since we might be addming more to the db, we
             # don't store the data at this moment
-        self._init_collections(False)
+        self.indices = self._json_indices(self.db)
+        self._init_collections()
 
         return self.json_data
 
-    def _init_collections(self, create_indices=True):
-        if create_indices:
-            self.indices = ftdb_indices.create_indices(self.db)
-        else:
-            self.indices = {}
-
+    def _init_collections(self):
         self.collections = dict()
         for name in self.collection_names:
             self.collections[name] = FtdbCollection(
@@ -217,6 +232,7 @@ class FtdbFrontend(AotDbFrontend):
                 logging.error(f"Loading data from {self.db_file} failed")
                 return False
 
+            self.indices = ftdb_indices.create_indices(self.db)
             self._init_collections()
 
         return True

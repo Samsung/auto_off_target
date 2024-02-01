@@ -596,11 +596,11 @@ class AotDbOps:
                 fid_funcdecl = None
                 fid_undef = None
 
-                if self.fnmap[func] is not None:
+                if func in self.fnmap:
                     fid_func = self.fnmap[func]
-                if self.fdnmap[func] is not None:
+                if func in self.fdnmap:
                     fid_funcdecl = self.fdnmap[func]
-                if self.unmap[func] is not None:
+                if func in self.unmap:
                     fid_undef = self.unmap[func]
 
                 if fid_func is None and fid_funcdecl is None and fid_undef is None:
