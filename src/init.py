@@ -2946,24 +2946,24 @@ class Init:
         if type["class"] != "record":
             return True
 
-        is_in_use = True
         field_name = type["refnames"][member_idx]
 
-        # let's check if the field is used
-        if type['id'] not in self.used_types_data:
-            is_in_use = False
-        elif "usedrefs" in type:
-            # TODO: remove size check
-            if member_idx < len(type["usedrefs"]) and -1 == type["usedrefs"][member_idx]:
-                if self.args.debug_vars_init:
-                    logging.info(
-                        f"Detected that field {field_name} in {type_name} is not used")
-                is_in_use = False
-            if member_idx >= len(type["usedrefs"]):
-                logging.warning(
-                    f"Unable to check if {field_name} is used or not")
+        used_type = self.used_types_data.get(type["id"])
 
-        return is_in_use
+        if used_type is None:
+            return False
+
+        if "usedrefs" not in used_type or member_idx >= len(used_type["usedrefs"]):
+            logging.warning(f"Unable to check if {field_name} is used or not")
+            return True
+
+        if -1 == used_type["usedrefs"][member_idx]:
+            if self.args.debug_vars_init:
+                logging.info(
+                    f"Detected that field {field_name} in {type_name} is not used")
+            return False
+
+        return True
 
     # -------------------------------------------------------------------------
 
@@ -3293,9 +3293,13 @@ class Init:
             item = None
             if t_id not in ret_val:
                 # we create a deep copy in order to avoid
-                ret_val[t_id] = copy.deepcopy(t)
                 # interfering with the db cache
-                item = ret_val[t_id]
+                # TODO: ugly, but temporary
+                if hasattr(t, "json"):
+                    item = t.json()
+                else:
+                    item = copy.deepcopy(t)
+                ret_val[t_id] = item
                 # we will update the "usedrefs information"
                 for i in range(len(item["usedrefs"])):
                     item["usedrefs"][i] = -1
@@ -3325,9 +3329,13 @@ class Init:
 
             if t["class"] == "record" and t_id not in ret_val:
                 # we create a deep copy in order to avoid
-                ret_val[t_id] = copy.deepcopy(t)
                 # interfering with the db cache
-                item = ret_val[t_id]
+                # TODO: ugly, but temporary
+                if hasattr(t, "json"):
+                    item = t.json()
+                else:
+                    item = copy.deepcopy(t)
+                ret_val[t_id] = item
                 # we will update the "usedrefs information"
                 for i in range(len(item["usedrefs"])):
                     item["usedrefs"][i] = -1
@@ -3342,11 +3350,10 @@ class Init:
                     if dup in ret_val:
                         t2 = ret_val[dup]
                         for i in range(len(t["usedrefs"])):
-                            if (t["usedrefs"][i] != -1 and t2["usedrefs"][i] == 1) or (t["usedrefs"][i] == -1 and t2["usedrefs"][i] != 1):
-                                if t["usedrefs"][i] == -1:
-                                    t["usedrefs"][i] = t2["usedrefs"][i]
-                                else:
-                                    t2["usedrefs"][i] = t["usedrefs"][i]
+                            if t["usedrefs"][i] != -1 and t2["usedrefs"][i] == -1:
+                                t2["usedrefs"][i] = t["usedrefs"][i]
+                            if t["usedrefs"][i] == -1 and t2["usedrefs"][i] != -1:
+                                t["usedrefs"][i] = t2["usedrefs"][i]
 
         # take type dups into account
         for t_id in list(ret_val.keys()):
@@ -3449,26 +3456,26 @@ class Init:
                 continue
 
             for d in f["derefs"]:
+                member_data, _ = self._get_member_access_from_deref(d)
 
-                member_data, access_order = self._get_member_access_from_deref(
-                    d)
                 if member_data is None:
                     continue
 
                 for t_id in member_data:
                     if t_id not in self.used_types_data:
                         self.used_types_data[t_id] = member_data[t_id]
-                    else:
-                        for i in range(len(member_data[t_id]["usedrefs"])):
-                            used = member_data[t_id]["usedrefs"][i]
-                            if "usedrefs" not in self.used_types_data[t_id]:
-                                logging.error(
-                                    f"usedrefs not found in type {t_id}")
-                            if used != -1:
-                                self.used_types_data[t_id]["usedrefs"][i] = used
+                        continue
+
+                    for i, used in enumerate(member_data[t_id]["usedrefs"]):
+                        if "usedrefs" not in self.used_types_data[t_id]:
+                            logging.error(f"usedrefs not found in type {t_id}")
+
+                        if used != -1:
+                            self.used_types_data[t_id]["usedrefs"][i] = used
 
         logging.info(
-            f"Used types data captured, size is {len(self.used_types_data)}")
+            f"Used types data captured, size is {len(self.used_types_data)}"
+        )
 
     # -------------------------------------------------------------------------
 
