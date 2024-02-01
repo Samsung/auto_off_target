@@ -182,11 +182,7 @@ class Deps:
                             (record["id"], member, fop["members"][member]))
         else:
             for fop in json_data["fops"]:
-                record = None
-                for t in json_data["types"]:
-                    if t["id"] == fop["type"]:
-                        record = t
-                        break
+                record = typeDict.get(fop["type"])
                 if record is not None:
                     for member in fop["members"]:
                         for f_id in fop["members"][member]:
