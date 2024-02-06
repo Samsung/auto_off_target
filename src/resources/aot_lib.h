@@ -8,8 +8,8 @@
 
 #ifdef AOT_GET_CURRENT
 __attribute__((gnu_inline)) __attribute__((unused)) __attribute__((no_instrument_function)) __attribute__((always_inline)) static inline struct task_struct* get_current() {
-    static unsigned char buffer[4096] = { 0 };
-    return buffer;
+    static unsigned char buffer[8192] = { 0 };
+    return (struct task_struct*) buffer;
 }
 #endif
 
