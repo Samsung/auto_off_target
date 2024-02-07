@@ -398,17 +398,8 @@ class AotDbOps:
             self.builtin_funcs_ids = set()
             self.replacement_funcs_ids = set()
             self.all_funcs_with_asm = set()
-            self.static_funcs_map = {}
-
-            static_funcs = self.db.create_local_index(
-                "static_funcs_map", "id").get_all()
-            for f in static_funcs:
-                f_id = f["id"]
-                if "fids" not in f:
-                    logging.info(f"'fids' not found in function {f['id']}")
-                    continue
-                fids = f["fids"]
-                self.static_funcs_map[f_id] = set(fids)
+            self.static_funcs_map = self.db.create_local_index(
+                "static_funcs_map", "id")
 
             for f_id in known_data['func_ids']:
                 self.known_funcs_ids.add(f_id)

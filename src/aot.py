@@ -548,11 +548,11 @@ class Engine:
             if f is not None:
                 f_id = f["id"]
                 if f_id in self.dbops.static_funcs_map:
-                    additional = self.dbops.static_funcs_map[f_id]
+                    additional = self.dbops.static_funcs_map[f_id]["fids"]
             fids = set(self.static_and_inline_funcs[func])
 
             prev = len(fids)
-            fids |= additional
+            fids.update(additional)
             if prev != len(fids):
                 logging.info("workardound working: we have more fids now")
 
