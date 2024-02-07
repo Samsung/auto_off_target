@@ -37,12 +37,8 @@ class FtdbFrontend(AotDbFrontend):
         if not super().sanity_check():
             return False
 
-        if self.db_file and not os.path.isfile(self.db_file):
+        if self.json_file is None and self.db_file and not os.path.isfile(self.db_file):
             logging.error(f"db file {self.db_file} not found")
-            return False
-
-        if self.db_file and self.json_file:
-            logging.error(f"Cannot use both --import-json and --db")
             return False
 
         if self.db_file is None and self.json_file is None:
@@ -226,7 +222,7 @@ class FtdbFrontend(AotDbFrontend):
                                  "globals", "globs_tree_globalrefs", "init_data", "known_data", "modules",
                                  "sources", "static_funcs_map", "types", "types_tree_refs", "types_tree_usedrefs",
                                  "unresolvedfuncs", "source_info", "module_info"]
-        if self.db_file:
+        if self.db_file and self.json_file is None:
             logging.info(f"Loading data from {self.db_file} file")
             if not self.db.load(self.db_file, quiet=True):
                 logging.error(f"Loading data from {self.db_file} failed")
@@ -255,7 +251,10 @@ class FtdbFrontend(AotDbFrontend):
                         new_modules.append({'id': item[k], 'name': k})
                 self.db['module_info'] = new_modules
 
-            filename = self.json_file.replace(".json", ".img")
+            if self.db_file is not None:
+                filename = self.db_file
+            else:
+                filename = self.json_file.replace(".json", ".img")
             logging.info(f"Storing database to {filename} file")
             libftdb.create_ftdb(self.db, filename, True)
             # with open(filename, "w") as f:

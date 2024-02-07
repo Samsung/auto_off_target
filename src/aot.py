@@ -1310,7 +1310,7 @@ def prepare_parser(*db_frontends):
 
     parser.add_argument('--db',
                         default=None,
-                        help='Path to a *.img database file to load')
+                        help='Path to a *.img database file to store/load')
 
     parser.add_argument('--functions', nargs="+", default="",
                         help='list of functions to generate off-target for; in order to specify ' +
