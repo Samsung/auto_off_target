@@ -287,7 +287,7 @@ class FptrStubCComparator(CComparator):
         def get_fptrstub_name(node: Node) -> Optional[str]:
             # extract function name from quotes ignoring optional module name
             # in square brackets
-            match = re.search(r'"(\w+)(?: \[\w+\])?"', node.text.decode())
+            match = re.search(r'"(\w+)(?: \[[\w-]+\])?"', node.text.decode())
             if not match:
                 return None
             return match.group(1)
@@ -337,7 +337,7 @@ class FptrStubCComparator(CComparator):
                 initialized.add(index)
                 name = name_array[index]
                 if name is None:
-                    msg += f'\tat {line},{col}: no function pointer name'
+                    msg += f'\tat {line},{col}: no function pointer name\n'
                     continue
                 if not name.endswith(name):
                     msg += f'\tat {line},{col}: function pointer name should' \
