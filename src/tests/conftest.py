@@ -11,8 +11,8 @@ from typing import List
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    parser.addoption('--keep-test-env', action='store_true')
-    parser.addoption('--build-all', action='store_true')
+    parser.addoption('-K', '--keep-test-env', action='store_true')
+    parser.addoption('-B', '--build-all', action='store_true')
 
     data_dir = os.path.join(os.path.dirname(__file__), 'test_data')
     tinycc_path = os.path.join(data_dir, 'test_config_tinycc.json')
@@ -23,12 +23,12 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=[tinycc_path, csmith_path]
     )
 
-    parser.addoption('--regression-aot', default=None)
-    parser.addoption('--aot-timeout', type=int, default=600)
+    parser.addoption('-R', '--regression-aot', default=None)
+    parser.addoption('-T', '--aot-timeout', type=int, default=600)
 
     cpu_count = os.cpu_count()
     thread_count = 1 if cpu_count is None else cpu_count - 1
-    parser.addoption('--aot-threads', type=int, default=thread_count)
+    parser.addoption('-J', '--aot-threads', type=int, default=thread_count)
 
 
 @pytest.fixture
