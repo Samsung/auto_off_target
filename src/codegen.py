@@ -131,6 +131,10 @@ class CodeGen:
             dst_type = self.dbops.typemap[type["refs"][0]]
             name = "* {}".format(name)
             str += self._generate_var_def(dst_type, name)
+        elif cl == "lv_reference":
+            dst_type = self.dbops.typemap[type["refs"][0]]
+            name = "& {}".format(name)
+            str += self._generate_var_def(dst_type, name)
         elif cl == "vector":
             dst_type = self.dbops.typemap[type["refs"][0]]
             dst_type_str = dst_type["str"]
