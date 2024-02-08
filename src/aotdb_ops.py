@@ -444,10 +444,7 @@ class AotDbOps:
         if self.fptr_analysis:
             if self.db_type == aotdb.DbType.FTDB:
                 # if we're using db.img
-                logging.info("Generating function pointers information")
-                fpointers = self.deps._infer_functions(self.db.db)
-                self.fpointer_map = {k: {"_id": k, "entries": v}
-                                     for k, v in fpointers.items()}
+                self.fpointer_map = self.db.create_local_index('func_fptrs', '_id')
             else:
                 logging.error(
                     f"Option --fptr-analysis requires db.json imported with function pointers analysis enabled")

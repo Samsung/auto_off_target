@@ -213,10 +213,9 @@ class CutOff:
     #       func_id: ID of the function for which function_pointers should
     #                be found
     def _get_infer_function(self, func_id: int) -> Optional[list]:
-        result = self.dbops.fpointer_map.get(func_id)
-        if result is None:
+        if func_id not in self.dbops.fpointer_map:
             return None
-        return result['entries']
+        return self.dbops.fpointer_map[func_id]['entries']
 
     # -------------------------------------------------------------------------
 
