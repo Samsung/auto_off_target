@@ -1126,6 +1126,16 @@ class Deps:
                                             logging.debug(f"adding dep {_tid} => {dst_tid}")
                                             if _tid in _internal_defs:
                                                 to_check.append(_tid)
+                    elif type["class"] == "function":
+                        # if we are dealing with function type we don't really need to have
+                        # the definitions until the function is actually used
+                        for t_id in tid_deps:
+                            dst_type = self.dbops.typemap[t_id]
+                            dst_class = dst_type["class"]
+                            if dst_class == "record" or dst_class == "enum":
+                                deps[tid].remove(t_id)
+                                logging.info(
+                                    "Breaking dependency from {} to {}".format(tid, t_id))
 
                 logging.info("Retry toposort after circle removal")
                 #sorted = toposort_flatten(deps)
