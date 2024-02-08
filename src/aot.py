@@ -109,6 +109,9 @@ class Engine:
         self.dump_global_hashes = args.dump_global_hashes
         self.global_hashes = []
 
+        if args.config:
+            logging.info(f"AOT_CONFIG:|{args.config}|")
+
         self.deps = Deps(args)
         self.dbops = AotDbOps(db_handle, self.deps, args)
         self.cutoff = CutOff(self.dbops, args, self.deps)
