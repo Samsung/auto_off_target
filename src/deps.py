@@ -94,10 +94,15 @@ class Deps:
         # save all funcs
         funcsaddresstaken = set()
         funcsbytype = {}
-        funcTypeCandidates = {}
+        # first level struct assignment
+        fucnsFirstLevelStruct = set()
+        funccals = []
 
         for fun in json_data["funcs"]:
             for deref in fun["derefs"]:
+                if deref["kind"] == "function":
+                    funccals.append((deref, fun))
+
                 if deref["kind"] != "assign" and deref["kind"] != "init":
                     continue
                 functions = list(
@@ -106,6 +111,28 @@ class Deps:
                     continue
                 for function in functions:
                     funcsaddresstaken.add(function["id"])
+
+                # also handle first level struct assignment
+                if deref["offsetrefs"][0]["kind"] != "member":
+                    continue
+                structDerefId = deref["offsetrefs"][0]["id"]
+                structTypeId = fun["derefs"][structDerefId]["type"][-1]
+                structMemberId = fun["derefs"][structDerefId]["member"][-1]
+
+                for function in functions:
+                    fucnsFirstLevelStruct.add(
+                        (structTypeId, structMemberId, function["id"]))
+
+            # also, consider the cases in which a function pointer is passed as a function parameter
+            for i in range(len(fun["calls"])):
+                info = fun["call_info"][i]
+                for arg in info["args"]:
+                    deref = fun["derefs"][arg]
+                    if deref["kind"] == "parm":
+                        functions = list(
+                            filter(lambda x: x["kind"] == "function", deref["offsetrefs"]))
+                        for function in functions:
+                            funcsaddresstaken.add(function["id"])
 
         # from global variables take all funrefs as funcs with address taken
         for var in json_data["globals"]:
@@ -126,44 +153,15 @@ class Deps:
             else:
                 funcsbytype[typeTuple].append(f)
 
-        for typ in json_data["types"]:
-            if typ["class"] == "function":
-                typeTuple = tuple(typ["refs"])
-                if typeTuple in funcsbytype:
-                    funcTypeCandidates[typ["id"]] = funcsbytype[typeTuple]
-                else:
-                    funcTypeCandidates[typ["id"]] = []
-
         globalDict = {}
         for glob in json_data["globals"]:
             globalDict[glob["id"]] = glob
 
         typeDict = {}
-        for fun in json_data["types"]:
-            typeDict[fun["id"]] = fun
-
-        # first level struct assignment
-        fucnsFirstLevelStruct = set()
-        for fun in json_data["funcs"]:
-            for deref in fun["derefs"]:
-                if deref["kind"] != "assign" and deref["kind"] != "init":
-                    continue
-                functions = list(
-                    filter(lambda x: x["kind"] == "function", deref["offsetrefs"]))
-                if not functions:
-                    continue
-                if deref["offsetrefs"][0]["kind"] != "member":
-                    continue
-                structDerefId = deref["offsetrefs"][0]["id"]
-                structTypeId = fun["derefs"][structDerefId]["type"][-1]
-                structMemberId = fun["derefs"][structDerefId]["member"][-1]
-
-                for function in functions:
-                    fucnsFirstLevelStruct.add(
-                        (structTypeId, structMemberId, function["id"]))
+        for type in json_data["types"]:
+            typeDict[type["id"]] = type
 
         fopbased = set()
-
         if "vars" in json_data["fops"]: # legacy format
             # seems that we need to add also those from fops
             recordsByName = {}
@@ -216,6 +214,7 @@ class Deps:
                         continue
                     structType = typeDict[deref["type"][i]]
                     while structType["class"] == "pointer" or structType["class"] == "typedef":
+                        # todo: not always the concrete type would be the first one
                         structType = typeDict[structType["refs"][0]]
 
                     if deref["member"][i] >= len(structType["refs"]):
@@ -251,11 +250,6 @@ class Deps:
             output.setdefault(func["id"], {})
             output[func["id"]][deref["expr"]] = funcCandidates
 
-        funccals = []
-        for fun in json_data["funcs"]:
-            for deref in fun["derefs"]:
-                if deref["kind"] == "function":
-                    funccals.append((deref, fun))
         iCallsVar = []
         for deref, fun in funccals:
             if deref["offsetrefs"][0]["kind"] == "unary":

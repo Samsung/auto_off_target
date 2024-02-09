@@ -92,8 +92,18 @@ class CutOff:
         if self.args.fptr_analysis:
             fptrs = self._get_infer_function(base_fid)
             if fptrs is not None:
+                if base_fid not in self.fid_to_mods:
+                    self._get_mods_and_dirs_for_f(base_fid)
+                base_mods = self.fid_to_mods[base_fid]
                 for expr in fptrs:
-                    funrefs.update([fid for fid in expr[1]])
+                    same_mod_funcs = []
+                    for f_id in expr[1]:
+                        self._get_mods_and_dirs_for_f(f_id)
+                        mods = self.fid_to_mods[f_id]
+                        if 0 == len(base_mods.difference(mods)):
+                            same_mod_funcs.append(f_id)
+
+                    funrefs.update([fid for fid in same_mod_funcs])
 
         for fid in funrefs:
             logging.debug("checking funref {} ".format(fid))
