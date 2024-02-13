@@ -444,6 +444,8 @@ class AotDbOps:
         if self.fptr_analysis:
             if self.db_type == aotdb.DbType.FTDB:
                 # if we're using db.img
+                logging.info(
+                    "Will be using preprocessed function pointers information")                            
                 self.fpointer_map = self.db.create_local_index('func_fptrs', '_id')
             else:
                 logging.error(

@@ -746,7 +746,7 @@ class Engine:
                 if t["class"] == "record":
                     known_type_names.add(t["str"])
 
-            logging.info(f"known type names are {known_type_names}")
+            logging.info(f"known type names are {sorted(known_type_names)}")
             new_types = set()
             _str = ""
             contents_to_change = {}

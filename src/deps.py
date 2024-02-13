@@ -908,7 +908,7 @@ class Deps:
         with open(f"{self.args.output_dir}/{Deps.AOT_LITERALS_FILE}", "w") as f:
             i = 0
             _str = ""
-            for l in self.literals[Deps.INT_LITERAL]:
+            for l in sorted(self.literals[Deps.INT_LITERAL]):
                 # thanks to https://stackoverflow.com/questions/30285849/pythonic-way-to-convert-an-integer-into-a-hex-escaped-string
                 # https://stackoverflow.com/questions/5864271/reverse-a-string-in-python-two-characters-at-a-time-network-byte-order
                 # https://stackoverflow.com/questions/7822956/how-to-convert-negative-integer-value-to-hex-in-python
@@ -927,7 +927,7 @@ class Deps:
                     continue
                 _str += f"literal{i}=\"{hex_str}\"\n"
                 i += 1
-            for l in self.literals[Deps.FLOAT_LITERAL]:
+            for l in sorted(self.literals[Deps.FLOAT_LITERAL]):
                 # thanks to https://stackoverflow.com/questions/23624212/how-to-convert-a-float-into-hex/38879403
                 hex_str = hex(struct.unpack('<Q', struct.pack('<d', l))[0])
                 hex_str = hex_str.replace("L", "")
@@ -942,12 +942,12 @@ class Deps:
                     continue
                 _str += f"literal{i}=\"{hex_str}\"\n"
                 i += 1
-            for l in self.literals[Deps.CHAR_LITERAL]:
+            for l in sorted(self.literals[Deps.CHAR_LITERAL]):
                 if len(str(l)) == 0:
                     continue
                 _str += f"literal{i}=\"{str(l)}\"\n"
                 i += 1
-            for l in self.literals[Deps.STRING_LITERAL]:
+            for l in sorted(self.literals[Deps.STRING_LITERAL]):
                 if len(str(l)) <= Deps.MAX_STRING_LITERAL_LEN and len(str(l)) > 0:
                     raw = repr(l)[1:-1]
                     if "%" not in raw:

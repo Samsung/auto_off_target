@@ -169,7 +169,7 @@ class OTGenerator:
             if t["class"] == "record":
                 known_type_names.add(t["str"])
 
-        logging.info(f"known type names are {known_type_names}")
+        logging.info(f"known type names are {sorted(known_type_names)}")
         new_types = set()
 
         if self.args.init:
