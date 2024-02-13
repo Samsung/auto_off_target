@@ -1490,7 +1490,7 @@ class Init:
                                         multiplier = f"{multiplier} + {extra_padding.replace('*', '', 1)}"
                                         str += f"// smart init: allocating extra space for a 0-size const array member\n"
                                     str += f"// smart init: this object has many casts: using larger count to accommodate the biggest casted type\n"
-                                    str += f"// the other types are: {names}\n"
+                                    str += f"// the other types are: {sorted(names)}\n"
 
                         addsize = 0
                         if not user_init and typename == "char" and fuzz != 0 and not null_terminate:

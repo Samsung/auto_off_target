@@ -1037,7 +1037,7 @@ class OTGenerator:
             f.write(self._get_header_guard("aot_lib.h"))
             f.write(
                 "\n// Enable user-defined library functions specified in lib-funcs-file\n\n")
-            for func_name in self.dbops.lib_funcs:
+            for func_name in sorted(self.dbops.lib_funcs):
                 if func_name in self.deps.known_funcs_present:
                     f.write(f"#define AOT_{func_name.upper()}\n")
             f.writelines(contents)
