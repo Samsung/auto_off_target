@@ -1335,6 +1335,7 @@ class Init:
                         # we have to assign our top-level
                         # parameter to the right member of the containing type
                         member_name = ""
+                        member_number = -1
                         for i in range(len(members)):
                             member_no = members[i]
                             _tmp_t = self.dbops.typemap[types[i]]
@@ -1350,6 +1351,7 @@ class Init:
                                 else:
                                     deref = "."
                             member_name += f"{deref}{_tmp_name}"
+                            member_number = member_no
 
                         str_tmp += f"{name} = &{fresh_var_name}.{member_name};\n"
 
@@ -1359,6 +1361,11 @@ class Init:
                         if len(offset_types) > 1 and variant_num > 2 and self.args.single_init_only:
                             str_tmp = ""
                         else:
+                            # enforce the init of the "anchor" member for the offsetof operator
+                            if _dst_t['id'] not in self.used_types_data:
+                                self.used_types_data[_dst_t['id']] = _dst_t
+                            self.used_types_data[_dst_t['id']]['usedrefs'][member_number] = 1
+
                             _str_tmp, alloc_tmp, brk = self._generate_var_init(fresh_var_name,
                                                                             _dst_t,
                                                                             pointers[:],
