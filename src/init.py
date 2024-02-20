@@ -1335,7 +1335,8 @@ class Init:
                         # we have to assign our top-level
                         # parameter to the right member of the containing type
                         member_name = ""
-                        member_number = -1
+                        member_number = -1                        
+                        member_tid = None
                         for i in range(len(members)):
                             member_no = members[i]
                             _tmp_t = self.dbops.typemap[types[i]]
@@ -1352,7 +1353,7 @@ class Init:
                                     deref = "."
                             member_name += f"{deref}{_tmp_name}"
                             member_number = member_no
-
+                            member_tid = _tmp_t['refs'][member_no]
                         str_tmp += f"{name} = &{fresh_var_name}.{member_name};\n"
 
                         if self.args.debug_vars_init:
@@ -1362,10 +1363,36 @@ class Init:
                             str_tmp = ""
                         else:
                             # enforce the init of the "anchor" member for the offsetof operator
+                            # if obj.t_id in obj.used_members:
+                            #     # case1: we try to match the existing TypeUse object and use it to mark
+                            #     # that the "anchor" member is used -> this is a prefeable solution
+                            #     if member_number not in obj.used_members[obj.t_id]:
+                            #         obj.used_members[obj.t_id][member_number] = {}
+                            #     o_found = False
+                            #     for o in self.typeuse_obj_db:
+                            #         o_found = False
+                            #         if o.t_id == member_tid or (o.is_pointer and self.dbops._get_real_type(o.t_id) == member_tid):
+                            #             for _types, _members, _obj in o.offsetof_types:
+                            #                 for index in range(len(_types)):
+                            #                     if _obj.id == obj.id and _members[index] == member_number: 
+                            #                         obj.used_members[obj.t_id][member_number] = o
+                            #                         o_found = True
+                            #                         break
+                            #                 if o_found is True:
+                            #                     break
+                            #             if o_found is True:
+                            #                 break 
+                                    
+                            #     if o_found and -1 == self.used_types_data[obj.t_id]['usedrefs'][member_number]:
+                            #         self.used_types_data[obj.t_id]['usedrefs'][member_number] = self.used_types_data[obj.t_id]['refs'][member_number]
+                            # else:
+                            # case2: we add the member usage info to an entire type of the member
+                            # this works but at the disadvantage of having to initialize all instances 
+                            # whenever the member is used 
                             if _dst_t['id'] not in self.used_types_data:
                                 self.used_types_data[_dst_t['id']] = _dst_t
-                            self.used_types_data[_dst_t['id']]['usedrefs'][member_number] = 1
-
+                            self.used_types_data[_dst_t['id']]['usedrefs'][member_number] = self.used_types_data[_dst_t['id']]['refs'][member_number] 
+                        
                             _str_tmp, alloc_tmp, brk = self._generate_var_init(fresh_var_name,
                                                                             _dst_t,
                                                                             pointers[:],
@@ -2598,6 +2625,7 @@ class Init:
         active_object = None
         typeuse_objects = []
         ret_val = []
+        self.typeuse_obj_db = []
 
         base_obj = None
         for t_id in arg_tids:
@@ -2913,6 +2941,7 @@ class Init:
                                         f"Active object changed from {active_object.id} to {new_object.id}")
                                     active_object = new_object
             ret_val.append((t_id, base_obj))
+            self.typeuse_obj_db += typeuse_objects
 
         return ret_val
 
