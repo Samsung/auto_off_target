@@ -25,3 +25,4 @@ strlcpy
 vmalloc
 vzalloc
 vfree
+sched_clock

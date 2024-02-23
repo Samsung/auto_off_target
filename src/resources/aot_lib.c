@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <time.h>
 #include "aot_lib.h"
 #include "aot_fuzz_lib.h"
 
@@ -276,5 +277,13 @@ void* vzalloc(unsigned long size) {
 #ifdef AOT_VFREE
 void vfree(void* mem) {
     free(mem);
+}
+#endif
+
+#ifdef AOT_SCHED_CLOCK
+unsigned long long sched_clock(void) {
+    struct timespec tp;
+    clock_gettime(CLOCK_REALTIME, &tp);
+    return tp.tv_sec + tp.tv_nsec * 1'000'000'000ULL;
 }
 #endif

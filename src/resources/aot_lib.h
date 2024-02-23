@@ -128,3 +128,7 @@ void* vzalloc(unsigned long size);
 #ifdef AOT_VFREE
 void vfree(void* mem);
 #endif
+
+#ifdef AOT_SCHED_CLOCK
+unsigned long long sched_clock(void);
+#endif
