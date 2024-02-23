@@ -47,5 +47,6 @@ void* fptrstub_search(const char* symbol) {
 		if(!strcmp(symbol, fptrstub_pair_array[i].symbol))
 			return fptrstub_pair_array[i].address;
 	
-	return (void*) 0;
+	printf("[Unflatten] Failed to resolve function pointer `%%s`\n", symbol);
+	return (void*) -1;
 }

@@ -284,6 +284,6 @@ void vfree(void* mem) {
 unsigned long long sched_clock(void) {
     struct timespec tp;
     clock_gettime(CLOCK_REALTIME, &tp);
-    return tp.tv_sec + tp.tv_nsec * 1'000'000'000ULL;
+    return tp.tv_sec + tp.tv_nsec * 1000000000ULL; /* 10e9 */
 }
 #endif
