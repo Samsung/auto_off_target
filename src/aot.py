@@ -1475,7 +1475,6 @@ def main():
         engine = Engine()
 
         if False == engine.init(args, db_frontend):
-            shutil.move(logname, f"{args.output_dir}/{Engine.LOGFILE}")
             sys.exit(1)
 
         logging.info(f"AOT_OUTPUT_DIR|{engine.out_dir}|")
