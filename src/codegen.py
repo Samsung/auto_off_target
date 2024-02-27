@@ -1385,7 +1385,8 @@ class CodeGen:
                 if len(ifdef) != 0:
                     ifdef += " && "
                 ifdef += f"!defined({self.otgen._get_file_define(file_id)})"
-            ifdef = f"#if {ifdef}\n"
+            if len(ifdef) > 0:
+                ifdef = f"#if {ifdef}\n"
             if f_id in self.deps.func_clash_nums:
                 ifdef += f"#ifndef CLASH_{marker}_{self.deps.func_clash_nums[f_id]}\n"
                 ifdef += f"#define CLASH_{marker}_{self.deps.func_clash_nums[f_id]}\n"
@@ -1397,7 +1398,7 @@ class CodeGen:
     # @belongs: codegen?
     def _get_func_clash_endif(self, f_id, fid):
         endif = ""
-        if f_id in self.deps.clash_function_to_file:
+        if f_id in self.deps.clash_function_to_file and len(self.deps.clash_function_to_file[f_id]) > 0:
             endif = "#endif\n"
         if f_id in self.deps.func_clash_nums:
             endif += "#endif\n"
