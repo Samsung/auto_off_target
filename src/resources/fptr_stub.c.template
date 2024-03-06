@@ -8,7 +8,8 @@
 
 /* Local types */
 struct fptrstub_pair {
-  const char* symbol;
+  const char* function;
+  const char** modules;
   void* address;
 };
 
@@ -41,12 +42,49 @@ void aot_kflat_initialize_global_variables(void) {
 
 /* Exported functions */
 void* fptrstub_search(const char* symbol) {
+	void* retval = (void*) -1;
+	char* name = NULL, *module = NULL;
+	char* module_start, *module_end, *suffix;
 	unsigned long long array_size = sizeof(fptrstub_pair_array) / sizeof(fptrstub_pair_array[0]);
 
-	for(unsigned long long i = 0; i < array_size; i++)
-		if(!strcmp(symbol, fptrstub_pair_array[i].symbol))
-			return fptrstub_pair_array[i].address;
+	/* Split symbol of form 'myfunc [mymodule]' into function and module names */
+	module_start = strchr(symbol, "[");
+	if(module_start != NULL) {
+		module_end = strchr(symbol, "]");
+		if(module_end == NULL) {
+			printf("[Unflatten] Invalid format of function pointer `%%s`\n", symbol);
+			goto exit;
+		}
+		name = strndup(symbol, module_start - symbol - 1);
+		module = strndup(module_start + 1, module_end - module_start - 1);
+	} else {
+		name = strdup(symbol);
+		module = strdup("vmlinux");
+	}
+
+	suffix = strchr(name, '.');
+	if(suffix != NULL)
+		name[suffix] = '\0';
+
+	for(unsigned long long i = 0; i < array_size; i++) {
+		struct fptrstub_pair* entry = &fptrstub_pair_array[i];
+		if(strcmp(name, entry->function))
+			continue;
+		if(entry->modules == NULL) {
+			retval = entry->address;
+			goto exit;
+		}
+		for(int j = 0; entry->modules[j] != NULL; j++)
+			if(!strcmp(entry->modules[j], module)) {
+				retval = entry->address;
+				goto exit;
+			}
+	}
 	
 	printf("[Unflatten] Failed to resolve function pointer `%%s`\n", symbol);
-	return (void*) -1;
+
+exit:
+	free(name);
+	free(module);
+	return retval;
 }

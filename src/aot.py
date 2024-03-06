@@ -1230,7 +1230,7 @@ class Engine:
             with open(os.path.join(self.out_dir, Engine.FUNCTION_POINTER_STUB_FILE_SOURCE), "wt") as f:
                 fstub_decls_out = "\n".join(["extern int (*%s)(void);" % (fstub)
                                             for fstub, fstub_id in self.codegen.function_pointer_stubs.items()])
-                fstubs_out = "\n".join(["  { \"%s\", 0 }," % (
+                fstubs_out = "\n".join(["  { %s, 0 }," % (
                     self.codegen._get_function_kernel_name(fstub, fstub_id)) for fstub, fstub_id in self.codegen.function_pointer_stubs.items()])
                 fstubs_init = "\n".join(["  fptrstub_pair_array[%d].address = %s;" % (
                     i, fstubT[0]) for i, fstubT in enumerate(self.codegen.function_pointer_stubs.items())])

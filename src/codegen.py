@@ -18,7 +18,7 @@ import difflib
 import bson.json_util
 import re
 
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 class CodeGen:
     # this is a special value returned by function stubs returning a pointer
@@ -1227,29 +1227,38 @@ class CodeGen:
         return fptr_stub_def
 
     # -------------------------------------------------------------------------
-    # For a given function ID generates symbol name as it would appear in kallsyms or
-    # kernel stack trace
+    # For a given function ID generates entry for fptr_stub.c array
     # For example for function 'myfun' in module 'mymodule' we should get:
-    # '"myfun [mymodule]"'
+    #   '{"myfun", {"mymodule", NULL}}'
     # and for the same function in vmlinux:
-    # '"myfun"' 
+    #   '{"myfun", {"vmlinux", NULL}}'
+    # Functions that appears in multiple modules at once are printed like so:
+    #   '{"myfun", {"mymodule", "othermodule", "etc", NULL}}'
     # @belongs: codegen
-    def _get_function_kernel_name(self, function_name, function_id):
+    def _get_function_kernel_name(self, function_name: str, function_id: int) -> str:
         to_module_name = lambda name: os.path.basename(name).replace('.ko', '')
-
+        def produce_output(name: str, mods: List[str]) -> str:
+            output = '{"' + name + '", '
+            if mods:
+                output += '{' + ', '.join([f'"{m}"' for m in mods]) + ', NULL}'
+            else:
+                output += 'NULL'
+            output += '}'
+            return output
+        
         function = self.dbops.fnidmap[function_id]
         if function is None:
             # it's stub or external function - return only its name
-            return function_name
+            return produce_output(function_name, [])
         
         symbol_name = function['name']
         if function['mids'] is None:
-            return symbol_name
+            return produce_output(symbol_name, [])
         
-        modules = list(filter(lambda x: to_module_name(self.dbops.modidmap[x]) != 'vmlinux', function['mids']))
-        if len(modules) == 1:
-            symbol_name += f' [{to_module_name(self.dbops.modidmap[modules[0]])}]'
-        return symbol_name
+        modules_names = map(lambda x: to_module_name(self.dbops.modidmap[x]), function['mids'])
+        modules_names = set(modules_names) # filter out duplicates
+        modules_list = '|'.join(modules_names)
+        return produce_output(symbol_name, modules_list)
 
    # -------------------------------------------------------------------------
 
