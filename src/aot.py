@@ -1230,16 +1230,14 @@ class Engine:
             with open(os.path.join(self.out_dir, Engine.FUNCTION_POINTER_STUB_FILE_SOURCE), "wt") as f:
                 fstub_decls_out = "\n".join(["extern int (*%s)(void);" % (fstub)
                                             for fstub, fstub_id in self.codegen.function_pointer_stubs.items()])
-                fstubs_out = "\n".join(["  { %s, 0 }," % (
-                    self.codegen._get_function_kernel_name(fstub, fstub_id)) for fstub, fstub_id in self.codegen.function_pointer_stubs.items()])
-                fstubs_init = "\n".join(["  fptrstub_pair_array[%d].address = %s;" % (
-                    i, fstubT[0]) for i, fstubT in enumerate(self.codegen.function_pointer_stubs.items())])
+                fstubs_out = "\n".join(["  { %s, (void**)&%s }," % (
+                    self.codegen._get_function_kernel_name(fstub, fstub_id), fstub) for fstub, fstub_id in self.codegen.function_pointer_stubs.items()])
                 flib_stubs = "\n".join(
                     ["%s" % (flibstub) for flibstub, flibstub_id in self.codegen.lib_function_pointer_stubs])
                 fstub_init_decls = "\n".join([f" __attribute__((weak)) void init_{x}() {{}}" for x in self.otgen.global_trigger_name_list])
                 fstubs_init_call = "\n".join([f"  init_{x}();" for x in self.otgen.global_trigger_name_list])
                 f.write(fptrstub_out % (fstub_init_decls, fstub_decls_out, len(
-                    self.codegen.function_pointer_stubs), fstubs_out, fstubs_init, fstubs_init_call, flib_stubs))
+                    self.codegen.function_pointer_stubs), fstubs_out, fstubs_init_call, flib_stubs))
 
             with open(os.path.join(res_dir, Engine.FUNCTION_POINTER_KNOWN_FUNCS_STUB_FILE_TEMPLATE), "rt") as f:
                 fptrstub_known_funcs_out = f.read()

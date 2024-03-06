@@ -16,7 +16,6 @@
 
 
 /* Headers for functions from auto-generated file fptr_stub.c.template */
-void initialize_function_pointer_stubs(void);
 void aot_kflat_initialize_global_variables(void);
 void* fptrstub_search(const char* symbol);
 
@@ -46,9 +45,6 @@ void aot_kflat_init(const char* imgpath) {
 		fprintf(stderr, "Please generate and copy memory dump to file flat.img in CWD\n");
 		assert(in != NULL);
 	}
-
-	/* Setup function pointers now, as they are required for loading kflat image */
-	initialize_function_pointer_stubs();
 
 	unflatten = unflatten_init(0);
 	assert(unflatten != NULL);

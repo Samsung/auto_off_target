@@ -10,8 +10,13 @@
 struct fptrstub_pair {
   const char* function;
   const char** modules;
-  void* address;
+  void** address;
 };
+
+/* Useful functions (we cannot #include them due to collision with aot.h) */
+char* strchr(const char* str, int c);
+char* strdup(const char* str);
+char* strndup(const char* str, size_t size);
 
 /* Weak declaration of init-like functions */
 %s
@@ -28,10 +33,6 @@ static struct fptrstub_pair fptrstub_pair_array[%d] = {
 
 
 /* Init-like functions */
-void initialize_function_pointer_stubs(void) {
-%s
-}
-
 void aot_kflat_initialize_global_variables(void) {
 %s
 }
@@ -43,15 +44,15 @@ void aot_kflat_initialize_global_variables(void) {
 /* Exported functions */
 void* fptrstub_search(const char* symbol) {
 	void* retval = (void*) -1;
-	char* name = NULL, *module = NULL;
+	char* name = 0, *module = 0;
 	char* module_start, *module_end, *suffix;
 	unsigned long long array_size = sizeof(fptrstub_pair_array) / sizeof(fptrstub_pair_array[0]);
 
 	/* Split symbol of form 'myfunc [mymodule]' into function and module names */
-	module_start = strchr(symbol, "[");
-	if(module_start != NULL) {
-		module_end = strchr(symbol, "]");
-		if(module_end == NULL) {
+	module_start = strchr(symbol, '[');
+	if(module_start != 0) {
+		module_end = strchr(symbol, ']');
+		if(module_end == 0) {
 			printf("[Unflatten] Invalid format of function pointer `%%s`\n", symbol);
 			goto exit;
 		}
@@ -63,20 +64,20 @@ void* fptrstub_search(const char* symbol) {
 	}
 
 	suffix = strchr(name, '.');
-	if(suffix != NULL)
-		name[suffix] = '\0';
+	if(suffix != 0)
+		*suffix = '\0';
 
 	for(unsigned long long i = 0; i < array_size; i++) {
 		struct fptrstub_pair* entry = &fptrstub_pair_array[i];
 		if(strcmp(name, entry->function))
 			continue;
-		if(entry->modules == NULL) {
-			retval = entry->address;
+		if(entry->modules == 0) {
+			retval = *entry->address;
 			goto exit;
 		}
-		for(int j = 0; entry->modules[j] != NULL; j++)
+		for(int j = 0; entry->modules[j] != 0; j++)
 			if(!strcmp(entry->modules[j], module)) {
-				retval = entry->address;
+				retval = *entry->address;
 				goto exit;
 			}
 	}

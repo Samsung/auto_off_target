@@ -18,7 +18,7 @@ import difflib
 import bson.json_util
 import re
 
-from typing import Dict, List, Optional
+from typing import Dict, Iterable, Optional
 
 class CodeGen:
     # this is a special value returned by function stubs returning a pointer
@@ -1236,14 +1236,13 @@ class CodeGen:
     #   '{"myfun", {"mymodule", "othermodule", "etc", NULL}}'
     # @belongs: codegen
     def _get_function_kernel_name(self, function_name: str, function_id: int) -> str:
-        to_module_name = lambda name: os.path.basename(name).replace('.ko', '')
-        def produce_output(name: str, mods: List[str]) -> str:
-            output = '{"' + name + '", '
+        to_module_name = lambda name: os.path.basename(name).replace('.ko', '').replace('-', '_')
+        def produce_output(name: str, mods: Iterable[str]) -> str:
+            output = '"' + name + '", '
             if mods:
-                output += '{' + ', '.join([f'"{m}"' for m in mods]) + ', NULL}'
+                output += '(const char*[]){' + ', '.join([f'"{m}"' for m in mods]) + ', (void*)0x0}'
             else:
-                output += 'NULL'
-            output += '}'
+                output += '(void*)0x0'
             return output
         
         function = self.dbops.fnidmap[function_id]
@@ -1257,8 +1256,7 @@ class CodeGen:
         
         modules_names = map(lambda x: to_module_name(self.dbops.modidmap[x]), function['mids'])
         modules_names = set(modules_names) # filter out duplicates
-        modules_list = '|'.join(modules_names)
-        return produce_output(symbol_name, modules_list)
+        return produce_output(symbol_name, modules_names)
 
    # -------------------------------------------------------------------------
 
