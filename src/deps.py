@@ -79,18 +79,56 @@ class Deps:
     def set_cutoff(self, cutoff):
         self.cutoff = cutoff
 
-    # Analyzes function invocations through a pointer and tries to assign
-    #  a list of possible functions that could be invoked through that pointer
-    # Returns the following map:
-    #  {
-    #    function_id : [(expr,[called_fun_id,...]), ()...)]
-    #  }
-    # where,
-    #  function_id: a function where the function invocation through a pointer takes place
-    #  expr: the expression of the function invocation through a pointer
-    #  called_fun_id: function id that could be possible stored (and invoked) through the pointer at the given expression
-    def _infer_functions(self, json_data):
+    # -------------------------------------------------------------------------
+    # Return True if given type object has 'const' qualifier
+    # @belongs: deps
+    def isTypeConst(self, T: dict) -> bool:
+        return 'c' in T['qualifiers']
 
+    # For given type 'T' return entry in database that describes the same type
+    #  but without 'const' qualifier
+    # @belongs: deps
+    def typeToNonConst(self, json_data: dict, T: dict) -> dict:
+        if T is None or not self.isTypeConst(T):
+            return T
+        for type in json_data['types']:
+            if type['str'] != T['str']:
+                continue
+            elif type['class'] == 'record_forward':
+                continue
+            elif type['hash'].split(':')[3] != T['hash'].split(':')[3]:
+                continue
+            elif self.isTypeConst(type):
+                continue
+            return type
+        return T
+    
+    # Fops member_id is an offset in type `refs` array without counting special
+    #  fields starting with `__!` (like: `__!anonenum`)
+    def fopsIDTofieldID(self, fops_id: int, type: dict) -> int:
+        id = 0
+        for i, name in enumerate(type['refnames']):
+            if name != '__!unnamed__':
+                if name == '__!anonrecord__' or name == '__!emptyrecord__':
+                    if i > 0 and type['refs'][i] == type['refs'][i-1]:
+                        continue
+                elif name.startswith('__!'):
+                    continue
+            if id == fops_id:
+                return i
+            id += 1
+        print(f"Failed on type {type['id']} for fops_id {fops_id} - struct name {type['str']}")
+        raise IndexError('Invalid field ID in fops entry')
+
+    # Performs static analysis of function pointers invocations and tries to assign
+    #  list of possible functions that could be invoked through that pointer
+    # Returns dict of form:
+    #  {func_id : [(expr,[called_func_id,...]), ()...)]}
+    #  - `func_id`: a function where function pointer is used
+    #  - `expr`: the expression of the function invocation though a pointer
+    #  - `called_func_id`: possible function ID invoked via this pointer
+    # @belongs: deps
+    def _infer_functions(self, json_data: dict, max_funcs: int = 10) -> dict:
         # save all funcs
         funcsaddresstaken = set()
         funcsbytype = {}
@@ -98,7 +136,20 @@ class Deps:
         fucnsFirstLevelStruct = set()
         funccals = []
 
+        # Generate maps for quick lookup using ID
+        funDict = {}
+        globalDict = {}
+        typeDict = {}
         for fun in json_data["funcs"]:
+            funDict[fun["id"]] = fun
+        for glob in json_data["globals"]:
+            globalDict[glob["id"]] = glob
+        for type in json_data["types"]:
+            typeDict[type["id"]] = type
+
+
+        for fun in json_data["funcs"]:
+            # collect all functions called via fptr in structure
             for deref in fun["derefs"]:
                 if deref["kind"] == "function":
                     funccals.append((deref, fun))
@@ -134,15 +185,20 @@ class Deps:
                         for function in functions:
                             funcsaddresstaken.add(function["id"])
 
-        # from global variables take all funrefs as funcs with address taken
-        for var in json_data["globals"]:
-            for funid in var["funrefs"]:
-                funcsaddresstaken.add(funid)
+        for fop in json_data["fops"]:
+            record = typeDict.get(fop["type"])
+            if record is None:
+                continue
+            for member in fop["members"]:
+                for f_id in fop["members"][member]:
+                    funcsaddresstaken.add(f_id)
+                    struct = typeDict[record['id']]
+                    struct = self.typeToNonConst(json_data, struct)
+                    memberId = self.fopsIDTofieldID(int(member), struct)
+                    fucnsFirstLevelStruct.add(
+                        (struct["id"], memberId, f_id))
 
-        funDict = {}
-        for fun in json_data["funcs"]:
-            funDict[fun["id"]] = fun
-
+        # generate list of all functions for the given prototype
         for function in funcsaddresstaken:
             if function not in funDict:  # handle if it is in funcdecls or unresolved
                 continue
@@ -153,53 +209,13 @@ class Deps:
             else:
                 funcsbytype[typeTuple].append(f)
 
-        globalDict = {}
-        for glob in json_data["globals"]:
-            globalDict[glob["id"]] = glob
-
-        typeDict = {}
-        for type in json_data["types"]:
-            typeDict[type["id"]] = type
-
-        fopbased = set()
-        if "vars" in json_data["fops"]: # legacy format
-            # seems that we need to add also those from fops
-            recordsByName = {}
-            for type in json_data["types"]:
-                if type["class"] != "record":
-                    continue
-                recordsByName.setdefault(type["str"], [])
-                recordsByName[type["str"]].append(type)
-            
-            for fop in json_data["fops"]["vars"]:
-                for record in recordsByName[fop["type"]]:
-                    for member in fop["members"]:
-                        fucnsFirstLevelStruct.add(
-                            (record["id"], int(member), fop["members"][member]))
-                        fopbased.add(
-                            (record["id"], member, fop["members"][member]))
-        else:
-            for fop in json_data["fops"]:
-                record = typeDict.get(fop["type"])
-                if record is not None:
-                    for member in fop["members"]:
-                        for f_id in fop["members"][member]:
-                            fucnsFirstLevelStruct.add(
-                                (record["id"], int(member), f_id))
-                            fopbased.add(
-                                (record["id"], member, f_id))
-
         funcsbytypeFirstLevel = {}
-
         for structId, memberId, functionId in fucnsFirstLevelStruct:
             if functionId not in funDict:  # handle if it is in funcdecls or unresolved
                 continue
             f = funDict[functionId]
-            # typeTuple = tuple(f["types"])   we dont need type.... i think
             funcsbytypeFirstLevel.setdefault((structId, memberId), [])
             funcsbytypeFirstLevel[(structId, memberId)].append((f))
-
-        firstError = True
 
         # and than we need to get icalls with struct type
         iCallsStruct = []
@@ -216,6 +232,7 @@ class Deps:
                     while structType["class"] == "pointer" or structType["class"] == "typedef":
                         # todo: not always the concrete type would be the first one
                         structType = typeDict[structType["refs"][0]]
+                    structType = self.typeToNonConst(json_data, structType)
 
                     if deref["member"][i] >= len(structType["refs"]):
                         continue
@@ -243,10 +260,13 @@ class Deps:
             funcCandidates = []
             if firstLevelId in funcsbytypeFirstLevel:
                 funcCandidates = [{"id": x["id"]}
-                                  for x in funcsbytypeFirstLevel[firstLevelId]]
+                                    for x in funcsbytypeFirstLevel[firstLevelId]]
             elif functypetuple is not None and functypetuple in funcsbytype:
                 funcCandidates = [{"id": x["id"]}
-                                  for x in funcsbytype[functypetuple]]
+                                    for x in funcsbytype[functypetuple]]
+                if len(funcCandidates) > max_funcs:
+                    logging.debug(f'Ignoring function candidates for {func["name"]} - too many matches were discovered ({len(funcCandidates)})')
+                    funcCandidates = []
             output.setdefault(func["id"], {})
             output[func["id"]][deref["expr"]] = funcCandidates
 
@@ -279,9 +299,13 @@ class Deps:
         for deref, func, functypetuple in iCallsVar:
             if functypetuple in funcsbytype:
                 funcCandidates = [{"id": x["id"]}
-                                  for x in funcsbytype[functypetuple]]
+                                    for x in funcsbytype[functypetuple]]
+                if len(funcCandidates) > max_funcs:
+                    logging.debug(f'Ignoring function candidates for {func["name"]} - too many matches were discovered ({len(funcCandidates)})')
+                    funcCandidates = []
                 output.setdefault(func["id"], {})
-                output[func["id"]][deref["expr"]] = funcCandidates
+                if deref["expr"] not in output[func["id"]]:
+                    output[func["id"]][deref["expr"]] = funcCandidates
 
         return {
             func_id: [
