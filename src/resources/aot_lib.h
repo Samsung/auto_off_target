@@ -85,6 +85,10 @@ int _printk(const char *fmt, ...);
 void mutex_lock(void* m);
 #endif
 
+#ifdef AOT_MUTEX_LOCK_NESTED
+void mutex_lock_nested(void* m, unsigned int subclass);
+#endif
+
 #ifdef AOT_MUTEX_UNLOCK
 void mutex_unlock(void *m);
 #endif
@@ -131,4 +135,24 @@ void vfree(void* mem);
 
 #ifdef AOT_SCHED_CLOCK
 unsigned long long sched_clock(void);
+#endif
+
+#ifdef AOT_KTIME_GET_MONO_FAST_NS
+unsigned long long ktime_get_mono_fast_ns(void);
+#endif
+
+#ifdef AOT_KTIME_GET
+unsigned long long ktime_get(void);
+#endif
+
+#ifdef AOT_CLEAR_PAGE
+void clear_page(void* to);
+#endif
+
+#ifdef AOT_CAPABLE
+int capable(int cap);
+#endif
+
+#ifdef AOT_PANIC
+void panic(const char* fmt, ...);
 #endif

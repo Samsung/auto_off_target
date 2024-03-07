@@ -11,6 +11,7 @@ kfree
 printk
 _printk
 mutex_lock
+mutex_lock_nested
 mutex_unlock
 spin_lock
 spin_lock_bh
@@ -26,3 +27,7 @@ vmalloc
 vzalloc
 vfree
 sched_clock
+ktime_get_mono_fast_ns
+ktime_get
+clear_page
+panic

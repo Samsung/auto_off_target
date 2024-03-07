@@ -153,6 +153,12 @@ void mutex_unlock(void *m) {
 }
 #endif
 
+#ifdef AOT_MUTEX_LOCK_NESTED
+void mutex_lock_nested(void* m, unsigned int subclass) {
+    // no unlocking
+}
+#endif
+
 #ifdef AOT_SPIN_LOCK
 void spin_lock(void* l) {
     // no locking
@@ -285,5 +291,41 @@ unsigned long long sched_clock(void) {
     struct timespec tp;
     clock_gettime(CLOCK_REALTIME, &tp);
     return tp.tv_sec + tp.tv_nsec * 1000000000ULL; /* 10e9 */
+}
+#endif
+
+#ifdef AOT_KTIME_GET_MONO_FAST_NS
+unsigned long long ktime_get_mono_fast_ns(void) {
+    struct timespec tp;
+    clock_gettime(CLOCK_REALTIME, &tp);
+    return tp.tv_sec + tp.tv_nsec * 1000000000ULL; /* 10e9 */
+}
+#endif
+
+#ifdef AOT_KTIME_GET
+unsigned long long ktime_get(void) {
+    struct timespec tp;
+    clock_gettime(CLOCK_REALTIME, &tp);
+    return tp.tv_sec + tp.tv_nsec * 1000000000ULL; /* 10e9 */
+}
+#endif
+
+#ifdef AOT_CLEAR_PAGE
+void clear_page(void* to) {
+    memset(to, 0, 4096 /* PAGE_SIZE */);
+}
+#endif
+
+#ifdef AOT_CAPABLE
+int capable(int cap) {
+    return 1; /* assume we're always capable */
+}
+#endif
+
+#ifdef AOT_PANIC
+void panic(const char* fmt, ...) {
+    /* Crash application */
+    volatile int* ptr = 0; 
+    *ptr = 0;
 }
 #endif
