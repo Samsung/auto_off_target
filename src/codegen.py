@@ -1255,8 +1255,8 @@ class CodeGen:
             return produce_output(symbol_name, [])
         
         modules_names = map(lambda x: to_module_name(self.dbops.modidmap[x]), function['mids'])
-        modules_names = set(modules_names) # filter out duplicates
-        return produce_output(symbol_name, modules_names)
+        modules_list = set(modules_names) # filter out duplicates
+        return produce_output(symbol_name, modules_list)
 
    # -------------------------------------------------------------------------
 

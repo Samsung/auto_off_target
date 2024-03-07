@@ -17,6 +17,7 @@ import re
 import sys
 import shutil
 
+from typing import Dict, List, Tuple, Optional
 
 class Deps:
 
@@ -209,7 +210,7 @@ class Deps:
             else:
                 funcsbytype[typeTuple].append(f)
 
-        funcsbytypeFirstLevel = {}
+        funcsbytypeFirstLevel: Dict[Tuple[int, int], list] = {}
         for structId, memberId, functionId in fucnsFirstLevelStruct:
             if functionId not in funDict:  # handle if it is in funcdecls or unresolved
                 continue
@@ -218,7 +219,7 @@ class Deps:
             funcsbytypeFirstLevel[(structId, memberId)].append((f))
 
         # and than we need to get icalls with struct type
-        iCallsStruct = []
+        iCallsStruct: List[Tuple[tuple, dict, dict, Optional[tuple]]] = []
         for func in json_data["funcs"]:
             for deref in func["derefs"]:
                 if deref["kind"] != "member":
@@ -255,7 +256,7 @@ class Deps:
                         logging.error("Tracing function pointer calls")
                         continue
 
-        output = {}
+        output: Dict[int, Dict[str, list]] = {}
         for firstLevelId, deref, func, functypetuple in iCallsStruct:
             funcCandidates = []
             if firstLevelId in funcsbytypeFirstLevel:
