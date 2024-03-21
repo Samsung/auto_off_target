@@ -19,17 +19,68 @@
 void* malloc(size_t size);
 void free(void* ptr);
 
-#ifdef AOT_MEMDUP_USER
 #define AOT_MEMDUP_USER_MAX_SIZE (128 * 1024 * 1024) // 128 MB
 
+#ifdef AOT_MEMDUP_USER
 void *memdup_user(const void * _src, size_t len) {
-	if (len > AOT_MEMDUP_USER_MAX_SIZE) 
-		return (void *)(-12);
-	void* p = malloc(len);
+    if (len > AOT_MEMDUP_USER_MAX_SIZE) 
+        return (void *)(-12);
+    void* p = malloc(len);
     // See a comment in copy_from_user implementation
     fuzz_that_data(p, _src, len, 0);
     aot_tag_memory(p, len, 0);
-	return p;
+    return p;
+}
+#endif
+
+#ifdef AOT_MEMDUP_USER_NUL
+void *memdup_user_nul(const void * _src, unsigned long len) {
+    if (len > AOT_MEMDUP_USER_MAX_SIZE) 
+        return (void *)(-12);
+    char* p = malloc(len + 1);
+    if(p) {
+        fuzz_that_data(p, _src, len, 0);
+        p[len] = '\0';
+        aot_tag_memory(p, len + 1, 0);
+    }
+    return p;
+}
+#endif
+
+#ifdef AOT_KMEMDUP
+void* kmemdup(const void* src, unsigned long long len, unsigned long flags) {
+    if(len > AOT_MEMDUP_USER_MAX_SIZE)
+        return (void *)(-12);
+    char* p = malloc(len);
+    if(p)
+        memcpy(p, src, len);
+    return p;
+}
+#endif
+
+#ifdef AOT_VMEMDUP_USER
+void *vmemdup_user(const void * _src, unsigned long len) {
+    if (len > AOT_MEMDUP_USER_MAX_SIZE) 
+        return (void *)(-12);
+    char* p = malloc(len);
+    if(!p)
+        return (void *)(-12);
+    fuzz_that_data(p, _src, len, 0);
+    aot_tag_memory(p, len, 0);
+    return p;
+}
+#endif
+
+#ifdef AOT_KREALLOC
+void* krealloc(const void* p, unsigned long new_size, unsigned long flags) {
+    if(new_size == 0){
+        free(p);
+        return (void*)0x10;
+    }
+    if (new_size > AOT_MEMDUP_USER_MAX_SIZE) 
+        return (void *)(-12);
+
+    return realloc(p, new_size);
 }
 #endif
 
@@ -104,12 +155,51 @@ void* kzalloc(unsigned long size, unsigned flags) {
 }
 #endif
 
+#ifdef AOT_KVMALLOC_NODE
+void* kvmalloc_node(unsigned long long size, unsigned long flags, int node) {
+    return malloc(size);
+}
+#endif
+
+#ifdef AOT_KMALLOC_NODE
+void* kmalloc_node(unsigned long long size, unsigned long flags, int node) {
+    return malloc(size);
+}
+#endif
+
+#ifdef AOT_DEVM_KMALLOC
+void* devm_kmalloc(void* dev, unsigned long size, unsigned long flags) {
+    return malloc(size);
+}
+#endif
+
+#ifdef AOT_PCPU_ALLOC
+void* pcpu_alloc(unsigned long size, unsigned long align, int reserved, unsigned long flags) {
+    return malloc(size);
+}
+#endif
+
+#ifdef AOT_FREE_PERCPU
+void free_percpu(void* ptr) {
+    free(ptr);
+}
+#endif
+
 #ifdef AOT_KFREE
 void kfree(const void* ptr) {
     if ((unsigned long)(ptr) <= ((unsigned long)(void*)16))
         return;
 
     free(ptr);
+}
+#endif
+
+#ifdef AOT_KVFREE
+void kvfree(const void *addr) {
+    if ((unsigned long)(ptr) <= ((unsigned long)(void*)16))
+        return;
+        
+    free(addr);
 }
 #endif
 
@@ -243,24 +333,24 @@ char* kstrndup(const char* s, unsigned long max, unsigned flags) {
 size_t
 strlcpy(char *dst, const char *src, size_t siz)
 {
-	char *d = dst;
-	const char *s = src;
-	size_t n = siz;
-	/* Copy as many bytes as will fit */
-	if (n != 0) {
-		while (--n != 0) {
-			if ((*d++ = *s++) == '\0')
-				break;
-		}
+    char *d = dst;
+    const char *s = src;
+    size_t n = siz;
+    /* Copy as many bytes as will fit */
+    if (n != 0) {
+        while (--n != 0) {
+            if ((*d++ = *s++) == '\0')
+                break;
+        }
   }
-	/* Not enough room in dst, add NUL and traverse rest of src */
-	if (n == 0) {
-		if (siz != 0)
-			*d = '\0';		/* NUL-terminate dst */
-		while (*s++)
-			;
-	}
-	return(s - src - 1);	/* count does not include NUL */
+    /* Not enough room in dst, add NUL and traverse rest of src */
+    if (n == 0) {
+        if (siz != 0)
+            *d = '\0';		/* NUL-terminate dst */
+        while (*s++)
+            ;
+    }
+    return(s - src - 1);	/* count does not include NUL */
 }
 
 #endif
@@ -310,15 +400,21 @@ unsigned long long ktime_get(void) {
 }
 #endif
 
-#ifdef AOT_CLEAR_PAGE
-void clear_page(void* to) {
-    memset(to, 0, 4096 /* PAGE_SIZE */);
+#ifdef AOT_USLEEP_RANGE_STATE
+void usleep_range_state(unsigned long min, unsigned long max, unsigned int state) {
+    return;
 }
 #endif
 
-#ifdef AOT_CAPABLE
-int capable(int cap) {
-    return 1; /* assume we're always capable */
+#ifdef AOT_MSLEEP
+void msleep(unsigned int msecs) {
+    return;
+}
+#endif
+
+#ifdef AOT_CLEAR_PAGE
+void clear_page(void* to) {
+    memset(to, 0, 4096 /* PAGE_SIZE */);
 }
 #endif
 
@@ -334,5 +430,232 @@ void panic(const char* fmt, ...) {
 void* __kmalloc_node_track_caller(unsigned long size, unsigned int flags, 
                                 int node, unsigned long caller) {
     return malloc(size);
+}
+#endif 
+
+#ifdef AOT_MEMCHR_INV
+/* Returns pointer to the first byte other than 'c' or NULL if there're only 'c' */
+void* memchr_inv(const void* start, int c, unsigned long bytes) {
+    const char* ptr = (const char*) start;
+
+    for(unsigned long i = 0; i < bytes; i++) {
+        if(ptr[i] != c)
+            return &ptr[i]; 
+    }
+    return NULL;
+}
+#endif
+
+#ifdef AOT___KERN_MY_CPU_OFFSET
+unsigned long __kern_my_cpu_offset(void) {
+    return 0;   /* off-targets always assume that per_cpu vars offset is 0 */
+}
+#endif
+
+/*
+ * Atomic variables support: for now we implement atomic operations using their
+ *  plain C equivalent. If in future we'd like to test for race conditions in OTs,
+ *  these will need to be updated to proper atomics.
+ */
+#ifdef AOT_ARCH_ATOMIC64_ADD
+void arch_atomic64_add(long i, long long* v) {
+    *v += i;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC64_ADD_RETURN
+long long arch_atomic64_add_return(long i, long long* v) {
+    *v += i;
+    return *v;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC64_ANDNOT
+void arch_atomic64_andnot(long i, long long* v) {
+    *v &= ~i;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC64_DEC
+void arch_atomic64_dec(long long* v) {
+    *v -= 1;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC64_INC
+void arch_atomic64_inc(long long* v) {
+    *v += 1;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC64_INC_RETURN
+long long arch_atomic64_inc_return(long long* v) {
+    *v += 1;
+    return *v;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC64_OR
+void arch_atomic64_or(long i, long long* v) {
+    *v |= i;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC64_SUB
+void arch_atomic64_sub(long i, long long* v) {
+    *v -= i;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC64_SUB_RETURN
+long long arch_atomic64_sub_return(long i, long long* v) {
+    *v -= i;
+    return *v;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC64_FETCH_ANDNOT
+long long arch_atomic64_fetch_andnot(long i, long long* v) {
+    long long old = *v;
+    *v &= ~i;
+    return old;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC64_FETCH_ANDNOT_RELEASE
+long long arch_atomic64_fetch_andnot_release(long i, long long* v) {
+    long long old = *v;
+    *v &= ~i;
+    return old;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC64_FETCH_OR
+long long arch_atomic64_fetch_or(long i, long long* v) {
+    long long old = *v;
+    *v |= i;
+    return old;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC64_TRY_CMPXCHG
+int arch_atomic64_try_cmpxchg(long long* v, int64_t* oldp, int64_t new) {
+    int64_t ret = *v, old = *oldp;
+    
+    if(ret == old)
+        *v = new;
+    if(ret != old)
+        *oldp = ret;
+    return ret == old;
+}
+#endif
+
+
+#ifdef AOT_ARCH_ATOMIC_ADD_RETURN
+int arch_atomic_add_return(int i, int* val) {
+    *val += i;
+    return *val;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC_ADD
+void arch_atomic_add(int i, int* val) {
+    *val += i;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC_ADD_UNLESS
+int arch_atomic_add_unless(int* v, int a, int u) {
+    int old = *v;
+    if(*v != u)
+        *v += a;
+    return old != *v;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC_INC
+void arch_atomic_inc(int* val) {
+    *val += 1;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC_INC_RETURN
+int arch_atomic_inc_return(int* val) {
+    *val += 1;
+    return *val;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC_SUB
+void arch_atomic_sub(int i, int* val) {
+    *val -= i;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC_SUB_RETURN
+int arch_atomic_sub_return(int i, int* val) {
+    *val -= i;
+    return *val;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC_DEC
+void arch_atomic_dec(int* v) {
+    *v -= 1;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC_DEC_RETURN
+int arch_atomic_dec_return(int* v) {
+    *v -= 1;
+    return *v;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC_DEC_AND_TEST
+int arch_atomic_dec_and_test(int* v) {
+    *v -= 1;
+    return *v == 0;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC_FETCH_ADD_UNLESS
+int arch_atomic_fetch_add_unless(int* v, int a, int u) {
+    int old = *v;
+    if(*v != u)
+        *v += a;
+    return old;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC_FETCH_ADD_RELAXED
+int arch_atomic_fetch_add_relaxed(int i, int* v) {
+    int old = *v;
+    *v += i;
+    return old;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC_TRY_CMPXCHG
+int arch_atomic_try_cmpxchg(int* v, int* old, int new) {
+    int ret = *v, old = *oldp;
+    
+    if(ret == old)
+        *v = new;
+    if(ret != old)
+        *oldp = ret;
+    return ret == old;
+}
+#endif
+
+#ifdef AOT_ARCH_ATOMIC_TRY_CMPXCHG_RELAXED
+int arch_atomic_try_cmpxchg_relaxed(int* v, int* old, int new) {
+    int ret = *v, old = *oldp;
+    
+    if(ret == old)
+        *v = new;
+    if(ret != old)
+        *oldp = ret;
+    return ret == old;
 }
 #endif
