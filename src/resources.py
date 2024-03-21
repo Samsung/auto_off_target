@@ -18,7 +18,7 @@ class ResourceMgr:
     def __init__(self, resources_dir, out_dir):
         self.out_dir = out_dir
         self.resources_dir = resources_dir
-        self.predefined_files = ["aot_replacements.h", "Makefile", "aot_lib.h", "aot_lib.c", "aot_mem_init_lib.h",
+        self.predefined_files = ["aot_replacements.h", "Makefile", "aot_lib.h", "aot_lib.c", "aot_lib_ex.c", "aot_mem_init_lib.h",
                                  "aot_mem_init_lib.c", "aot_fuzz_lib.h", "aot_fuzz_lib.c", "aot_log.h", "aot_log.c",
                                  "build.sh",
                                  "vlayout.c.template", "fptr_stub.c.template", "fptr_stub_known_funcs.c.template", "dfsan_ignore_list.txt",

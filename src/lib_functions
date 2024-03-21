@@ -13,6 +13,7 @@ kvmalloc_node
 kmalloc_node
 devm_kmalloc
 pcpu_alloc
+free_percpu
 printk
 _printk
 mutex_lock
@@ -34,6 +35,7 @@ strlcpy
 vmalloc
 vzalloc
 vfree
+kvfree
 sched_clock
 ktime_get_mono_fast_ns
 ktime_get
@@ -71,3 +73,6 @@ arch_atomic_fetch_add_unless
 arch_atomic_fetch_add_relaxed
 arch_atomic_try_cmpxchg
 arch_atomic_try_cmpxchg_relaxed
+fls
+kmem_cache_alloc
+kmem_cache_free
