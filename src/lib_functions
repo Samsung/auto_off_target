@@ -31,3 +31,4 @@ ktime_get_mono_fast_ns
 ktime_get
 clear_page
 panic
+__kmalloc_node_track_caller
