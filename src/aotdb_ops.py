@@ -618,6 +618,7 @@ class AotDbOps:
                         fids.add(int(add_item["id"]))
 
                 if len(fids) == 0:
+                    logging.error(f"Function {func} not mapped!")
                     continue
                 elif len(fids) > 1:
                     logging.error(
