@@ -659,3 +659,108 @@ int arch_atomic_try_cmpxchg_relaxed(int* v, int* old, int new) {
     return ret == old;
 }
 #endif
+
+#ifdef AOT_DUMP_STACK
+void dump_stack(void) {
+    return;
+}
+#endif
+
+#ifdef AOT___PRINTK_RATELIMIT
+int __printk_ratelimit(const char* func) {
+    return 0;    
+}
+#endif
+
+#ifdef AOT_VPRINTK_DEFERRED
+int vprintk_deferred(const char* fmt, va_list args)
+    int ret = vprintk(fmt, args);
+    return ret;
+}
+#endif
+
+#ifdef AOT_VPRINTK_DEFAULT
+int vprintk_default(const char* fmt, va_list args)
+    int ret = vprintk(fmt, args);
+    return ret;
+}
+#endif
+
+#ifdef AOT_VPRINTK
+int vprintk(const char* fmt, va_list args)
+    int ret = vprintk(fmt, args);
+    return ret;
+}
+#endif
+
+#ifdef AOT_PREEMPT_SCHEDULE
+void preempt_schedule(void) {
+    return;
+}
+#endif
+
+#ifdef AOT_PREEMPT_SCHEDULE_NOTRACE
+void preempt_schedule_notrace(void) {
+    return;
+}
+#endif
+
+#ifdef AOT_SCHED_DYNAMIC_UPDATE
+void sched_dynamic_update(int mode) {
+    return;    
+}
+#endif
+
+#ifdef AOT_MSLEEP
+void msleep(unsigned int msecs) {
+    return;    
+}
+#endif
+
+#ifdef AOT_TRACE_HARDIRQS_ON
+void trace_hardirqs_on(void) {
+    return;    
+}
+#endif
+
+#ifdef AOT_TRACE_HARDIRQS_OFF
+void trace_hardirqs_off(void) {
+    return;    
+}
+#endif
+
+#ifdef AOT_CT_IRQ_ENTER
+void ct_irq_enter(void) {
+    return;    
+}
+#endif
+
+#ifdef AOT_CT_IRQ_EXIT
+void ct_irq_exit(void) {
+    return;    
+}
+#endif
+
+#ifdef AOT_CT_IRQ_ENTER_IRQSON
+void ct_irq_enter_irqson(void) {
+    return;    
+}
+#endif
+
+#ifdef AOT_CT_IRQ_EXIT_IRQSON
+void ct_irq_exit_irqson(void) {
+    return;    
+}
+#endif
+
+#ifdef AOT_CT_NMI_ENTER
+void ct_nmi_enter(void) {
+    return;    
+}
+#endif
+
+#ifdef AOT_CT_NMI_EXIT
+void ct_nmi_exit(void) {
+    return;    
+}
+#endif

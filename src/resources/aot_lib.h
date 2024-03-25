@@ -338,3 +338,113 @@ void* kmem_cache_alloc(void* cache, unsigned long flags);
 #ifdef AOT_KMEM_CACHE_FREE
 void kmem_cache_free(void* s, void* x);
 #endif
+
+#ifdef AOT_DUMP_STACK
+void dump_stack(void);
+#endif
+
+#ifdef AOT___PRINTK_RATELIMIT
+int __printk_ratelimit(const char* func);
+#endif
+
+#ifdef AOT_VPRINTK_DEFERRED
+int vprintk_deferred(const char* fmt, va_list args);
+#endif
+
+#ifdef AOT_VPRINTK_DEFAULT
+int vprintk_default(const char* fmt, va_list args);
+#endif
+
+#ifdef AOT_VPRINTK
+int vprintk(const char* fmt, va_list args);
+#endif
+
+#ifdef AOT_PREEMPT_SCHEDULE
+void preempt_schedule(void);
+#endif
+
+#ifdef AOT_PREEMPT_SCHEDULE_NOTRACE
+void preempt_schedule_notrace(void);
+#endif
+
+#ifdef AOT_SCHED_DYNAMIC_UPDATE
+void sched_dynamic_update(int mode);
+#endif
+
+#ifdef AOT_LOCK_ACQUIRE
+struct lockdep_map;
+void lock_acquire(struct lockdep_map* lock, unsigned int subclass, int trylock,
+                int read, int check, struct lockdep_map* nest_lock, unsigned long ip);
+#endif
+
+#ifdef AOT_LOCK_RELEASE
+struct lockdep_map;
+void lock_release(struct lockdep_map* lock, unsigned long ip);
+#endif
+
+#ifdef AOT_CALL_RCU
+struct rcu_head;
+typedef void (*rcu_callback_t)(struct rcu_head* head);
+void call_rcu(struct rcu_head* head, rcu_callback_t func);
+#endif
+
+#ifdef AOT_DO_RAW_SPIN_LOCK
+struct raw_spinlock;
+void do_raw_spin_lock(struct raw_spinlock* lock);
+#endif
+
+#ifdef AOT_DO_RAW_SPIN_UNLOCK
+struct raw_spinlock;
+void do_raw_spin_unlock(struct raw_spinlock* lock);
+#endif
+
+#ifdef AOT_MSLEEP
+void msleep(unsigned int msecs);
+#endif
+
+#ifdef AOT_TRACE_HARDIRQS_ON
+void trace_hardirqs_on(void);
+#endif
+
+#ifdef AOT_TRACE_HARDIRQS_OFF
+void trace_hardirqs_off(void);
+#endif
+
+#ifdef AOT_CT_IRQ_ENTER
+void ct_irq_enter(void);
+#endif
+
+#ifdef AOT_CT_IRQ_EXIT
+void ct_irq_exit(void);
+#endif
+
+#ifdef AOT_CT_IRQ_ENTER_IRQSON
+void ct_irq_enter_irqson(void);
+#endif
+
+#ifdef AOT_CT_IRQ_EXIT_IRQSON
+void ct_irq_exit_irqson(void);
+#endif
+
+#ifdef AOT_CT_NMI_ENTER
+void ct_nmi_enter(void);
+#endif
+
+#ifdef AOT_CT_NMI_EXIT
+void ct_nmi_exit(void);
+#endif
+
+#ifdef AOT___KFREE_SKB
+struct sk_buff;
+void __kfree_skb(struct sk_buff* skb);
+#endif
+
+#ifdef AOT___ALLOC_SKB
+struct sk_buff;
+struct sk_buff* __alloc_skb(unsigned int size, unsigned int mask, int flags, int node);
+#endif
+
+#ifdef AOT_DEVICE_INITIALIZE
+struct device;
+void device_initialize(struct device* dev);
+#endif
