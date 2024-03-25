@@ -392,8 +392,9 @@ class AotDbOps:
         known_data = known_data[self.version]
 
         if known_data is None:
-            logging.warning(
+            logging.error(
                 "The version stored in the db is not the current version - will not use known data")
+            sys.exit(1)
         else:
             self.builtin_funcs_ids = set()
             self.replacement_funcs_ids = set()
@@ -734,6 +735,69 @@ class AotDbOps:
             if -1 != index:
                 file = file[:index]
             logging.info(f"AOT_RANDOM_FUNC: {f_id}")
+
+    # -------------------------------------------------------------------------
+
+    def _find_funcs_to_model(self, namesfile):
+        fids, funcs = self._get_funcs_from_a_text_file(namesfile)
+        total = len(fids)       
+        fids = self.deps._filter_out_known_functions(fids)
+        logging.info(f"There is a total of {total} functions in the database")
+
+        score_data = {}
+        base_data = {}
+        score = {}
+        i = 0
+        fids_all = set()
+        fids_all |= fids
+
+        for f_id in fids: 
+            query = set()
+            query.add(f_id)
+            self.deps._get_called_functions(query)
+            if len(query) > 100:
+                fids_all |= query
+                base_data[f_id] = query
+            
+            i += 1
+            if i % 1000 == 0:
+                logging.info(f"{total - i} left")
+        fids_all = self.deps._filter_out_known_functions(fids_all)
+
+        total = len(fids_all)
+        logging.info(f"Will process a total of {len(fids_all)} functions")
+
+        for f_id in fids_all: 
+            query = set()
+            query.add(f_id)
+            self.deps._get_called_functions(query)
+            if len(query) > 100:
+                self.deps._filter_out_known_functions(query)
+                score_data[f_id] = query
+                score[f_id] = 0 #len(query)
+            
+            i += 1
+            if i % 1000 == 0:
+                logging.info(f"{total - i} left")
+
+        logging.info(f"Found {len(score_data)} functions which pull in many others")
+
+        for f_id in score_data:
+            for _f_id, query in score_data.items():
+                if _f_id == f_id:
+                    continue
+                if f_id in query:
+                    score[f_id] += 1
+        
+        sorted_score = {key: value for key, value in sorted(score.items(), key=lambda item: item[1], reverse=True)}
+        for f_id, score in sorted_score.items():
+            f = self.fnidmap[f_id]
+            base = set()
+            for _id in base_data:
+                if f_id in base_data[_id]:
+                    base.add(self.fnidmap[_id]['name'])
+            logging.info(f"{f['name']} ({f_id}): {score}, contained in {base}") 
+        
 
     # -------------------------------------------------------------------------
 

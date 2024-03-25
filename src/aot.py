@@ -159,6 +159,10 @@ class Engine:
             # analyze all types
             self.init._analyze_types()
             return False
+        
+        if args.find_funcs_to_model:
+            self.dbops._find_funcs_to_model(args.find_funcs_to_model)
+            return False
 
         self.debug_vars_init = args.debug_vars_init
 
@@ -1393,6 +1397,8 @@ def prepare_parser(*db_frontends):
                         'regardless of the chosen cut-off algorithm (provided they are encountered in the code)')
     parser.add_argument("--find-potential-targets", action="store_true",
                         help="Find potential targets for testing")
+    parser.add_argument("--find-funcs-to-model", default=None,
+                        help="Find functions which might be good candidates for modelling in aot_lib based on a list of stubs provided in a file")
     parser.add_argument("--get-unique-names", default=None,
                         help="A file with a list of function names to be resolved uniquely.")
     parser.add_argument("--find-random-targets", default=0,
