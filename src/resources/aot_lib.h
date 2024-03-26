@@ -383,9 +383,11 @@ struct lockdep_map;
 void lock_release(struct lockdep_map* lock, unsigned long ip);
 #endif
 
-//#ifdef AOT_CALL_RCU
-//void call_rcu(struct rcu_head* head, rcu_callback_t func);
-//#endif
+#ifdef AOT_CALL_RCU
+#ifndef AOT_LIB_EX
+void call_rcu(struct rcu_head* head, rcu_callback_t func);
+#endif
+#endif
 
 #ifdef AOT_DO_RAW_SPIN_LOCK
 struct raw_spinlock;
