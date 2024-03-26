@@ -8,8 +8,10 @@
 //  "aot.h". We cannot simply include "aot.h" in main "aot_lib.c" as it would
 //  cause type clashes with standard C library included in there.
 
-#include "aot_lib.h"
+#define AOT_LIB_EX
+
 #include "aot.h"
+#include "aot_lib.h"
 
 #ifdef AOT_KMEM_CACHE_ALLOC
 void* kmem_cache_alloc(void* cache, unsigned long flags) {
@@ -38,9 +40,11 @@ void lock_release(struct lockdep_map* lock, unsigned long ip) {
 #endif
 
 #ifdef AOT_CALL_RCU
+#ifndef AOT_LIB_EX
 void call_rcu(struct rcu_head* head, rcu_callback_t func) {
-    return;
+    func(head);
 }
+#endif
 #endif
 
 #ifdef AOT_DO_RAW_SPIN_LOCK

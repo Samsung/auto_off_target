@@ -8,6 +8,8 @@
 // Name of each function added here should be listed in src/lib_functions.
 // When generating off-target only declarations for these will be emited.
 
+#define AOT_LIB_EX
+
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
