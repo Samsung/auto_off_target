@@ -421,7 +421,7 @@ void panic(const char* fmt, ...) {
 }
 #endif
 
-#ifdef AOT____KMALLOC_NODE_TRACK_CALLER
+#ifdef AOT___KMALLOC_NODE_TRACK_CALLER
 void* __kmalloc_node_track_caller(unsigned long size, unsigned int flags, 
                                 int node, unsigned long caller) {
     return malloc(size);
