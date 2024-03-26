@@ -398,10 +398,6 @@ struct raw_spinlock;
 void do_raw_spin_unlock(struct raw_spinlock* lock);
 #endif
 
-#ifdef AOT_MSLEEP
-void msleep(unsigned int msecs);
-#endif
-
 #ifdef AOT_TRACE_HARDIRQS_ON
 void trace_hardirqs_on(void);
 #endif

@@ -406,12 +406,6 @@ void usleep_range_state(unsigned long min, unsigned long max, unsigned int state
 }
 #endif
 
-#ifdef AOT_MSLEEP
-void msleep(unsigned int msecs) {
-    return;
-}
-#endif
-
 #ifdef AOT_CLEAR_PAGE
 void clear_page(void* to) {
     memset(to, 0, 4096 /* PAGE_SIZE */);

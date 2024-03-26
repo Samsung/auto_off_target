@@ -89,7 +89,6 @@ lock_release
 call_rcu
 do_raw_spin_lock
 do_raw_spin_unlock
-msleep
 trace_hardirqs_on
 trace_hardirqs_off
 ct_irq_enter
