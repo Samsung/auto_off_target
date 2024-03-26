@@ -13,6 +13,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <time.h>
+#include <stdlib.h>
 #include "aot_lib.h"
 #include "aot_fuzz_lib.h"
 
@@ -196,7 +197,7 @@ void kfree(const void* ptr) {
 
 #ifdef AOT_KVFREE
 void kvfree(const void *addr) {
-    if ((unsigned long)(ptr) <= ((unsigned long)(void*)16))
+    if ((unsigned long)(addr) <= ((unsigned long)(void*)16))
         return;
         
     free(addr);
@@ -533,8 +534,8 @@ long long arch_atomic64_fetch_or(long i, long long* v) {
 #endif
 
 #ifdef AOT_ARCH_ATOMIC64_TRY_CMPXCHG
-int arch_atomic64_try_cmpxchg(long long* v, int64_t* oldp, int64_t new) {
-    int64_t ret = *v, old = *oldp;
+int arch_atomic64_try_cmpxchg(long long* v, long long* oldp, long long new) {
+    long long ret = *v, old = *oldp;
     
     if(ret == old)
         *v = new;
@@ -631,7 +632,7 @@ int arch_atomic_fetch_add_relaxed(int i, int* v) {
 #endif
 
 #ifdef AOT_ARCH_ATOMIC_TRY_CMPXCHG
-int arch_atomic_try_cmpxchg(int* v, int* old, int new) {
+int arch_atomic_try_cmpxchg(int* v, int* oldp, int new) {
     int ret = *v, old = *oldp;
     
     if(ret == old)
@@ -643,7 +644,7 @@ int arch_atomic_try_cmpxchg(int* v, int* old, int new) {
 #endif
 
 #ifdef AOT_ARCH_ATOMIC_TRY_CMPXCHG_RELAXED
-int arch_atomic_try_cmpxchg_relaxed(int* v, int* old, int new) {
+int arch_atomic_try_cmpxchg_relaxed(int* v, int* oldp, int new) {
     int ret = *v, old = *oldp;
     
     if(ret == old)
@@ -681,7 +682,7 @@ int vprintk_default(const char* fmt, va_list args)
 #endif
 
 #ifdef AOT_VPRINTK
-int vprintk(const char* fmt, va_list args)
+int vprintk(const char* fmt, va_list args) {
     int ret = vprintk(fmt, args);
     return ret;
 }

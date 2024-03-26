@@ -4,6 +4,7 @@
  Samsung Mobile Security Team @ Samsung R&D Poland
 */ 
 
+#include <stdarg.h>
 #include "aot_log.h"
 
 #ifdef AOT_GET_CURRENT
@@ -271,7 +272,7 @@ long long arch_atomic64_fetch_or(long i, long long* v);
 #endif
 
 #ifdef AOT_ARCH_ATOMIC64_TRY_CMPXCHG
-int arch_atomic64_try_cmpxchg(long long* v, int64_t* oldp, int64_t new);
+int arch_atomic64_try_cmpxchg(long long* v, long long* oldp, long long new);
 #endif
 
 
@@ -324,11 +325,11 @@ int arch_atomic_fetch_add_relaxed(int i, int* v);
 #endif
 
 #ifdef AOT_ARCH_ATOMIC_TRY_CMPXCHG
-int arch_atomic_try_cmpxchg(int* v, int* old, int new);
+int arch_atomic_try_cmpxchg(int* v, int* oldp, int new);
 #endif
 
 #ifdef AOT_ARCH_ATOMIC_TRY_CMPXCHG_RELAXED
-int arch_atomic_try_cmpxchg_relaxed(int* v, int* old, int new);
+int arch_atomic_try_cmpxchg_relaxed(int* v, int* oldp, int new);
 #endif
 
 #ifdef AOT_KMEM_CACHE_ALLOC
@@ -384,8 +385,7 @@ void lock_release(struct lockdep_map* lock, unsigned long ip);
 
 #ifdef AOT_CALL_RCU
 struct rcu_head;
-typedef void (*rcu_callback_t)(struct rcu_head* head);
-void call_rcu(struct rcu_head* head, rcu_callback_t func);
+void call_rcu(struct rcu_head* head, void (*func)(struct rcu_head* head));
 #endif
 
 #ifdef AOT_DO_RAW_SPIN_LOCK
