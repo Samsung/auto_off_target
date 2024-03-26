@@ -38,7 +38,7 @@ void lock_release(struct lockdep_map* lock, unsigned long ip) {
 #endif
 
 #ifdef AOT_CALL_RCU
-void call_rcu(struct rcu_head* head, void (*func)(struct rcu_head* head)) {
+void call_rcu(struct rcu_head* head, rcu_callback_t func) {
     return;
 }
 #endif
