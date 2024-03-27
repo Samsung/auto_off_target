@@ -97,6 +97,4 @@ ct_irq_enter_irqson
 ct_irq_exit_irqson
 ct_nmi_enter
 ct_nmi_exit
-__kfree_skb
-__alloc_skb
 device_initialize
