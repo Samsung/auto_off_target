@@ -59,6 +59,18 @@ void do_raw_spin_unlock(raw_spinlock_t* lock) {
 }
 #endif
 
+#ifdef AOT___KFREE_SKB
+void __kfree_skb(struct sk_buff* skb) {
+    free(skb);
+}
+#endif
+
+#ifdef AOT___ALLOC_SKB
+struct sk_buff* __alloc_skb(unsigned int size, unsigned int mask, int flags, int node) {
+    return (struct sk_buff*)malloc(size + sizeof(struct sk_buff));
+};
+#endif
+
 #ifdef AOT_DEVICE_INITIALIZE
 void device_initialize(struct device* dev) {
     return;
