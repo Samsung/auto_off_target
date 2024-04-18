@@ -163,7 +163,6 @@ int fuzz_that_data_afl(void* ptr, void* src, unsigned long size) {
 #endif
 
 #ifdef KLEE
-static char largebuffer[0xFFFFF];
 // KLEE's version of fuzz_that_data
 int fuzz_that_data_klee(void* ptr, unsigned long size, const char* user_name) {
     static i = 0;
@@ -179,10 +178,10 @@ int fuzz_that_data_klee(void* ptr, unsigned long size, const char* user_name) {
         snprintf(name, NAMESIZE, "symobj-%d", i++);    
     }
     // in order to find out if we are not oveflowing the "ptr" buffer, we will 
-    // copy the data to an arbitrary large buffer (should be large enough in most cases)
-    // it's important to do it before malloc() because if "size" is symbolic, it will be
-    // concretized by a call to malloc and we could miss the overflow
-    memcpy(largebuffer, ptr, size);
+    // write destination buffer with zeros. it's important to do it before 
+    // malloc() because if "size" is symbolic, it will be concretized by a call
+    // to malloc and we could miss the overflow
+    memset(ptr, 0, size);
     
     // create a fresh symbolic object - this is done in order
     // to be able to selectively mark just parts of existing memory
