@@ -121,8 +121,15 @@ unsigned long aot_copy_to_user(void* to, const void* from, unsigned long n) {
     // catching info leaks in copy_to_user
     
     // in order to find out if we are not oveflowing the "from" buffer, we will
-    // copy the data to an arbitrary large buffer (should be large enough in most cases)
-    memcpy(largebuffer, from, n);
+    // copy the data to local buffer
+    unsigned long offset = 0;
+
+    while(n > 0) {
+        unsigned long copy_size = n < sizeof(largebuffer) ? n : sizeof(largebuffer);
+        memcpy(largebuffer, (char*)from + offset, copy_size);
+        n -= copy_size;
+        offset += copy_size;
+    }
     return 0;
 }
 
