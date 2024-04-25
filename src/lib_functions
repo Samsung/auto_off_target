@@ -23,6 +23,10 @@ spin_lock
 spin_lock_bh
 spin_unlock
 spin_unlock_bh
+spin_unlock_irqrestore
+_raw_spin_lock_irqsave
+_raw_spin_unlock_irqrestore
+__might_sleep
 get_current
 capable
 kstrdup
@@ -71,6 +75,7 @@ arch_atomic_dec_return
 arch_atomic_dec_and_test
 arch_atomic_fetch_add_unless
 arch_atomic_fetch_add_relaxed
+arch_atomic_fetch_sub_release
 arch_atomic_try_cmpxchg
 arch_atomic_try_cmpxchg_relaxed
 fls
@@ -81,6 +86,8 @@ __printk_ratelimit
 vprintk_deferred
 vprintk_default
 vprintk
+schedule
+schedule_timeout
 preempt_schedule
 preempt_schedule_notrace
 sched_dynamic_update

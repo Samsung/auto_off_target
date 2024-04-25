@@ -283,6 +283,31 @@ void spin_unlock_bh(void* l) {
 }
 #endif
 
+#ifdef AOT_SPIN_UNLOCK_IRQRESTORE
+void spin_unlock_irqrestore(void* l, unsigned long flags) {
+    // no unlocking
+}
+#endif
+
+#ifdef AOT__RAW_SPIN_LOCK_IRQSAVE
+unsigned long _raw_spin_lock_irqsave(void* l) {
+    // no locking
+    return 0;
+}
+#endif
+
+#ifdef AOT__RAW_SPIN_UNLOCK_IRQRESTORE
+void _raw_spin_unlock_irqrestore(void *lock, unsigned long flags) {
+    // no unlocking
+}
+#endif
+
+#ifdef AOT___MIGHT_SLEEP
+void __might_sleep(const char *file, int line) {
+
+}
+#endif
+
 #ifdef AOT_KSTRDUP
 char* kstrdup(const char* s, unsigned flags) {
     unsigned long long len;
@@ -640,6 +665,14 @@ int arch_atomic_fetch_add_relaxed(int i, int* v) {
 }
 #endif
 
+#ifdef AOT_ARCH_ATOMIC_FETCH_SUB_RELEASE
+int arch_atomic_fetch_sub_release(int i, int* v) {
+    int old = *v;
+    *v -= i;
+    return old;
+}
+#endif
+
 #ifdef AOT_ARCH_ATOMIC_TRY_CMPXCHG
 int arch_atomic_try_cmpxchg(int* v, int* oldp, int new) {
     int ret = *v, old = *oldp;
@@ -694,6 +727,18 @@ int vprintk_default(const char* fmt, va_list args) {
 int vprintk(const char* fmt, va_list args) {
     int ret = vprintk(fmt, args);
     return ret;
+}
+#endif
+
+#ifdef AOT_SCHEDULE
+void schedule(void) {
+    return;
+}
+#endif
+
+#ifdef AOT_SCHEDULE_TIMEOUT
+signed long schedule_timeout(signed long timeout) {
+    return 0;
 }
 #endif
 
