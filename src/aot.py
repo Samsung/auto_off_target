@@ -109,6 +109,9 @@ class Engine:
         self.dump_global_hashes = args.dump_global_hashes
         self.global_hashes = []
 
+        self.load_init = args.load_init
+        self.dump_init = args.dump_init
+
         if args.config:
             logging.info(f"AOT_CONFIG:|{args.config}|")
 
@@ -755,6 +758,7 @@ class Engine:
             _str = ""
             contents_to_change = {}
             filename_to_fpointer_stubs = {}
+            
             for g_id in all_global_ids:
                 self.init.fpointer_stubs = []
                 g = self.dbops.globalsidmap[g_id]
@@ -791,9 +795,12 @@ class Engine:
                     if self.smart_init:
                         param_tid, init_obj = self.otgen.globs_init_data[g['id']]
 
+                    init_data = {}
                     tmp_str, alloc, brk = self.init._generate_var_init(
                         g["name"], self.dbops.typemap[g["type"]], pointers, known_type_names=known_type_names, new_types=new_types,
-                        entity_name=g['name'], fuse=0, init_obj=init_obj)
+                        entity_name=g['name'], fuse=0, init_obj=init_obj, data=init_data)
+                    self.init.add_global_init_data(g['name'], g['id'], init_data)
+
                     if filename not in contents_to_change:
                         contents_to_change[filename] = ""
                     contents_to_change[filename] += tmp_str
@@ -1263,6 +1270,9 @@ class Engine:
                 f.write(fptrstub_known_funcs_out % (
                     "\n".join(known_funcs_decls), "\n".join(known_funcs_stub_list)))
 
+        if self.dump_init:
+            self.init.dump_init_data()
+
         return True
 
     # -------------------------------------------------------------------------
@@ -1425,6 +1435,10 @@ def prepare_parser(*db_frontends):
                         help="When generating OT code use real file names rather than the file_<ID> scheme.")
     parser.add_argument("--no-main-function-calls", action="store_true",
                         help="Do not generate function calls in aot.c")
+    parser.add_argument("--dump-init", default=None,
+                        help="Dump smart init data into the specified JSON file")
+    parser.add_argument("--load-init", default=None,
+                        help="Load smart init data from the specified JSON file")
     return parser
 
 

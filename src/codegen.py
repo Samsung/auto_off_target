@@ -768,9 +768,14 @@ class CodeGen:
         start_index = 0
 
         if create_params:
+            func_init_data = {}
+            func_init_data[function_id] = {}
+            func_init_data[function_id]['name'] = name
+            func_init_data[function_id]['params'] = []
             for tid in type_ids:
                 type = self.dbops.typemap[tid]
                 saved_i = i
+                orig_i = i
                 if i == 0 and not return_present:
                     i += 1
                     continue
@@ -859,9 +864,14 @@ class CodeGen:
                         if function_id in self.otgen.funcs_init_data:
                             init_data = self.otgen.funcs_init_data[function_id]
                             param_tid, init_obj = init_data[i - 1]
+                        init_data = {}
+                        init_data['param_num'] = orig_i - 1
+                        init_data['init_ord'] = i - 1
                         tmp, alloc, brk = self.init._generate_var_init(
                             varname, type, pointers, known_type_names=known_type_names, new_types=new_types, entity_name=name,
-                            init_obj=init_obj, fuse=0, fid=function_id)
+                            init_obj=init_obj, fuse=0, fid=function_id, data=init_data)
+                        func_init_data[function_id]['params'].append(init_data)
+
                     elif not dyn_init_present and not is_used:
                         tmp = f"// Detected that the argument {varname} is not used - skipping init\n"
                     elif dyn_init_present:
@@ -881,6 +891,7 @@ class CodeGen:
                 i = saved_i
                 i += 1
 
+            self.init.add_func_init_data(name, function_id, func_init_data)
             if return_present:
                 # varnames[0] -> return var name
                 start_index = 1

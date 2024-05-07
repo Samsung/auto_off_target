@@ -13,7 +13,7 @@ import logging
 import sys
 import copy
 import functools
-
+import json
 
 class TypeUse:
 
@@ -133,6 +133,11 @@ class Init:
     CAST_PTR_NO_MEMBER = -1
     MAX_RECURSION_DEPTH = 50
 
+    INIT_CL_NONPTR = "nonptr"
+    INIT_CL_PTR = "ptr"
+    INIT_CL_FPTR = "fptr"
+    INIT_CL_OFFSETOF = "offsetof"
+
     def __init__(self, dbops, cutoff, deps, codegen, args):
         self.dbops = dbops
         self.cutoff = cutoff
@@ -150,6 +155,9 @@ class Init:
         self.tagged_vars_count = 0
         self.fpointer_stubs = []
         self.stub_names = set()
+        self.init_data = {}
+        self.init_data["globals"] = []
+        self.init_data["funcs"] = []
 
     # -------------------------------------------------------------------------
 
@@ -789,7 +797,7 @@ class Init:
 
     # @belongs: init
     def _generate_var_init(self, name, type, pointers, level=0, skip_init=False, known_type_names=None, cast_str=None, new_types=None,
-                           entity_name=None, init_obj=None, fuse=None, fid=None, count=None):
+                           entity_name=None, init_obj=None, fuse=None, fid=None, count=None, data=None):
         """Given variable name and type, generate correct variable initialization code.
         For example:
         name = var, type = struct A*
@@ -821,11 +829,12 @@ class Init:
         :param fuse: recursion depth; if None then no limit; defaults to None
         :param fid: the id of the root function of smart init; defaults to None
         :param count: TODO: unknown, defaults to None
+        :param data: a dict containing the resolved initialization data for the given variable
 
         :return: (str, alloc, brk) where str is the verbatim C init code string, alloc is a boolean that says if
                 any memory was allocated for the current entity (NOTE: remove, as it is only changed within recursive
                 calls, but not read anywhere?), brk is a boolean that is True iff maximal recursion depth was reached
-                and is used to break out of the recursion loop 
+                and is used to break out of the recursion loop
         """
 
         if entity_name is None:
@@ -1038,6 +1047,12 @@ class Init:
                                                                               fpointer_stub=True, stub_name=stub_name)
 
                         str = f"aot_memory_init_func_ptr(&{name}, {fname});\n"
+                        data['class'] = Init.INIT_CL_FPTR
+                        data['name'] = name
+                        data['fid'] = dst_type['id']
+                        data['name_raw'] = f"&{name}"
+                        data['dst_func'] = fname
+
                         # str = f"{name} = {fname};\n"
                         if tmp_str not in self.fpointer_stubs:
                             self.fpointer_stubs.append(tmp_str)
@@ -1300,6 +1315,12 @@ class Init:
                             str_tmp += f"\n{typename}* {fresh_var_name};"
                             str_tmp += f"\naot_memory_init_ptr((void**) &{fresh_var_name}, sizeof({typename}) + {extra_padding}, 1 /* count */, 0 /* fuzz */, \"\");"
                             fresh_var_name = f"(*{fresh_var_name})"
+                            data['tid'] = _dst_tid
+                            data['name'] = name
+                            data['size'] = f"sizeof({typename}) + {extra_padding}"
+                            data['count'] = 1
+                            data['fuzz'] = 0
+                            data['class'] = Init.INIT_CL_OFFSETOF
 
                         if self.args.debug_vars_init:
                             logging.info(
@@ -1355,6 +1376,8 @@ class Init:
                             member_number = member_no
                             member_tid = _tmp_t['refs'][member_no]
                         str_tmp += f"{name} = &{fresh_var_name}.{member_name};\n"
+                        data['offset_member'] = member_name
+                        data['offset_member_num'] = member_number
 
                         if self.args.debug_vars_init:
                             logging.info("variant c")
@@ -1392,7 +1415,8 @@ class Init:
                             if _dst_t['id'] not in self.used_types_data:
                                 self.used_types_data[_dst_t['id']] = _dst_t
                             self.used_types_data[_dst_t['id']]['usedrefs'][member_number] = self.used_types_data[_dst_t['id']]['refs'][member_number] 
-                        
+                            if 'offsetof' not in data:
+                                data['offsetof'] = {}
                             _str_tmp, alloc_tmp, brk = self._generate_var_init(fresh_var_name,
                                                                             _dst_t,
                                                                             pointers[:],
@@ -1402,7 +1426,8 @@ class Init:
                                                                             cast_str=None,
                                                                             new_types=new_types,
                                                                             init_obj=obj,
-                                                                            fuse=fuse)
+                                                                            fuse=fuse,
+                                                                            data=data['offsetof'])
                             str_tmp += _str_tmp
                         i += 1
 
@@ -1555,6 +1580,16 @@ class Init:
                         else:
                             str += "aot_memory_init_ptr((void**) &{}, {}, {} /* count */, {} /* fuzz */, {});\n".format(
                                 name, multiplier, cnt, fuzz, tagged_var_name)
+                        data['tid'] = type['id']
+                        data['name_raw'] = name
+                        data['name'] = f"(void**) &{name}"
+                        data['size'] = f"sizeof({typename})"
+                        if extra_padding is not None:
+                            data['padding'] = extra_padding.replace("*", "", 1)
+                        data['count'] = cnt
+                        data['class'] = Init.INIT_CL_PTR
+                        data['fuzz'] = fuzz
+
                         if addsize and not null_terminate:
                             # use intermediate var to get around const pointers
                             str += f"tmpname = {name};\n"
@@ -1569,15 +1604,22 @@ class Init:
                             str += f"    klee_assume(*{name} == {value});\n"
                             str += "}\n"
                             str += f"#endif\n"
+                            data['value'] = value
                         if min_value is not None:
                             str += f"if (*{name} < {min_value}) *{name} = {min_value};\n"
+                            data['min_value'] = min_value
                         if max_value is not None:
                             str += f"if (*{name} > {max_value}) *{name} = {max_value};\n"
+                            data['max_value'] = max_value
                         if tag:
                             str += f"aot_tag_memory({name}, sizeof({typename}) * {cnt}, 0);\n"
                             str += f"aot_tag_memory(&{name}, sizeof({name}), 0);\n"
+                        data['tag'] = tag
+                        data['tag_name'] = tagged_var_name
+
                         if protected:
                             str += f"aot_protect_ptr(&{name});\n"
+                        data['protected'] = protected
 
                     if not skip_init and entry is not None:
                         # we are dealing with a pointer for which we have found a cast in the code
@@ -1629,7 +1671,8 @@ class Init:
                                                                                 cast_str=typename,
                                                                                 new_types=new_types,
                                                                                 init_obj=init_obj,
-                                                                                fuse=fuse)
+                                                                                fuse=fuse,
+                                                                                data=data)
                                 if not single_init:
                                     comment = "//"
                                     variant = f"variant {variant_num}"
@@ -1770,6 +1813,21 @@ class Init:
                     # special case: non-pointer value is to be treated as a pointer
                     str += f"{typename}* {name}_ptr;\n"
                     str += f"aot_memory_init_ptr((void**) &{name}_ptr, sizeof({typename}), {mul}, 1 /* fuzz */, {tagged_var_name});\n"
+                data['tid'] = type['id']
+                data['size'] = f"sizeof({typename})"
+                data['name_raw'] = name
+                if not isPointer:
+                    data['count'] = 1
+                else:
+                    data['count'] = mul
+                if not isPointer:
+                    data['name'] = f"&{name}"
+                    data['class'] = Init.INIT_CL_NONPTR
+                    data['fuzz'] = 0
+                else:
+                    data['name'] = f"(void**) &{name}_ptr"
+                    data['class'] = Init.INIT_CL_PTR
+                    data['fuzz'] = 1
 
                 if value is not None:
                     str += "#ifdef KLEE\n"
@@ -1780,6 +1838,7 @@ class Init:
                         str += f"    klee_assume(*{name} == {value});\n"
                     str += "}\n"
                     str += "#endif\n"
+                    data['value'] = value
 
                 if isPointer is False:
                     deref = ""
@@ -1787,17 +1846,22 @@ class Init:
                     deref = "*"
                 if min_value is not None:
                     str += f"if ({deref}{name} < {min_value}) {deref}{name} = {min_value};\n"
+                    data['min_value'] = min_value
                 if max_value is not None:
                     str += f"if ({deref}{name} > {max_value}) {deref}{name} = {max_value};\n"
+                    data['max_value'] = max_value
                 if tag:
                     if not isPointer:
                         str += f"aot_tag_memory(&{name}, sizeof({typename}), 0);\n"
                     else:
                         str += f"aot_tag_memory({name}_ptr, sizeof({typename}) * {mul}, 0);\n"
                         str += f"aot_tag_memory(&{name}_ptr, sizeof({name}_ptr), 0);\n"
+                data['tag'] = tag
+                data['tag_name'] = tagged_var_name
 
                 if protected and isPointer:
                     str += f"aot_protect_ptr(&{name}_ptr);\n"
+                data['protected'] = protected
 
                 if isPointer:
                     str += f"{name} = ({typename}){name}_ptr;\n"
@@ -1873,6 +1937,11 @@ class Init:
                     if self.args.debug_vars_init:
                         logging.info(
                             f"variant E, my type is {type['id']}, loop_count is {loop_count}, cl is {cl}: {tmp_name}")
+                    
+                    if for_loop:
+                        data['loop'] = {'loop_count': loop_count }                   
+                        data['loop']['loop_item'] = {}
+                        data = data['loop']['loop_item']
                     str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}",
                                                                       member_type,
                                                                       pointers[:],
@@ -1882,7 +1951,8 @@ class Init:
                                                                       cast_str=cast_str,
                                                                       new_types=new_types,
                                                                       init_obj=init_obj,
-                                                                      fuse=fuse)
+                                                                      fuse=fuse,
+                                                                      data=data)
                     str += str_tmp
                     if brk:
                         return str, False, brk
@@ -1931,6 +2001,9 @@ class Init:
                             str_tmp += f"{tmp_name} = ({typename})" + "{"
                             if skip_init and (False == name_change):
                                 str_tmp = f"*({typename}*){str_tmp}"
+                            data['bitfields'] = []
+                            data['tid'] = _t_id
+                            data['fuzz'] = 1
 
                         for i, bitcount in bitfields.items():
                             field_name = type["refnames"][i]
@@ -1939,6 +2012,7 @@ class Init:
                                 self.dbops.typemap[tmp_tid])
                             # we can generate bitfield init straight away as bitfields are integral types, therefore builtin
                             str_tmp += f".{field_name} = aot_memory_init_bitfield({bitcount}, 1 /* fuzz */, 0), "
+                            data['bitfields'].append({"name": field_name, "bitcount": bitcount})
 
                         if len(bitfields) != 0:
                             # remove last comma and space
@@ -2050,6 +2124,11 @@ class Init:
                                         if self.args.debug_vars_init:
                                             logging.info("variant a")
                                         member_to_name[i] = f"{tmp_name}{deref_str}{field_name}"
+                                        if 'members' not in data:
+                                            data['members'] = []
+                                        data['members'].append({"member_num": i}) 
+                                        # note: members are already appened in the init order
+                                        # so there is no need to store the ordering as it is with function params
                                         str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}{deref_str}{field_name}",
                                                                                      tmp_t,
                                                                                      pointers[:],
@@ -2060,7 +2139,10 @@ class Init:
                                                                                      new_types=new_types,
                                                                                      init_obj=obj,
                                                                                      fuse=fuse,
-                                                                                     count=count)
+                                                                                     count=count,
+                                                                                     data=data['members'][-1])
+                                        data['members'] = [ m for m in data['members'] ]
+
                                         if size_member_used:
                                             str += "// smart init: using one struct member as a size of another\n"
                                         str += str_tmp
@@ -2103,6 +2185,8 @@ class Init:
                                                 str_tmp = ""                                                
                                             else:
                                                 # generate an alternative init for each of the detected casts
+                                                if 'members' not in data:
+                                                    data['members'] = {}
                                                 str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}{deref_str}{field_name}",
                                                                                             dst_t,
                                                                                             pointers[:],
@@ -2113,7 +2197,8 @@ class Init:
                                                                                             new_types=new_types,
                                                                                             init_obj=obj,
                                                                                             fuse=fuse,
-                                                                                            count=count)
+                                                                                            count=count,
+                                                                                            data=data['members'])
                                                 if not single_init:
                                                     variant = f"variant {variant_num}"
                                                     variant_num += 1
@@ -3551,3 +3636,23 @@ class Init:
     # @belongs: init/codegen -> in the end it would be the best to have the metadata generated by init and the code generation done by codegen
     def _generate_var_deinit(self, var):
         return f"aot_memory_free_ptr(&{var});\n"
+
+    # -------------------------------------------------------------------------
+
+    def add_global_init_data(self, name, id, data):
+        entry = { 'id': id, 'name': name, 'data': data}
+        self.init_data["globals"].append(data)
+
+    # -------------------------------------------------------------------------
+
+    def add_func_init_data(self, name, id, data):
+        entry = { 'id': id, 'name': name, 'data': data}
+        self.init_data["funcs"].append(data)
+
+    # -------------------------------------------------------------------------
+
+    def dump_init_data(self):
+        logging.info("Will dump init data")
+        logging.info(f"{self.init_data}")
+        with open(f"{self.args.output_dir}/{self.args.dump_init}", "w") as file:
+            json.dump(self.init_data, file)

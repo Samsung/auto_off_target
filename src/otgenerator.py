@@ -290,9 +290,11 @@ class OTGenerator:
                     init_obj = None
                     param_tid, init_obj = self.globs_init_data[g['id']]
 
+                    init_data = {}
                     tmp_str, alloc, brk = self.init._generate_var_init(
                         g["name"], self.dbops.typemap[g["type"]], pointers, known_type_names=known_type_names, new_types=new_types,
-                        entity_name=g['name'], fuse=0, init_obj=init_obj)
+                        entity_name=g['name'], fuse=0, init_obj=init_obj, data=init_data)
+                    self.init.add_global_init_data(g['name'], g['id'], init_data)
                     str += "\t" + tmp_str.replace("\n", "\n\t")
 
                 str += "\n"
