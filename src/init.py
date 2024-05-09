@@ -2125,8 +2125,8 @@ class Init:
                                             logging.info("variant a")
                                         member_to_name[i] = f"{tmp_name}{deref_str}{field_name}"
                                         if 'members' not in data:
-                                            data['members'] = []
-                                        data['members'].append({"member_num": i}) 
+                                            data['members'] = {}
+                                        data['members'][i] = {} 
                                         # note: members are already appened in the init order
                                         # so there is no need to store the ordering as it is with function params
                                         str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}{deref_str}{field_name}",
@@ -2140,8 +2140,10 @@ class Init:
                                                                                      init_obj=obj,
                                                                                      fuse=fuse,
                                                                                      count=count,
-                                                                                     data=data['members'][-1])
-                                        data['members'] = [ m for m in data['members'] ]
+                                                                                     data=data['members'][i])
+                                        #data['members'] = [ m for m in data['members'] ]
+                                        if len(data['members'][i]) == 0:
+                                            del data['members'][i]
 
                                         if size_member_used:
                                             str += "// smart init: using one struct member as a size of another\n"
@@ -2187,6 +2189,7 @@ class Init:
                                                 # generate an alternative init for each of the detected casts
                                                 if 'members' not in data:
                                                     data['members'] = {}
+                                                data['members'][i] = {} 
                                                 str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}{deref_str}{field_name}",
                                                                                             dst_t,
                                                                                             pointers[:],
@@ -2198,7 +2201,9 @@ class Init:
                                                                                             init_obj=obj,
                                                                                             fuse=fuse,
                                                                                             count=count,
-                                                                                            data=data['members'])
+                                                                                            data=data['members'][i])
+                                                if len(data['members'][i]) == 0:
+                                                    del data['members'][i]
                                                 if not single_init:
                                                     variant = f"variant {variant_num}"
                                                     variant_num += 1
