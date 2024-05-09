@@ -1938,10 +1938,6 @@ class Init:
                         logging.info(
                             f"variant E, my type is {type['id']}, loop_count is {loop_count}, cl is {cl}: {tmp_name}")
                     
-                    if for_loop:
-                        data['loop'] = {'loop_count': loop_count }                   
-                        data['loop']['loop_item'] = {}
-                        data = data['loop']['loop_item']
                     str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}",
                                                                       member_type,
                                                                       pointers[:],
@@ -1953,6 +1949,9 @@ class Init:
                                                                       init_obj=init_obj,
                                                                       fuse=fuse,
                                                                       data=data)
+                    if for_loop:
+                        data['loop_count'] = loop_count
+                    
                     str += str_tmp
                     if brk:
                         return str, False, brk
