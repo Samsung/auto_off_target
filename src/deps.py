@@ -592,6 +592,7 @@ class Deps:
             # even though we will not generate the bodies of those functions, we would need to have them
             # beacause they are referenced by globals that we will generate
             self.cutoff.external_funcs |= tmp
+            self.cutoff.external_funcs = self._filter_out_known_functions(self.cutoff.external_funcs)
 
         # let's check if new functions were discovered in globals
         if 0 != len(g_funcs):
