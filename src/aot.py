@@ -481,6 +481,8 @@ class Engine:
         self.deps._filter_out_replacement_functions(self.cutoff.external_funcs)
         #self.deps._filter_out_replacement_functions(self.static_and_inline_funcs)
 
+        self.cutoff._print_function_stats()
+
         for func in self.cutoff.internal_funcs:
             function = self.dbops.fnidmap[func]
             if function is None:

@@ -287,6 +287,49 @@ class CutOff:
         # therefore it is necessary to add any missing functions that might be necessary as a result of
         # pulling in globals (globals could reference functions)
 
+        for fid in self.external_funcs:
+            f = self.dbops.fnidmap[fid]
+            if f is None:
+                continue
+            if self.args.func_stats == CutOff.FUNC_STATS_DETAILED:
+                # let's check how many functions would that function pull in
+                query = set()
+                query.add(fid)
+
+                if fid not in self.stats_cache:
+                    self.deps._get_called_functions(query)
+                    self.stats_cache[fid] = query
+            else:
+                subtree_count = -1
+                if fid not in self.stats_cache:
+                    # let's see if we can tell whether the function doesn't call
+                    # any others
+                    if "funrefs" not in f or len(f["funrefs"]) == 0:
+                        self.stats_cache[fid] = set([fid])
+                    else:
+                        funcs = set(f["funrefs"])
+                        self.deps._discover_known_functions(funcs)
+                        self.deps._filter_out_known_functions(funcs)
+                        self.deps._filter_out_builtin_functions(funcs)
+                        if len(funcs) == 0:
+                            subtree_count = 0
+                        else:
+                            found = False
+                            for id in funcs:
+                                if id in self.dbops.fnidmap:
+                                    found = True
+                                    # at least one of the called functions is a func
+                                    break
+
+                            if not found:
+                                # all of the called functions are either funcdecls or unresolved
+                                # which will be external anyway
+                                subtree_count = 0
+
+                        if subtree_count == 0:
+                            self.stats_cache[fid] = set([fid])
+
+    def _print_function_stats(self):
         logging.info("Printing internal functions:")
         for fid in self.internal_funcs:
             f = self.dbops.fnidmap[fid]
@@ -312,12 +355,8 @@ class CutOff:
                 # let's check how many functions would that function pull in
                 query = set()
                 query.add(fid)
-
-                if fid in self.stats_cache:
-                    query |= self.stats_cache[fid]
-                else:
-                    self.deps._get_called_functions(query)
-                    self.stats_cache[fid] = query
+                query |= self.stats_cache[fid]
+                
                 logging.info("- [external] {} @ {} pulls in another {} functions".format(
                     f["name"], f["location"], len(query) - 1))
             else:
@@ -326,34 +365,6 @@ class CutOff:
                     # if we are in the basic stats mode, only functions known to not call any other
                     # will be added to stats_cache, which means that the number of called functions is 0
                     subtree_count = 0
-                else:
-                    # let's see if we can tell whether the function doesn't call
-                    # any others
-                    if "funrefs" not in f or len(f["funrefs"]) == 0:
-                        self.stats_cache[fid] = set([fid])
-                        subtree_count = 0
-                    else:
-                        funcs = set(f["funrefs"])
-                        self.deps._discover_known_functions(funcs)
-                        self.deps._filter_out_known_functions(funcs)
-                        self.deps._filter_out_builtin_functions(funcs)
-                        if len(funcs) == 0:
-                            subtree_count = 0
-                        else:
-                            found = False
-                            for id in funcs:
-                                if id in self.dbops.fnidmap:
-                                    found = True
-                                    # at least one of the called functions is a func
-                                    break
-
-                            if not found:
-                                # all of the called functions are either funcdecls or unresolved
-                                # which will be external anyway
-                                subtree_count = 0
-
-                        if subtree_count == 0:
-                            self.stats_cache[fid] = set([fid])
                 if subtree_count == -1:
                     logging.info(
                         "- [external] {} @ {}".format(f["name"], f["location"]))
