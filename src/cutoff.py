@@ -355,6 +355,9 @@ class CutOff:
                 # let's check how many functions would that function pull in
                 query = set()
                 query.add(fid)
+                if fid not in self.stats_cache:
+                    self.deps._get_called_functions(query)
+                    self.stats_cache[fid] = query
                 query |= self.stats_cache[fid]
                 
                 logging.info("- [external] {} @ {} pulls in another {} functions".format(
