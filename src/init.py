@@ -857,6 +857,7 @@ class Init:
         if False == self.args.init:
             return "", False, False
 
+        base_type = type
         type = self.dbops._get_typedef_dst(type)
 
         cl = type["class"]
@@ -1807,8 +1808,11 @@ class Init:
                 if tag:
                     tagged_var_name = self._get_tagged_var_name()
                 if not isPointer:
-                    str += "aot_memory_init(&{}, sizeof({}), {} /* fuzz */, {});\n".format(
-                        name, typename, fuzz, tagged_var_name)
+                    if 'c' not in type["qualifiers"] and 'c' not in base_type['qualifiers']:
+                        str += "aot_memory_init(&{}, sizeof({}), {} /* fuzz */, {});\n".format(
+                            name, typename, fuzz, tagged_var_name)
+                    else:
+                        str += f"// skipping init for {name}, since it's const\n"
                 else:
                     # special case: non-pointer value is to be treated as a pointer
                     str += f"{typename}* {name}_ptr;\n"
