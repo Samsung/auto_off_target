@@ -275,8 +275,12 @@ class Init:
             str += "}\n"
         if "max_val" in size_constraints:
             str += f"if ({var_name} > {size_constraints['max_val']})" + "{\n"
-            str += f"\t{var_name} %= {size_constraints['max_val']};\n"
-            str += f"\t{var_name} += 1;\n"
+            max_val_int = int(size_constraints['max_val'])
+            if max_val_int != 0:
+                str += f"\t{var_name} %= {size_constraints['max_val']};\n"
+                str += f"\t{var_name} += 1;\n"
+            else:
+                str += f"\t{var_name} = 0;\n"
             str += "}\n"
         return str
 
