@@ -1305,7 +1305,7 @@ class Init:
                                     # a special case of variable lenght array as the last member of a struct
                                     is_vla_struct = True
                                     last_type_name = self.codegen._get_typename_from_type(
-                                        last_type).replace("[0]", "")
+                                        last_type).replace("[0]", "").replace("*", "", 1) # if it's a pointer, we allocate space for the dst type
                                     extra_padding = f"sizeof({last_type_name})"
 
                         if not is_vla_struct:
