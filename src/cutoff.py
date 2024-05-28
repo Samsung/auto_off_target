@@ -115,15 +115,8 @@ class CutOff:
                     else:
                         # internal functions are the ones residing in the same module
 
-                        _to_add = []
-                        if fid not in self.fid_to_mods:
-                            _to_add.append(fid)
                         if base_fid not in self.fid_to_mods:
-                            _to_add.append(base_fid)
-                        
-                        if len(_to_add) > 0:
-                            for _fid in _to_add:
-                                self._get_mods_and_dirs_for_f(_fid)
+                            self._get_mods_and_dirs_for_f(base_fid)
 
                         mods = self.fid_to_mods[fid]
 
