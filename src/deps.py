@@ -15,7 +15,7 @@ from toposort import toposort, toposort_flatten, CircularDependencyError
 import struct
 import re
 import sys
-import shutil
+import difflib
 
 from typing import Dict, List, Tuple, Optional
 
@@ -737,6 +737,51 @@ class Deps:
 
     # -------------------------------------------------------------------------
 
+    # currently it sometimes happens in FTDB that a colliding types might get connected through a dependency
+    # by colliding types I mean types with the same name, normally used in separate translation units which
+    # by mistake get connetect through a dependency; this can happen when pointers are used and by mistake the pointer
+    # gets associated with a wrong destination type;
+    # there are on-going efforts in FTDB to fix this behavior but this function is intended to be a workaround for the problem    
+    def _filter_out_colliding_types(self, t_id1, files1, t_id2, files2):
+        t1 = self.dbops.typemap[t_id1]
+        t2 = self.dbops.typemap[t_id2]
+
+        # get the location and the fid
+        loc1 = t1["location"].split(":")[0] # location contains of a file path, line number and col number - we only need the path
+        loc2 = t2["location"].split(":")[0]
+        # note: location is the place where the type is defined (often a header file); fid is _one of_ files in which the definition exists
+        # if there are more files pulling in the header, a random one is chosen
+        t1_fid = t1["fid"]
+        t2_fid = t2["fid"]
+
+        # in principle we should not have a situation in which both types are simultaneously used in the exact same file
+        # and this is what we are trying to protect against here
+        common_fids = files1.intersection(files2)
+
+        if t1_fid == t2_fid:
+            logging.error(f"Types {t_id1} and {t_id2} have the same fid")
+            sys.exit(1)
+
+        for fid in common_fids:
+            # see if we got lucky and the overlapping file is also found in one of the types
+            if fid == t1_fid:
+                files2.remove(fid)
+                continue
+            elif fid == t2_fid:
+                files1.remove(fid)
+                continue
+
+            # we were not lukcky - let's try to figure out the right
+            # type-file association via location analysis
+            loc = self.srcidmap[fid]
+            diff1 = difflib.SequenceMatcher(None, loc, loc1)
+            diff2 = difflib.SequenceMatcher(None, loc, loc2)
+
+            if diff1 < diff2:
+                files2.remove(fid)
+            else:
+                files1.remove(fid)
+
     # @belongs: otgenerator or deps -> deps more likely
     def _find_clashes(self, files, type_clashes, global_clashes, function_clashes, func_glob_clashes):
         for tid_tuple in type_clashes:
@@ -774,6 +819,9 @@ class Deps:
             if t_id2 not in self.clash_type_to_file:
                 self.clash_type_to_file[t_id2] = set()
             self.clash_type_to_file[t_id2] |= tid1_files
+
+        self._filter_out_colliding_types(t_id1, self.clash_type_to_file[t_id1],
+                                         t_id2, self.clash_type_to_file[t_id2])
 
         for gid_tuple in global_clashes:
             g_id1 = gid_tuple[0]
