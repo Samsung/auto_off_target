@@ -13,3 +13,4 @@ func_timeout
 progressbar2
 pymongo
 tqdm
+packaging
