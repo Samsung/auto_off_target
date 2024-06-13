@@ -766,21 +766,25 @@ class Deps:
             # see if we got lucky and the overlapping file is also found in one of the types
             if fid == t1_fid:
                 files2.remove(fid)
+                logging.info("Common fid removed")
                 continue
             elif fid == t2_fid:
                 files1.remove(fid)
+                logging.info("Common fid removed")
                 continue
 
             # we were not lukcky - let's try to figure out the right
             # type-file association via location analysis
-            loc = self.srcidmap[fid]
-            diff1 = difflib.SequenceMatcher(None, loc, loc1)
-            diff2 = difflib.SequenceMatcher(None, loc, loc2)
+            loc = self.dbops.srcidmap[fid]
+            diff1 = difflib.SequenceMatcher(None, loc, loc1).ratio()
+            diff2 = difflib.SequenceMatcher(None, loc, loc2).ratio()
 
             if diff1 < diff2:
                 files2.remove(fid)
             else:
                 files1.remove(fid)
+            logging.info("Common fid removed")
+
 
     # @belongs: otgenerator or deps -> deps more likely
     def _find_clashes(self, files, type_clashes, global_clashes, function_clashes, func_glob_clashes):
@@ -820,8 +824,8 @@ class Deps:
                 self.clash_type_to_file[t_id2] = set()
             self.clash_type_to_file[t_id2] |= tid1_files
 
-        self._filter_out_colliding_types(t_id1, self.clash_type_to_file[t_id1],
-                                         t_id2, self.clash_type_to_file[t_id2])
+            self._filter_out_colliding_types(t_id1, self.clash_type_to_file[t_id1],
+                                             t_id2, self.clash_type_to_file[t_id2])
 
         for gid_tuple in global_clashes:
             g_id1 = gid_tuple[0]
