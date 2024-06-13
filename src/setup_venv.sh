@@ -12,6 +12,6 @@ echo -e "2. Activating virtual environment.\n"
 source venv/bin/activate        || echo "Failed to activate venv."
 
 echo -e "3. Installing requirements.\n"
-pip install -r requirements.txt || echo "Failed to install requirements."
+pip3 install -r requirements.txt || echo "Failed to install requirements."
 
 echo -e "\n4. All good! You are now within the virtual environment. Run the 'deactivate' command to exit.\n" 
