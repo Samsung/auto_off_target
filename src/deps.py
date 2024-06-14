@@ -746,9 +746,6 @@ class Deps:
         t1 = self.dbops.typemap[t_id1]
         t2 = self.dbops.typemap[t_id2]
 
-        # get the location and the fid
-        loc1 = t1["location"].split(":")[0] # location contains of a file path, line number and col number - we only need the path
-        loc2 = t2["location"].split(":")[0]
         # note: location is the place where the type is defined (often a header file); fid is _one of_ files in which the definition exists
         # if there are more files pulling in the header, a random one is chosen
         t1_fid = t1["fid"]
@@ -772,9 +769,14 @@ class Deps:
                 files1.remove(fid)
                 logging.info("Common fid removed")
                 continue
-
             # we were not lukcky - let's try to figure out the right
             # type-file association via location analysis
+            # get the location and the fid
+            if "location" not in t1 or "location" not in t2:
+                continue
+            loc1 = t1["location"].split(":")[0] # location contains of a file path, line number and col number - we only need the path
+            loc2 = t2["location"].split(":")[0]
+
             loc = self.dbops.srcidmap[fid]
             diff1 = difflib.SequenceMatcher(None, loc, loc1).ratio()
             diff2 = difflib.SequenceMatcher(None, loc, loc2).ratio()
