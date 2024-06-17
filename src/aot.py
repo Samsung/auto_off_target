@@ -224,8 +224,6 @@ class Engine:
                         continue
                     if f[0] not in locations:
                         locations[f[0]] = []
-                    p = f[1]
-                    locations[f[0]].append(p)
                     locations[f[0]].append(f[1])
                 else:
                     locations[f[0]] = []
@@ -252,7 +250,7 @@ class Engine:
                         src, loc = self.dbops._get_function_file(fid)
                         locs.add(loc)
                         # filename = os.path.basename(src)
-                        filename = src
+                        filename = loc
                         logging.info(
                             "Searched file {}, function file {}".format(files, filename))
                         subpath = False
@@ -264,7 +262,17 @@ class Engine:
                                 logging.error(
                                     f"Cannot generate off-target for {f} as it contains an inline assembly")
                                 continue
-                            function_ids.append(fid)
+                            # workaround, make sure that we didn't hit an indentical function
+                            # this could happen if a static global is used inside function's body
+                            workaround = False
+                            for _f_id in function_ids:
+                                _f = self.dbops.fnidmap[_f_id]
+                                if _f["location"] == func["location"] and _f["body"] == func["body"]:
+                                    workaround = True
+                                    logging.info(f"Workaround: detected that function {fid} is the same as {_f_id}")
+                                    break
+                            if workaround is False:
+                                function_ids.append(fid)
                             success = True
                             logging.info(
                                 "Successfully located function {} (id: {}) in file {}".format(f, fid, loc))
