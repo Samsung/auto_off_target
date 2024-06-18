@@ -45,8 +45,8 @@ ifneq ($(wildcard dyn_init.c), )
 
   $(info [AoT] Building off-target with dynamic init support (--dynamic-init flag))
 
-  lib += ${KFLAT_LIB_PATH}/libunflatten_${ARCH}.a
-  CFLAGS += -I${KFLAT_LIB_PATH} -L${KFLAT_LIB_PATH} -fPIC
+  lib += ${KFLAT_LIB_PATH}/libunflatten.a
+  CFLAGS += -I${KFLAT_LIB_INCLUDE_PATH} -L${KFLAT_LIB_PATH} -fPIC -DUNFLATTEN_MARK_FREED
   LDFLAGS += -lstdc++
   extra_bc += $(wildcard ${KFLAT_LIB_PATH}/*.bc)
 endif

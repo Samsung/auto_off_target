@@ -77,6 +77,11 @@ void *vmemdup_user(const void * _src, unsigned long len) {
 #ifdef AOT_KREALLOC
 void* krealloc(const void* p, unsigned long new_size, unsigned long flags) {
     if(new_size == 0){
+
+#ifdef UNFLATTEN_MARK_FREED
+        aot_kflat_mark_freed(ptr);
+#endif /* UNFLATTEN_MARK_FREED */
+
         free(p);
         return (void*)0x10;
     }
@@ -191,6 +196,10 @@ void* pcpu_alloc(unsigned long size, unsigned long align, int reserved, unsigned
 
 #ifdef AOT_FREE_PERCPU
 void free_percpu(void* ptr) {
+
+#ifdef UNFLATTEN_MARK_FREED
+    aot_kflat_mark_freed(ptr);
+#endif /* UNFLATTEN_MARK_FREED */
     free(ptr);
 }
 #endif
@@ -199,6 +208,10 @@ void free_percpu(void* ptr) {
 void kfree(const void* ptr) {
     if ((unsigned long)(ptr) <= ((unsigned long)(void*)16))
         return;
+    
+#ifdef UNFLATTEN_MARK_FREED
+    aot_kflat_mark_freed(ptr);
+#endif /* UNFLATTEN_MARK_FREED */
 
     free(ptr);
 }
@@ -208,7 +221,11 @@ void kfree(const void* ptr) {
 void kvfree(const void *addr) {
     if ((unsigned long)(addr) <= ((unsigned long)(void*)16))
         return;
-        
+
+#ifdef UNFLATTEN_MARK_FREED
+    aot_kflat_mark_freed(ptr);
+#endif /* UNFLATTEN_MARK_FREED */
+
     free(addr);
 }
 #endif
@@ -407,6 +424,10 @@ void* vzalloc(unsigned long size) {
 
 #ifdef AOT_VFREE
 void vfree(void* mem) {
+#ifdef UNFLATTEN_MARK_FREED
+    aot_kflat_mark_freed(mem);
+#endif /* UNFLATTEN_MARK_FREED */
+
     free(mem);
 }
 #endif
