@@ -732,21 +732,21 @@ int __printk_ratelimit(const char* func) {
 
 #ifdef AOT_VPRINTK_DEFERRED
 int vprintk_deferred(const char* fmt, va_list args) {
-    int ret = vprintk(fmt, args);
+    int ret = vprintf(fmt, args);
     return ret;
 }
 #endif
 
 #ifdef AOT_VPRINTK_DEFAULT
 int vprintk_default(const char* fmt, va_list args) {
-    int ret = vprintk(fmt, args);
+    int ret = vprintf(fmt, args);
     return ret;
 }
 #endif
 
 #ifdef AOT_VPRINTK
 int vprintk(const char* fmt, va_list args) {
-    int ret = vprintk(fmt, args);
+    int ret = vprintf(fmt, args);
     return ret;
 }
 #endif
