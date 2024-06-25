@@ -596,10 +596,6 @@ class OTGenerator:
                     str += "#include \"aot_replacements.h\"\n"
 
         if fid == OTGenerator.AOT_HEADER_ID:
-            # workaround start
-            str_header += "\n#define __percpu\n"
-            str_header += "\n#define btf_type_tag\n"
-            # workaround end
             str_header += "\n\n// func decls which might be useful\n"
             str_header += "void* memset(void* dst, int ch, typeof(sizeof(int)) count);\n"
             str_header += "void* memcpy(void* dst, const void* src, typeof(sizeof(int)) n);\n"
