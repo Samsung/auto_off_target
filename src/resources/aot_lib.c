@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include "aot_lib.h"
 #include "aot_fuzz_lib.h"
+#include "aot_mem_init_lib.h"
 
 void* malloc(size_t size);
 void free(void* ptr);
@@ -81,8 +82,9 @@ void* krealloc(const void* p, unsigned long new_size, unsigned long flags) {
 #ifdef UNFLATTEN_MARK_FREED
         aot_kflat_mark_freed(ptr);
 #endif /* UNFLATTEN_MARK_FREED */
-
+        aot_ptrs_remove(p);
         free(p);
+
         return (void*)0x10;
     }
     if (new_size > AOT_MEMDUP_USER_MAX_SIZE) 
@@ -200,6 +202,7 @@ void free_percpu(void* ptr) {
 #ifdef UNFLATTEN_MARK_FREED
     aot_kflat_mark_freed(ptr);
 #endif /* UNFLATTEN_MARK_FREED */
+    aot_ptrs_remove(ptr);
     free(ptr);
 }
 #endif
@@ -212,7 +215,7 @@ void kfree(const void* ptr) {
 #ifdef UNFLATTEN_MARK_FREED
     aot_kflat_mark_freed(ptr);
 #endif /* UNFLATTEN_MARK_FREED */
-
+    aot_ptrs_remove(ptr);
     free(ptr);
 }
 #endif
@@ -225,7 +228,7 @@ void kvfree(const void *addr) {
 #ifdef UNFLATTEN_MARK_FREED
     aot_kflat_mark_freed(ptr);
 #endif /* UNFLATTEN_MARK_FREED */
-
+    aot_ptrs_remove(addr);
     free(addr);
 }
 #endif
@@ -427,7 +430,7 @@ void vfree(void* mem) {
 #ifdef UNFLATTEN_MARK_FREED
     aot_kflat_mark_freed(mem);
 #endif /* UNFLATTEN_MARK_FREED */
-
+    aot_ptrs_remove(mem);
     free(mem);
 }
 #endif

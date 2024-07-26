@@ -34,6 +34,39 @@ void aot_ptrs_append(void* ptr) {
 	}
 }
 
+int aot_ptrs_remove(void* ptr){
+	if (!ptr) {
+		return 0;
+	}
+
+	if (!aot_ptrs_head) {
+		// the list is empty
+		return 0;
+	}
+	struct aot_ptr_node* tmp = aot_ptrs_head;
+	struct aot_ptr_node* prev_tmp = 0;
+	while (tmp) {
+		if (tmp->ptr == ptr) {
+			if (tmp == aot_ptrs_head) {
+				aot_ptrs_head = tmp->next;
+			}
+			else if (tmp == aot_ptrs_tail) {
+				aot_ptrs_tail = prev_tmp;
+				aot_ptrs_tail->next = 0;
+			}
+			else {
+				prev_tmp->next = tmp->next;
+			}
+			// free the node
+			free(tmp);
+			return 0;
+		}
+		prev_tmp = tmp;
+		tmp = tmp->next;
+	}
+	return 1;
+}
+
 void aot_GC() {
 	// iterate through the pointers list and free the memory
 	struct aot_ptr_node* node = aot_ptrs_head;
