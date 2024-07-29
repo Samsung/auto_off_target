@@ -134,6 +134,7 @@ unsigned long aot_copy_to_user(void* to, const void* from, unsigned long n) {
     while(n > 0) {
         unsigned long copy_size = n < sizeof(largebuffer) ? n : sizeof(largebuffer);
         memcpy(largebuffer, (char*)from + offset, copy_size);
+        memset(largebuffer, 0, sizeof(largebuffer));
         n -= copy_size;
         offset += copy_size;
     }
