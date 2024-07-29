@@ -270,18 +270,34 @@ class Init:
     def _generate_constraints_check(self, var_name, size_constraints):
         str = ""
         if "min_val" in size_constraints:
+            str += f"#ifndef KLEE\n"
+            
             str += f"if ({var_name} < {size_constraints['min_val']})" + "{\n"
             str += f"\t{var_name} = {size_constraints['min_val']};\n"
             str += "}\n"
+            
+            str += "#else\n"
+            
+            str += f"klee_assume({var_name} >= {size_constraints['min_val']});\n"
+            
+            str += "#endif\n"
         if "max_val" in size_constraints:
+            str += f"#ifndef KLEE\n"
+            
             str += f"if ({var_name} > {size_constraints['max_val']})" + "{\n"
-            max_val_int = int(size_constraints['max_val'])
+            max_val_int = int(size_constraints['max_val'])            
             if max_val_int != 0:
                 str += f"\t{var_name} %= {size_constraints['max_val']};\n"
                 str += f"\t{var_name} += 1;\n"
             else:
                 str += f"\t{var_name} = 0;\n"
             str += "}\n"
+
+            str += "#else\n"
+
+            str += f"klee_assume({var_name} <= {size_constraints['max_val']});\n"
+            
+            str += "#endif\n"
         return str
 
     # use member_type_info to get the right member init ordering for a record type
