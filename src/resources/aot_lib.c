@@ -131,13 +131,22 @@ unsigned long aot_copy_to_user(void* to, const void* from, unsigned long n) {
     // copy the data to local buffer
     unsigned long offset = 0;
 
+#ifdef KLEE
+    unsigned long size = klee_get_obj_size(from);
+    if (n > s) { // the copy size overflows the "from" buffer
+        // cause a crash to mark the overflow
+        int* p = 0;
+        p = 0;
+    }
+#else
     while(n > 0) {
         unsigned long copy_size = n < sizeof(largebuffer) ? n : sizeof(largebuffer);
         memcpy(largebuffer, (char*)from + offset, copy_size);
-        memset(largebuffer, 0, sizeof(largebuffer));
         n -= copy_size;
         offset += copy_size;
     }
+#endif
+
     return 0;
 }
 
