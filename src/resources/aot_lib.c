@@ -133,7 +133,7 @@ unsigned long aot_copy_to_user(void* to, const void* from, unsigned long n) {
 
 #ifdef KLEE
     unsigned long size = klee_get_obj_size(from);
-    if (n > s) { // the copy size overflows the "from" buffer
+    if (n > size) { // the copy size overflows the "from" buffer
         // cause a crash to mark the overflow
         int* p = 0;
         p = 0;
