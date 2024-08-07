@@ -153,6 +153,7 @@ class Engine:
             return False
 
         self.debug_vars_init = args.debug_vars_init
+        self.no_main = args.no_main
 
         return True
 
@@ -717,7 +718,7 @@ class Engine:
             stub_files[fid].funcs = func_ids
 
         if all([f_name.partition('@')[0] != "main"
-                for f_name in function_names]):
+                for f_name in function_names]) and not self.no_main:
             # if "main" is not among the functions of interest
             # we need to generate it ourselves
             # TODO: always generate test driver - it will be necessary to
@@ -1406,6 +1407,8 @@ def prepare_parser(*db_frontends):
                         help="When generating function code unroll all expanded code that comes from macro invocations")
     parser.add_argument("--use-real-filenames", action="store_true",
                         help="When generating OT code use real file names rather than the file_<ID> scheme.")
+    parser.add_argument("--no-main", action="store_true",
+                        help="Do not generate aot.c")
     return parser
 
 
