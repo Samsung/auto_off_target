@@ -4,8 +4,8 @@ types-toposort
 psutil
 numpy == 1.23
 packaging
-tree_sitter
-types-tree-sitter
+tree_sitter == 0.20.4
+types-tree-sitter == 0.20.1.6
 pytest
 pytest-subtests
 coverage
