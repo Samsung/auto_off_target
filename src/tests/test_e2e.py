@@ -10,6 +10,7 @@ import shutil
 import uuid
 from custom_multiprocessing import ProcessExecutor
 import progressbar
+from progressbar.widgets import WidgetBase
 from typing import Optional, Any, Dict, List, Set, Tuple, Union
 import aotdb
 from tests.regression_tester import RegressionTester
@@ -221,7 +222,7 @@ def _progress_bar(max_value: int) -> progressbar.ProgressBar:
     eta = progressbar.AdaptiveETA()
     progress = progressbar.SimpleProgress()
 
-    widgets = [' [', timer, '] ', bar, progress, ' (', eta, ') ']
+    widgets: List[WidgetBase | str] = [' [', timer, '] ', bar, progress, ' (', eta, ') ']
     return progressbar.ProgressBar(max_value=max_value, widgets=widgets)
 
 
