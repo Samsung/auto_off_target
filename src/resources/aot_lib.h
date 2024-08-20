@@ -412,8 +412,8 @@ void lock_release(struct lockdep_map* lock, unsigned long ip);
 #endif
 
 #ifdef AOT_CALL_RCU
-#ifndef AOT_LIB_EX
-void call_rcu(struct rcu_head* head, rcu_callback_t func);
+#ifndef AOT_LIB
+void call_rcu(struct callback_head* head, rcu_callback_t func);
 #endif
 #endif
 

@@ -8,8 +8,6 @@
 //  "aot.h". We cannot simply include "aot.h" in main "aot_lib.c" as it would
 //  cause type clashes with standard C library included in there.
 
-#define AOT_LIB_EX
-
 #include "aot.h"
 #include "aot_lib.h"
 
@@ -40,11 +38,9 @@ void lock_release(struct lockdep_map* lock, unsigned long ip) {
 #endif
 
 #ifdef AOT_CALL_RCU
-#ifndef AOT_LIB_EX
-void call_rcu(struct rcu_head* head, rcu_callback_t func) {
+void call_rcu(struct callback_head* head, rcu_callback_t func) {
     func(head);
 }
-#endif
 #endif
 
 #ifdef AOT_DO_RAW_SPIN_LOCK
