@@ -491,10 +491,7 @@ class CodeGen:
                         tmp += self._get_func_clash_endif(f_id, fid)
                         tmp += "\n\n"
                     # (function_id,unrolled_function_body_text,unique_unrolled_macro_map)
-                    tmp = tmp.replace('__attribute__((warn_unused_result("")))', "")
-                    tmp = tmp.replace('__attribute__((overloadable))', "")
-                    tmp = tmp.replace('__attribute__((always_inline))', "")
-                    tmp = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", tmp)
+                    tmp = self._sanitize_function_decl(tmp)
                     func_data_list.append((tmp, self._get_unique_unrolled_macro_map(unrolled_macro_map)))
             str += self._flush_function_code(func_data_list,common_unrolled_macro_map)
         else:
@@ -1313,6 +1310,7 @@ class CodeGen:
         decl = decl.replace('__attribute__((overloadable))', "")
         decl = decl.replace('__attribute__((always_inline))', "")
         decl = re.sub(r"__attribute__\(\(pass_object_size\(\d+\)\)\)", "", decl)
+        decl = re.sub(r"__attribute__\(\(pass_dynamic_object_size\(\d+\)\)\)", "", decl)
         return decl
 
     # -------------------------------------------------------------------------
