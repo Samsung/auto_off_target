@@ -589,11 +589,13 @@ class OTGenerator:
         str += f"#include \"{OTGenerator.AOT_HEADER}\"\n"
 
         # check if we need to add the replacements include
+        replacements_added = False
         for f in functions:
             func = self.dbops.fnidmap[f]
-            if func is not None:
+            if func is not None and replacements_added is False:
                 if "__replacement" in func["body"]:
                     str += "#include \"aot_replacements.h\"\n"
+                    replacements_added = True
 
         if fid == OTGenerator.AOT_HEADER_ID:
             str_header += "\n\n// func decls which might be useful\n"
