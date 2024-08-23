@@ -305,10 +305,13 @@ class Init:
     # @belongs: init
     def _get_members_order(self, t, underitems=None):
         ret = []
+        ret_user = []
         size_constraints = []
         if t['class'] != 'record':
             return None, None
         ret = [i for i in range(len(t['refnames']))]
+        if underitems != None:
+            ret_user = [0 for i in range(len(underitems))]
         size_constraints = [{} for i in range(len(t['refnames']))]
 
         t_id = t['id']
@@ -325,8 +328,8 @@ class Init:
                 continue
 
             if underitems != None and field_name in underitems:
-                ret[underitems.index(field_name)] = i
-                ret[i] = underitems.index(field_name)
+                ret[i] = -1
+                ret_user[underitems.index(field_name)] = i
                 i += 1
                 continue
 
@@ -466,6 +469,15 @@ class Init:
 
                         if "min_val" not in size_constraints:
                             size_constraints[i]["min_val"] = 0
+
+        if ret_user != []:
+            ret_tmp = ret_user + ret
+            index = 0
+            for i in ret_tmp:
+                if i == -1:
+                    continue
+                ret[index] = i
+                index += 1
 
         return ret, size_constraints
 
@@ -847,17 +859,25 @@ class Init:
             else:
                 name_base = name_left
                 name_left = ""
+
+            while ")" in name_base:
+                index_tmp = name_base.find(")")
+                if index_tmp == len(name_base)-1:
+                    name_base = name_base[:index_tmp]
+                else:
+                    name_base = name_base[index_tmp+1:]
             
             # find out if the name is in init_file
             if "items" in rec_item:
+                out_name_base = name_base
                 for entry in rec_item["items"]:
-                    out_name_base = name_base
                     name_core = name_base
                     if "[" in name_base:
                         name_core = name_base[:name_base.find("[")]
                     if name_core in entry["name"]:
                         rec_item = entry
                         found_iter = True
+                        break
             else: # "underitems" in rec_item
                 for entry in rec_item["underitems"]:
                     name_core = name_base
@@ -866,6 +886,7 @@ class Init:
                     if name_core in entry["name"]:
                         rec_item = entry
                         found_iter = True
+                        break
             
             if not found_iter:
                 return None, None
@@ -905,17 +926,25 @@ class Init:
             else:
                 name_base = name_left
                 name_left = ""
+
+            while ")" in name_base:
+                index_tmp = name_base.find(")")
+                if index_tmp == len(name_base)-1:
+                    name_base = name_base[:index_tmp]
+                else:
+                    name_base = name_base[index_tmp+1:]
             
             # find out if the name is in init_file
             if "items" in rec_item:
+                out_name_base = name_base
                 for entry in rec_item["items"]:
-                    out_name_base = name_base
                     name_core = name_base
                     if "[" in name_base:
                         name_core = name_base[:name_base.find("[")]
                     if name_core in entry["name"]:
                         rec_item = entry
                         found_iter = True
+                        break
             else: # "underitems" in rec_item
                 if not name_base.isnumeric():
                     for entry in rec_item["underitems"]:
@@ -925,11 +954,13 @@ class Init:
                         if name_core in entry["name"]:
                             rec_item = entry
                             found_iter = True
+                            break
                 else: # is numeric so we look at "id" and not "name" this time
                     for entry in rec_item["underitems"]:
-                        if name_base == entry["id"]:
+                        if int(name_base) == entry["id"]:
                             rec_item = entry
                             found_iter = True
+                            break
             
             if not found_iter:
                 return None, None
@@ -945,7 +976,7 @@ class Init:
 
     # @belongs: init
     def _generate_var_init(self, name, type, pointers, level=0, skip_init=False, known_type_names=None, cast_str=None, new_types=None,
-                           entity_name=None, init_obj=None, fuse=None, fid=None, count=None, data=None, is_underitem=False, have_underitems_arg=False,
+                           entity_name=None, init_obj=None, fuse=None, fid=None, count=None, data=None, is_underitem=False, underitems_names=None, hiden_members=None,
                            is_hiden=False):
         """Given variable name and type, generate correct variable initialization code.
         For example:
@@ -981,7 +1012,8 @@ class Init:
         :param data: a dict containing the resolved initialization data for the given variable
         :param is_underitem: a flag that when set true means that variable is a member of struct and appears in init_file,
                              defaults to False
-        :param have_underitems_arg: a flag that when set true means that struct has info about its members in init_file
+        :param underitems_names: names of members of struct - needed for manipulating initialization order
+        :param hiden_members: ids of unnamed payloads that the struct have and that we need to fuzz
         :param is_hiden: a flag that when set true means that it is unnamed payload in struct
 
         :return: (str, alloc, brk) where str is the verbatim C init code string, alloc is a boolean that says if
@@ -989,7 +1021,6 @@ class Init:
                 calls, but not read anywhere?), brk is a boolean that is True iff maximal recursion depth was reached
                 and is used to break out of the recursion loop
         """
-
         if entity_name is None:
             entity_name = name
         # in case of typedefs we need to get the first non-typedef type as a point of
@@ -1103,7 +1134,6 @@ class Init:
                 t_id = type["id"]
 
         if "pointer" == cl or "const_array" == cl or "incomplete_array" == cl:
-            str += "// Got into pointer if\n"
 
             # let's find out the last component of the name
             index_dot = name.rfind(".")
@@ -1280,20 +1310,14 @@ class Init:
                 min_value = None
                 max_value = None
                 protected = False
-                underitems_names = [] # Names of members - needed for manipulating initialization order
                 value_dep = "" # Does the value of member is set explicitly by other members' values?
-                hiden_members = [] # Does the struct have some kind of unnamed payload that we need to fuzz?
 
                 entity_name_core = entity_name
                 if entity_name is not None and "[" in entity_name:
                     entity_name_core = entity_name[:entity_name.find("[")]
 
-                test = entity_name_core in self.dbops.init_data
-                str += f"// CHECK: is entity_name_core in init_data? {test}\n"
-
                 if self.dbops.init_data is not None and (entity_name_core in self.dbops.init_data) \
                     and (level == 0 or self.dbops.init_data[entity_name_core]["interface"] == "global" or is_underitem):
-                    str += "// Got into user init data\n"
 
                     if self.args.debug_vars_init:
                         logging.info(
@@ -1329,18 +1353,37 @@ class Init:
                                     dep_names = []
                                     dep_user_name = ""
                                     dep_found = False
-                                    for i in item["items"]:
+                                    iterate = None
+                                    if not is_underitem:
+                                        iterate = item["items"]
+                                    else:
+                                        index_tmp = name.rfind("-")
+                                        name_tmp = name[:index_tmp]
+                                        entry_tmp, name_core_tmp = self.find_underitem(name_tmp, item)
+                                        iterate = entry_tmp["underitems"]
+                                    
+                                    for i in iterate:
                                         if i["id"] == dep_id:
                                             dep_names = i["name"]
                                             if "user_name" in i:
-                                                dep_user_name = i["user_name"]
+                                                if not is_underitem:
+                                                    dep_user_name = i["user_name"]
+                                                else:
+                                                    index_tmp = name.find("-")
+                                                    name_core_tmp = name[:index]
+                                                    dep_user_name = name_core_tmp + "->" + i["user_name"]
                                             else:
                                                 logging.error(
                                                     "user_name not in data spec and size_dep used")
                                                 sys.exit(1)
                                             dep_found = True
                                             break
-                                    if dep_found and fid:
+
+                                    if dep_found and is_underitem:
+                                        loop_count = dep_user_name
+                                        if dep_add != 0:
+                                            loop_count = f"{loop_count} + {dep_add}"
+                                    elif dep_found and fid:
                                         f = self.dbops.fnidmap[fid]
                                         if f is not None and len(dep_names) > 0:
                                             parms = []
@@ -1379,7 +1422,7 @@ class Init:
                                 max_value = entry["max_value"]
 
                             if "fuzz" in entry:
-                                if entry["fuzz"] is True:
+                                if entry["fuzz"] == "True":
                                     user_fuzz = 1
                                 else:
                                     user_fuzz = 0
@@ -1388,17 +1431,14 @@ class Init:
                                 protected = True
 
                             if "underitems" in entry:
-                                index_hiden = 0
-                                index_member = 0
-                                have_underitems_arg = True
-
+                                underitems_names = []
                                 for u in entry["underitems"]:
-                                    if u["name"] == []:
-                                        hiden_members[index_hiden] = u["id"]
-                                        index_hiden += 1
+                                    if len(u["name"]) == 0:
+                                        if hiden_members == None:
+                                            hiden_members = []
+                                        hiden_members.append(u["id"])
                                     else:
-                                        underitems_names[index_member] = u["name"][0] # if underitem then there is only one name 
-                                        index_member += 1
+                                        underitems_names.append(u["name"][0]) # if it's underitem then there is only one name
 
                             user_init = True
                             break  # no need to look further
@@ -1772,8 +1812,13 @@ class Init:
                             tagged_var_name = self._get_tagged_var_name()
                         if multiplier is None:
                             if extra_padding is None:
-                                str += "aot_memory_init_ptr((void**) &{}, sizeof({}), {} /* count */, {} /* fuzz */, {}); // have_underitems = {}\n".format(
-                                    name, typename, cnt, fuzz, tagged_var_name, have_underitems_arg)
+                                if value_dep == "":
+                                    str += f"aot_memory_init_ptr((void**) &{name}, sizeof({typename}), {cnt} /* count */, {fuzz} /* fuzz */, {tagged_var_name});\n"
+                                else:
+                                    # case: ptr points to the same thing as sth we already allocated!
+                                    str += f"\n// this ptr points to the space that we have already allocated\n"
+                                    str += f"aot_memory_init(&{name}, sizeof(unsigned long int), {fuzz} /* fuzz */, {tagged_var_name});\n"
+                                    str += f"{name} = {value_dep};\n"
                             else:
                                 # a rather rare case of extra padding being non-zero
                                 str += f"// smart init: allocating extra space for a 0-size const array member\n"
@@ -1916,9 +1961,7 @@ class Init:
                 protected = False
                 mul = 1
                 isPointer = False
-                underitems_names = [] # Names of members - needed for manipulating initialization order
                 value_dep = "" # Does the value of member is set explicitly by other members' values?
-                hiden_members = [] # Does the struct have some kind of unnamed payload that we need to fuzz?
                 fuzz_offset = None # It is unnamed payload, we need offset to know where to fuzz
 
                 entity_name_core = entity_name
@@ -1952,7 +1995,7 @@ class Init:
                             if self.args.debug_vars_init:
                                 logging.info(
                                     f"In {entity_name} we detected that item {name} of type {entry_type} has a user-specified init")
-                                
+                            
                             if "nullterminated" in entry:
                                 if entry["nullterminated"] == "True":
                                     null_terminate = True
@@ -1978,7 +2021,7 @@ class Init:
                             if "max_value" in entry:
                                 max_value = entry["max_value"]
 
-                            if "user_name" in entry:
+                            if "user_name" in entry and not is_underitem:
                                 if name == name_core:
                                     name = entry["user_name"]
                                 else:
@@ -1993,25 +2036,44 @@ class Init:
                                     dep_names = []
                                     dep_user_name = ""
                                     dep_found = False
-                                    for i in item["items"]:
+                                    iterate = None
+                                    if not is_underitem:
+                                        iterate = item["items"]
+                                    else:
+                                        index = name.rfind("-")
+                                        name_tmp = name[:index]
+                                        entry_tmp, name_core_tmp = self.find_underitem(name_tmp, item)
+                                        iterate = entry_tmp["underitems"]
+                                    
+                                    for i in iterate:
                                         if i["id"] == dep_id:
                                             dep_names = i["name"]
                                             if "user_name" in i:
-                                                dep_user_name = i["user_name"]
+                                                if not is_underitem:
+                                                    dep_user_name = i["user_name"]
+                                                else:
+                                                    index_tmp = name.find("-")
+                                                    name_core_tmp = name[:index]
+                                                    dep_user_name = name_core_tmp + "->" + i["user_name"]
                                             else:
                                                 logging.error(
                                                     "user_name not in data spec and size_dep used")
                                                 sys.exit(1)
                                             dep_found = True
                                             break
-                                    if dep_found and fid:
+                                        
+                                    if dep_found and is_underitem:
+                                        mul = dep_user_name
+                                        if dep_add != 0:
+                                            mul = f"{mul} + {dep_add}"
+                                    elif dep_found and fid:
                                         f = self.dbops.fnidmap[fid]
                                         if f is not None and len(dep_names) > 0:
                                             parms = []
                                             for l in f["locals"]:
                                                 if l["parm"]:
                                                     parms.append(l)
-                                            l.sort(key=lambda k: k['id'])
+                                            parms.sort(key=lambda k: k['id'])
                                             for p in parms:
                                                 if "name" in p:
                                                     param_name = p["name"]
@@ -2028,7 +2090,7 @@ class Init:
                                 protected = True
 
                             if "fuzz" in entry:
-                                if entry["fuzz"] is True:
+                                if entry["fuzz"] == "True":
                                     fuzz = 1
                                 else:
                                     fuzz = 0
@@ -2037,17 +2099,14 @@ class Init:
                                 fuzz_offset = entry["fuzz_offset"]
 
                             if "underitems" in entry:
-                                index_hiden = 0
-                                index_member = 0
-                                have_underitems_arg = True
-
+                                underitems_names = []
                                 for u in entry["underitems"]:
-                                    if u["name"] == []:
-                                        hiden_members[index_hiden] = u["id"]
-                                        index_hiden += 1
+                                    if len(u["name"]) == 0:
+                                        if hiden_members == None:
+                                            hiden_members = []
+                                        hiden_members.append(u["id"])
                                     else:
-                                        underitems_names[index_member] = u["name"][0] # if underitem then there is only one name 
-                                        index_member += 1
+                                        underitems_names.append(u["name"][0]) # if it's underitem then there is only one name
 
                             user_init = True
                             break  # no need to look further
@@ -2079,7 +2138,8 @@ class Init:
                     # special case: non-pointer value is to be treated as a pointer
                     str += f"{typename}* {name}_ptr;\n"
                     str += f"aot_memory_init_ptr((void**) &{name}_ptr, sizeof({typename}), {mul}, 1 /* fuzz */, {tagged_var_name});\n"
-                data['tid'] = type['id']
+                if not is_hiden:
+                    data['tid'] = type['id']
                 data['size'] = f"sizeof({typename})"
                 data['name_raw'] = name
                 if not isPointer:
@@ -2118,7 +2178,12 @@ class Init:
                     data['max_value'] = max_value
                 if tag:
                     if not isPointer:
-                        str += f"aot_tag_memory(&{name}, sizeof({typename}), 0);\n"
+                        if not is_hiden:
+                            str += f"aot_tag_memory(&{name}, sizeof({typename}), 0);\n"
+                        else:
+                            index = name.rfind("-")
+                            name_tmp = name[:index]
+                            str += f"aot_tag_memory({name_tmp} + {fuzz_offset}, {mul}, 0);\n"
                     else:
                         str += f"aot_tag_memory({name}_ptr, sizeof({typename}) * {mul}, 0);\n"
                         str += f"aot_tag_memory(&{name}_ptr, sizeof({name}_ptr), 0);\n"
@@ -2144,7 +2209,7 @@ class Init:
         # it seems we need to recursively initialize everything that is not a built-in type
         go_deeper = False
         for_loop = False
-        if cl not in ["builtin", "enum"]:
+        if cl not in ["builtin", "enum", "payload"]:
             # first, let's check if any of the refs in the type is non-builtin
             refs = []
             if self.args.used_types_only and cl == "record":
@@ -2160,7 +2225,7 @@ class Init:
                         go_deeper = True
                         break
 
-            if have_underitems_arg:
+            if underitems_names != None:
                 go_deeper = True
 
             if go_deeper == False:
@@ -2215,11 +2280,12 @@ class Init:
                                                                       known_type_names=known_type_names,
                                                                       cast_str=cast_str,
                                                                       new_types=new_types,
-                                                                      entity_name=(entity_name if have_underitems_arg else None),
+                                                                      entity_name=(entity_name if underitems_names != None else None),
                                                                       init_obj=init_obj,
                                                                       fuse=fuse,
                                                                       data=data,
-                                                                      have_underitems_arg=have_underitems_arg)
+                                                                      underitems_names=underitems_names,
+                                                                      hiden_members=hiden_members)
                     if for_loop:
                         data['loop_count'] = loop_count
                     
@@ -2302,10 +2368,7 @@ class Init:
                         #         if len(_member_info[i]):
                         #             logging.info(f"We have some data for {type['refnames'][i]} member")
 
-                        if have_underitems_arg:
-                            members_order, size_constraints = self._get_members_order(type, underitems_names)
-                        else:
-                            members_order, size_constraints = self._get_members_order(type)
+                        members_order, size_constraints = self._get_members_order(type, underitems_names)
 
                         member_to_name = {}
                         for i in members_order:
@@ -2403,10 +2466,15 @@ class Init:
                                         # note: members are already appened in the init order
                                         # so there is no need to store the ordering as it is with function params
 
+                                        entity_name_core = entity_name
+                                        if entity_name is not None and "[" in entity_name:
+                                            entity_name_core = entity_name[:entity_name.find("[")]
+
                                         is_it_underitem = False
-                                        if have_underitems_arg:
+                                        if underitems_names != None:
                                             item = self.dbops.init_data[entity_name_core]
-                                            is_it_underitem = (True if self.find_underitem(f"{tmp_name}{deref_str}{field_name}", item) != None else False)
+                                            entry_tmp, name_core_tmp = self.find_underitem(f"{tmp_name}{deref_str}{field_name}", item)
+                                            is_it_underitem = (True if entry_tmp != None else False)
 
                                         str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}{deref_str}{field_name}",
                                                                                      tmp_t,
@@ -2472,10 +2540,15 @@ class Init:
                                                     data['members'] = {}
                                                 data['members'][i] = {}
 
+                                                entity_name_core = entity_name
+                                                if entity_name is not None and "[" in entity_name:
+                                                    entity_name_core = entity_name[:entity_name.find("[")]
+
                                                 is_it_underitem = False
-                                                if have_underitems_arg:
+                                                if underitems_names != None:
                                                     item = self.dbops.init_data[entity_name_core]
-                                                    is_it_underitem = (True if self.find_underitem(f"{tmp_name}{deref_str}{field_name}", item) != None else False)
+                                                    entry_tmp, name_core_tmp = self.find_underitem(f"{tmp_name}{deref_str}{field_name}", item)
+                                                    is_it_underitem = (True if entry_tmp != None else False)
 
                                                 str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}{deref_str}{field_name}",
                                                                                             dst_t,
@@ -2513,29 +2586,34 @@ class Init:
                                             str += str_tmp
                                             if brk:
                                                 return str, False, brk
+                                            
+                        if hiden_members != None:
+                            i = len(data['members'])
+                            for id in hiden_members:
+                                data['members'][i] = {}
+                                str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}{deref_str}{id}",
+                                                                                None,
+                                                                                pointers[:],
+                                                                                level,
+                                                                                False,
+                                                                                known_type_names=known_type_names,
+                                                                                cast_str=typename,
+                                                                                new_types=new_types,
+                                                                                entity_name=entity_name,
+                                                                                init_obj=obj,
+                                                                                fuse=fuse,
+                                                                                count=count,
+                                                                                data=data['members'][i],
+                                                                                is_underitem=True,
+                                                                                is_hiden=True)
+                                i += 1
+                                str += str_tmp
+                                if brk:
+                                    return str, False, brk
 
                             # else:
                             #    str += f"// {name}{deref_str}{field_name} never used -> skipping init\n"
-                    elif hiden_members != []:
-                        i = len(data['members'])
-                        for id in hiden_members:
-                            str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}{deref_str}{id}",
-                                                                              None,
-                                                                              pointers[:],
-                                                                              level,
-                                                                              False,
-                                                                              known_type_names=known_type_names,
-                                                                              cast_str=typename,
-                                                                              new_types=new_types,
-                                                                              entity_name=entity_name,
-                                                                              init_obj=obj,
-                                                                              fuse=fuse,
-                                                                              count=count,
-                                                                              data=data['members'][i],
-                                                                              is_underitem=True,
-                                                                              is_hiden=True)
-                            i += 1
-                    else: # TODO: Tu się wywala: "Unexpected deep var class payload for __skb" i kilka innych :c
+                    else:
                         logging.error(
                             f"Unexpected deep var class {cl} for {name}")
                         # sys.exit(1)
