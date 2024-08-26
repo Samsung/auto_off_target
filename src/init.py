@@ -828,6 +828,12 @@ class Init:
     
     # -------------------------------------------------------------------------
 
+    # Function goes through init_data and its items and underitems. Its goal is to find user init data 
+    # for member, that is specified in pre_name variable.
+    # pre_name has a form:
+    # {struct} -> {member_of_struct} -> {member_of_member_of_struct} -> ... -> {member_we_want_to_find}
+    # It returns the init data for member and the name of the first struct from pre_name.
+    #   (Why? The members can have only one possible name, but the name of struct can be from the list of names.)
     # @belongs: init
     def find_underitem(self, pre_name, item):
         name_base = ""
@@ -895,8 +901,17 @@ class Init:
     
     # -------------------------------------------------------------------------
 
+    # Function goes through init_data and its items and underitems. Its goal is to find user init data 
+    # for member, that is specified in pre_name variable.
+    # pre_name has a form:
+    # {struct} -> {member_of_struct} -> {member_of_member_of_struct} -> ... -> {id_of_member_we_want_to_find}
+    #   (Why id?
+    #    We look for unnamed member, we can only identify it by id.)
+    # It returns the init data for member and the name of the first struct from pre_name.
+    #   (Why name of struct? 
+    #    The members can have only one possible name, but the name of struct can be from the list of names.)
     # @belongs: init
-    def find_hiden_underitem(self, pre_name, item):
+    def find_hidden_underitem(self, pre_name, item):
         name_base = ""
         out_name_base = ""
         name_left = pre_name
@@ -976,8 +991,8 @@ class Init:
 
     # @belongs: init
     def _generate_var_init(self, name, type, pointers, level=0, skip_init=False, known_type_names=None, cast_str=None, new_types=None,
-                           entity_name=None, init_obj=None, fuse=None, fid=None, count=None, data=None, is_underitem=False, underitems_names=None, hiden_members=None,
-                           is_hiden=False):
+                           entity_name=None, init_obj=None, fuse=None, fid=None, count=None, data=None, is_underitem=False, underitems_names=None, hidden_members=None,
+                           is_hidden=False):
         """Given variable name and type, generate correct variable initialization code.
         For example:
         name = var, type = struct A*
@@ -1013,8 +1028,8 @@ class Init:
         :param is_underitem: a flag that when set true means that variable is a member of struct and appears in init_file,
                              defaults to False
         :param underitems_names: names of members of struct - needed for manipulating initialization order
-        :param hiden_members: ids of unnamed payloads that the struct have and that we need to fuzz
-        :param is_hiden: a flag that when set true means that it is unnamed payload in struct
+        :param hidden_members: ids of unnamed payloads that the struct have and that we need to fuzz
+        :param is_hidden: a flag that when set true means that it is unnamed payload in struct
 
         :return: (str, alloc, brk) where str is the verbatim C init code string, alloc is a boolean that says if
                 any memory was allocated for the current entity (NOTE: remove, as it is only changed within recursive
@@ -1043,17 +1058,17 @@ class Init:
 
         base_type = type
     
-        if not is_hiden:
+        if not is_hidden:
             type = self.dbops._get_typedef_dst(type)
             cl = type["class"]
         else:
             cl = "payload"
 
-        if self.args.debug_vars_init and not is_hiden:
+        if self.args.debug_vars_init and not is_hidden:
             logging.info(
                 f"generating var init for {name} cl {cl} type {type['id']}")
             
-        if not is_hiden:
+        if not is_hidden:
             t_id = type["id"]
 
             if t_id in self.used_types_data:
@@ -1110,12 +1125,12 @@ class Init:
 
         dst_type = type
 
-        if not is_hiden:
+        if not is_hidden:
             typename = self.codegen._get_typename_from_type(type)
         else:
             typename = None
 
-        if not is_hiden and init_obj is not None and init_obj.t_id != dst_type["id"] and type["class"] == "record_forward":
+        if not is_hidden and init_obj is not None and init_obj.t_id != dst_type["id"] and type["class"] == "record_forward":
             # see if we might be dealing with record_forward of the same record
             _tmp_id = init_obj.t_id
             _dst_tid = dst_type['id']
@@ -1434,9 +1449,9 @@ class Init:
                                 underitems_names = []
                                 for u in entry["underitems"]:
                                     if len(u["name"]) == 0:
-                                        if hiden_members == None:
-                                            hiden_members = []
-                                        hiden_members.append(u["id"])
+                                        if hidden_members == None:
+                                            hidden_members = []
+                                        hidden_members.append(u["id"])
                                     else:
                                         underitems_names.append(u["name"][0]) # if it's underitem then there is only one name
 
@@ -1946,9 +1961,8 @@ class Init:
         else:
             if (level == 0 and skip_init == False) or cl in ["builtin", "enum", "payload"]:
                 fuzz = None
-                if not is_hiden:
+                if not is_hidden:
                     fuzz = int(self._to_fuzz_or_not_to_fuzz(type))
-
                     typename = self.codegen._get_typename_from_type(type)
                     if typename in ["struct", "enum", "union"]:  # annonymous type
                         typename = name
@@ -1986,10 +2000,10 @@ class Init:
 
                         # if we want to initialize member (underitem) than we need to swap entity entry with underitem entry
                         if is_underitem:
-                            if not is_hiden:
+                            if not is_hidden:
                                 entry, name_core = self.find_underitem(name, item)
                             else:
-                                entry, name_core = self.find_hiden_underitem(name, item)
+                                entry, name_core = self.find_hidden_underitem(name, item)
 
                         if is_underitem or name_core in entry["name"] or entry_type == self.codegen._get_typename_from_type(type):
                             if self.args.debug_vars_init:
@@ -2102,9 +2116,9 @@ class Init:
                                 underitems_names = []
                                 for u in entry["underitems"]:
                                     if len(u["name"]) == 0:
-                                        if hiden_members == None:
-                                            hiden_members = []
-                                        hiden_members.append(u["id"])
+                                        if hidden_members == None:
+                                            hidden_members = []
+                                        hidden_members.append(u["id"])
                                     else:
                                         underitems_names.append(u["name"][0]) # if it's underitem then there is only one name
 
@@ -2115,13 +2129,13 @@ class Init:
                 if tag:
                     tagged_var_name = self._get_tagged_var_name()
                 if not isPointer:
-                    if is_hiden or 'c' not in type["qualifiers"] and 'c' not in base_type['qualifiers']:
-                        if not is_hiden:
+                    if is_hidden or 'c' not in type["qualifiers"] and 'c' not in base_type['qualifiers']:
+                        if not is_hidden:
                             str += f"aot_memory_init(&{name}, sizeof({typename}), {fuzz} /* fuzz */, {tagged_var_name});\n"
                             if value_dep != "":
                                 str += f"{name} = {value_dep};\n"
                         else:
-                            # extract the name without the index of hiden member at the end
+                            # extract the name without the index of hidden member at the end
                             index_dot = name.rfind(".")
                             index_arrow = name.rfind("->")
                             index = -1
@@ -2138,7 +2152,7 @@ class Init:
                     # special case: non-pointer value is to be treated as a pointer
                     str += f"{typename}* {name}_ptr;\n"
                     str += f"aot_memory_init_ptr((void**) &{name}_ptr, sizeof({typename}), {mul}, 1 /* fuzz */, {tagged_var_name});\n"
-                if not is_hiden:
+                if not is_hidden:
                     data['tid'] = type['id']
                 data['size'] = f"sizeof({typename})"
                 data['name_raw'] = name
@@ -2178,7 +2192,7 @@ class Init:
                     data['max_value'] = max_value
                 if tag:
                     if not isPointer:
-                        if not is_hiden:
+                        if not is_hidden:
                             str += f"aot_tag_memory(&{name}, sizeof({typename}), 0);\n"
                         else:
                             index = name.rfind("-")
@@ -2285,7 +2299,7 @@ class Init:
                                                                       fuse=fuse,
                                                                       data=data,
                                                                       underitems_names=underitems_names,
-                                                                      hiden_members=hiden_members)
+                                                                      hidden_members=hidden_members)
                     if for_loop:
                         data['loop_count'] = loop_count
                     
@@ -2587,9 +2601,9 @@ class Init:
                                             if brk:
                                                 return str, False, brk
                                             
-                        if hiden_members != None:
+                        if hidden_members != None:
                             i = len(data['members'])
-                            for id in hiden_members:
+                            for id in hidden_members:
                                 data['members'][i] = {}
                                 str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}{deref_str}{id}",
                                                                                 None,
@@ -2605,7 +2619,7 @@ class Init:
                                                                                 count=count,
                                                                                 data=data['members'][i],
                                                                                 is_underitem=True,
-                                                                                is_hiden=True)
+                                                                                is_hidden=True)
                                 i += 1
                                 str += str_tmp
                                 if brk:
