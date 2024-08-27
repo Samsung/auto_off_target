@@ -127,7 +127,7 @@ ubsan: $(obj) $(lib)
 .PHONY: dfsan
 dfsan: CFLAGSDFSAN=-fno-sanitize=dataflow -MD -mllvm -dfsan-event-callbacks -g -DDFSAN -fPIE -w
 dfsan: CFLAGS=-fsanitize=dataflow -MD -mllvm -dfsan-event-callbacks -g -w -DDFSAN -I${KFLAT_LIB_PATH} -fsanitize-ignorelist=dfsan_ignore_list.txt
-dfsan: COMP=clang-15
+dfsan: COMP=clang-18
 dfsan: $(obj) $(lib)	
 	cp aot_dfsan.c.lib aot_dfsan.c
 	$(COMP) $(CFLAGSDFSAN) -c -o aot_dfsan.o aot_dfsan.c
