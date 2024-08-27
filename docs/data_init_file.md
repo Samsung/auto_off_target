@@ -3,6 +3,7 @@ AoT makes it possible for user to take control over data initialization process.
 This is done via a special JSON file in which the user can specify how parameters of a given function are going to be initialized.
 
 NOTE: currently the data init file supports only function arguments but it should be failry easy to add globals in a similar way. Only simple types are supported right now, so for example it is not possible to define a member of a struct to be of size "x" - it should also be possible to add that type of init (contributions welcome!).
+UPDATE IN NOTE: Now it is possible to define a member of a struct!
 
 
 The file has the following format:
@@ -23,15 +24,40 @@ The file has the following format:
         "size": <item size - for pointers that's the array size>
         "size_dep": {
           "id": <number>,
-          "add": 0
+          "add": <number>
         },
         "user_name": <name>,
         "value": <number>,
+        "value_dep": [
+          <string 1>,
+          <string 2>,
+          ...
+          <string n>
+        ],
         "min_value": <number>,
         "max_value": <number>,
         "nullterminated": ["True"|"False"],
         "tagged": ["True"|"False"],
-        "fuzz": ["True"|"False"]
+        "fuzz": ["True"|"False"],
+        "fuzz_offset": <number>,
+        "subitems": [
+          {
+            "id": <number>,
+            "name": <item name>,
+            ...
+          },
+          {
+            "id": <number>,
+            "name": <item name>,
+            ...
+          },
+          ...,
+          {
+            "id": <number>,
+            "name": <item name>,
+            ...
+          }
+        ]
       }
       ...
     ]
@@ -90,6 +116,49 @@ Let's analyze the format on a concrete example
 ]
 ```
 
+Moreover, you can see these initialization data file members
+```
+{
+  ...
+  "value_dep": [                            // value_dep: the value is dependent on the value of ((struct nlmsghdr *)name_of_function_argument->data)->nlmsg_len
+      "(((struct nlmsghdr *)",              //            after some calculations; it means that after allocating memory for this variable we then set its value
+      "->data)->nlmsg_len + 19) & ~(3)"     //            to the calculated result of expression made by concatenation of given strings and name of function argument
+  ],
+  ...
+}
+...
+{
+  ...
+  "subitems": [                             // subitems: our way of defining initialization data for selected members of structs; the format of subitems is
+      {                                     // the same as items' format
+          "id": 3,
+          "name": [
+              "nlmsg_len"
+          ],
+          "user_name": "nlmsg_len",
+          "value": 3712,
+          "min_value": 0,
+          "max_value": 3712,
+          "tagged": "True"
+      },
+      {
+          "id": 4,
+          "name": [],
+          "size": 3696,
+          "size_dep": {
+              "id": 3,
+              "add": 0
+          },
+          "nullterminated": "False",
+          "tagged": "True",
+          "fuzz": "True",
+          "fuzz_offset": 16     // fuzz_offset: offset from the beginning of struct in case when the member is unnamed (for example unnamed payload after header)
+      }
+  ],
+  ...
+}
+```
+
 Our file defines how AoT should behave when generating initialization for arguments of the ```foo_store``` function.
 The function has 2 parameters we care about, which are defined in the "items" list. We also note that the arguments init should be reordered: this is defined in the "order" table in which we state that the argument represented by id 1 should be initialized before the argument represented by id 0. This is useful when we have an array and array size - in those cases we wish to initialize or fuzz the array size first and then create the array of the specified size. 
 
@@ -99,7 +168,7 @@ The list is there in order to make the automation easier: let's assume we have a
 In a summary, we are looking for a function named ```foo_store``` and wish to have a special initialization (with special order) of two of its arguments: a buffer and the buffer size. Please find the detailed breakdown of the data file fields in the comments.
 You might have noticed that while we have the "fuzz" field defined for the buffer we miss that for the count. This is because in AoT simple builtin types such as ```int``` are fuzzed by default.
 
-Curious to see what type of init comes out of this JSON file?
+Curious to see what type of init comes out of the example JSON file mentioned above?
 ```c
     ...
     size_t count; // note that we call the parameter "count" (field user_name) and initialize it before "buf" (field order)

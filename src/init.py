@@ -303,15 +303,15 @@ class Init:
     # use member_type_info to get the right member init ordering for a record type
     # return a list consisting of member indices to generate init for
     # @belongs: init
-    def _get_members_order(self, t, underitems=None):
+    def _get_members_order(self, t, subitems=None):
         ret = []
         ret_user = []
         size_constraints = []
         if t['class'] != 'record':
             return None, None
         ret = [i for i in range(len(t['refnames']))]
-        if underitems != None:
-            ret_user = [0 for i in range(len(underitems))]
+        if subitems != None:
+            ret_user = [0 for i in range(len(subitems))]
         size_constraints = [{} for i in range(len(t['refnames']))]
 
         t_id = t['id']
@@ -327,9 +327,9 @@ class Init:
                     field_name == "__!recorddecl__" or field_name == "__!anonenum__":
                 continue
 
-            if underitems != None and field_name in underitems:
+            if subitems != None and field_name in subitems:
                 ret[i] = -1
-                ret_user[underitems.index(field_name)] = i
+                ret_user[subitems.index(field_name)] = i
                 i += 1
                 continue
 
@@ -828,14 +828,14 @@ class Init:
     
     # -------------------------------------------------------------------------
 
-    # Function goes through init_data and its items and underitems. Its goal is to find user init data 
+    # Function goes through init_data and its items and subitems. Its goal is to find user init data 
     # for member, that is specified in pre_name variable.
     # pre_name has a form:
     # {struct} -> {member_of_struct} -> {member_of_member_of_struct} -> ... -> {member_we_want_to_find}
     # It returns the init data for member and the name of the first struct from pre_name.
     #   (Why? The members can have only one possible name, but the name of struct can be from the list of names.)
     # @belongs: init
-    def find_underitem(self, pre_name, item):
+    def find_subitem(self, pre_name, item):
         name_base = ""
         out_name_base = ""
         name_left = pre_name
@@ -884,8 +884,8 @@ class Init:
                         rec_item = entry
                         found_iter = True
                         break
-            else: # "underitems" in rec_item
-                for entry in rec_item["underitems"]:
+            else: # "subitems" in rec_item
+                for entry in rec_item["subitems"]:
                     name_core = name_base
                     if "[" in name_base:
                         name_core = name_base[:name_base.find("[")]
@@ -901,7 +901,7 @@ class Init:
     
     # -------------------------------------------------------------------------
 
-    # Function goes through init_data and its items and underitems. Its goal is to find user init data 
+    # Function goes through init_data and its items and subitems. Its goal is to find user init data 
     # for member, that is specified in pre_name variable.
     # pre_name has a form:
     # {struct} -> {member_of_struct} -> {member_of_member_of_struct} -> ... -> {id_of_member_we_want_to_find}
@@ -911,7 +911,7 @@ class Init:
     #   (Why name of struct? 
     #    The members can have only one possible name, but the name of struct can be from the list of names.)
     # @belongs: init
-    def find_hidden_underitem(self, pre_name, item):
+    def find_hidden_subitem(self, pre_name, item):
         name_base = ""
         out_name_base = ""
         name_left = pre_name
@@ -960,9 +960,9 @@ class Init:
                         rec_item = entry
                         found_iter = True
                         break
-            else: # "underitems" in rec_item
+            else: # "subitems" in rec_item
                 if not name_base.isnumeric():
-                    for entry in rec_item["underitems"]:
+                    for entry in rec_item["subitems"]:
                         name_core = name_base
                         if "[" in name_base:
                             name_core = name_base[:name_base.find("[")]
@@ -971,7 +971,7 @@ class Init:
                             found_iter = True
                             break
                 else: # is numeric so we look at "id" and not "name" this time
-                    for entry in rec_item["underitems"]:
+                    for entry in rec_item["subitems"]:
                         if int(name_base) == entry["id"]:
                             rec_item = entry
                             found_iter = True
@@ -991,7 +991,7 @@ class Init:
 
     # @belongs: init
     def _generate_var_init(self, name, type, pointers, level=0, skip_init=False, known_type_names=None, cast_str=None, new_types=None,
-                           entity_name=None, init_obj=None, fuse=None, fid=None, count=None, data=None, is_underitem=False, underitems_names=None, hidden_members=None,
+                           entity_name=None, init_obj=None, fuse=None, fid=None, count=None, data=None, is_subitem=False, subitems_names=None, hidden_members=None,
                            is_hidden=False):
         """Given variable name and type, generate correct variable initialization code.
         For example:
@@ -1025,9 +1025,9 @@ class Init:
         :param fid: the id of the root function of smart init; defaults to None
         :param count: TODO: unknown, defaults to None
         :param data: a dict containing the resolved initialization data for the given variable
-        :param is_underitem: a flag that when set true means that variable is a member of struct and appears in init_file,
+        :param is_subitem: a flag that when set true means that variable is a member of struct and appears in init_file,
                              defaults to False
-        :param underitems_names: names of members of struct - needed for manipulating initialization order
+        :param subitems_names: names of members of struct - needed for manipulating initialization order
         :param hidden_members: ids of unnamed payloads that the struct have and that we need to fuzz
         :param is_hidden: a flag that when set true means that it is unnamed payload in struct
 
@@ -1332,7 +1332,7 @@ class Init:
                     entity_name_core = entity_name[:entity_name.find("[")]
 
                 if self.dbops.init_data is not None and (entity_name_core in self.dbops.init_data) \
-                    and (level == 0 or self.dbops.init_data[entity_name_core]["interface"] == "global" or is_underitem):
+                    and (level == 0 or self.dbops.init_data[entity_name_core]["interface"] == "global" or is_subitem):
 
                     if self.args.debug_vars_init:
                         logging.info(
@@ -1350,11 +1350,11 @@ class Init:
                         if "[" in name:
                             name_core = name[:name.find("[")]
 
-                        # if we want to initialize member (underitem) than we need to swap entity entry with underitem entry
-                        if is_underitem:
-                            entry, name_core = self.find_underitem(name, item)
+                        # if we want to initialize member (subitem) than we need to swap entity entry with subitem entry
+                        if is_subitem:
+                            entry, name_core = self.find_subitem(name, item)
 
-                        if is_underitem or name_core in entry["name"] or entry_type == self.codegen._get_typename_from_type(type):
+                        if is_subitem or name_core in entry["name"] or entry_type == self.codegen._get_typename_from_type(type):
                             if self.args.debug_vars_init:
                                 logging.info(
                                     f"In {entity_name} we detected that item {name} of type {entry_type} has a user-specified init")
@@ -1369,19 +1369,19 @@ class Init:
                                     dep_user_name = ""
                                     dep_found = False
                                     iterate = None
-                                    if not is_underitem:
+                                    if not is_subitem:
                                         iterate = item["items"]
                                     else:
                                         index_tmp = name.rfind("-")
                                         name_tmp = name[:index_tmp]
-                                        entry_tmp, name_core_tmp = self.find_underitem(name_tmp, item)
-                                        iterate = entry_tmp["underitems"]
+                                        entry_tmp, name_core_tmp = self.find_subitem(name_tmp, item)
+                                        iterate = entry_tmp["subitems"]
                                     
                                     for i in iterate:
                                         if i["id"] == dep_id:
                                             dep_names = i["name"]
                                             if "user_name" in i:
-                                                if not is_underitem:
+                                                if not is_subitem:
                                                     dep_user_name = i["user_name"]
                                                 else:
                                                     index_tmp = name.find("-")
@@ -1394,7 +1394,7 @@ class Init:
                                             dep_found = True
                                             break
 
-                                    if dep_found and is_underitem:
+                                    if dep_found and is_subitem:
                                         loop_count = dep_user_name
                                         if dep_add != 0:
                                             loop_count = f"{loop_count} + {dep_add}"
@@ -1445,15 +1445,15 @@ class Init:
                             if "protected" in entry and entry["protected"] == "True":
                                 protected = True
 
-                            if "underitems" in entry:
-                                underitems_names = []
-                                for u in entry["underitems"]:
+                            if "subitems" in entry:
+                                subitems_names = []
+                                for u in entry["subitems"]:
                                     if len(u["name"]) == 0:
                                         if hidden_members == None:
                                             hidden_members = []
                                         hidden_members.append(u["id"])
                                     else:
-                                        underitems_names.append(u["name"][0]) # if it's underitem then there is only one name
+                                        subitems_names.append(u["name"][0]) # if it's subitem then there is only one name
 
                             user_init = True
                             break  # no need to look further
@@ -1983,7 +1983,7 @@ class Init:
                     entity_name_core = entity_name[:entity_name.find("[")]
 
                 if self.dbops.init_data is not None and entity_name_core in self.dbops.init_data \
-                    and (level == 0 or self.dbops.init_data[entity_name_core]["interface"] == "global" or is_underitem):
+                    and (level == 0 or self.dbops.init_data[entity_name_core]["interface"] == "global" or is_subitem):
                     if self.args.debug_vars_init:
                         logging.info(
                             f"Detected that {entity_name} has user-provided init")
@@ -1998,14 +1998,14 @@ class Init:
                         if "[" in name:
                             name_core = name[:name.find("[")]
 
-                        # if we want to initialize member (underitem) than we need to swap entity entry with underitem entry
-                        if is_underitem:
+                        # if we want to initialize member (subitem) than we need to swap entity entry with subitem entry
+                        if is_subitem:
                             if not is_hidden:
-                                entry, name_core = self.find_underitem(name, item)
+                                entry, name_core = self.find_subitem(name, item)
                             else:
-                                entry, name_core = self.find_hidden_underitem(name, item)
+                                entry, name_core = self.find_hidden_subitem(name, item)
 
-                        if is_underitem or name_core in entry["name"] or entry_type == self.codegen._get_typename_from_type(type):
+                        if is_subitem or name_core in entry["name"] or entry_type == self.codegen._get_typename_from_type(type):
                             if self.args.debug_vars_init:
                                 logging.info(
                                     f"In {entity_name} we detected that item {name} of type {entry_type} has a user-specified init")
@@ -2035,7 +2035,7 @@ class Init:
                             if "max_value" in entry:
                                 max_value = entry["max_value"]
 
-                            if "user_name" in entry and not is_underitem:
+                            if "user_name" in entry and not is_subitem:
                                 if name == name_core:
                                     name = entry["user_name"]
                                 else:
@@ -2051,19 +2051,19 @@ class Init:
                                     dep_user_name = ""
                                     dep_found = False
                                     iterate = None
-                                    if not is_underitem:
+                                    if not is_subitem:
                                         iterate = item["items"]
                                     else:
                                         index = name.rfind("-")
                                         name_tmp = name[:index]
-                                        entry_tmp, name_core_tmp = self.find_underitem(name_tmp, item)
-                                        iterate = entry_tmp["underitems"]
+                                        entry_tmp, name_core_tmp = self.find_subitem(name_tmp, item)
+                                        iterate = entry_tmp["subitems"]
                                     
                                     for i in iterate:
                                         if i["id"] == dep_id:
                                             dep_names = i["name"]
                                             if "user_name" in i:
-                                                if not is_underitem:
+                                                if not is_subitem:
                                                     dep_user_name = i["user_name"]
                                                 else:
                                                     index_tmp = name.find("-")
@@ -2076,7 +2076,7 @@ class Init:
                                             dep_found = True
                                             break
                                         
-                                    if dep_found and is_underitem:
+                                    if dep_found and is_subitem:
                                         mul = dep_user_name
                                         if dep_add != 0:
                                             mul = f"{mul} + {dep_add}"
@@ -2112,15 +2112,15 @@ class Init:
                             if "fuzz_offset" in entry:
                                 fuzz_offset = entry["fuzz_offset"]
 
-                            if "underitems" in entry:
-                                underitems_names = []
-                                for u in entry["underitems"]:
+                            if "subitems" in entry:
+                                subitems_names = []
+                                for u in entry["subitems"]:
                                     if len(u["name"]) == 0:
                                         if hidden_members == None:
                                             hidden_members = []
                                         hidden_members.append(u["id"])
                                     else:
-                                        underitems_names.append(u["name"][0]) # if it's underitem then there is only one name
+                                        subitems_names.append(u["name"][0]) # if it's subitem then there is only one name
 
                             user_init = True
                             break  # no need to look further
@@ -2239,7 +2239,7 @@ class Init:
                         go_deeper = True
                         break
 
-            if underitems_names != None:
+            if subitems_names != None:
                 go_deeper = True
 
             if go_deeper == False:
@@ -2294,11 +2294,11 @@ class Init:
                                                                       known_type_names=known_type_names,
                                                                       cast_str=cast_str,
                                                                       new_types=new_types,
-                                                                      entity_name=(entity_name if underitems_names != None else None),
+                                                                      entity_name=(entity_name if subitems_names != None else None),
                                                                       init_obj=init_obj,
                                                                       fuse=fuse,
                                                                       data=data,
-                                                                      underitems_names=underitems_names,
+                                                                      subitems_names=subitems_names,
                                                                       hidden_members=hidden_members)
                     if for_loop:
                         data['loop_count'] = loop_count
@@ -2382,7 +2382,7 @@ class Init:
                         #         if len(_member_info[i]):
                         #             logging.info(f"We have some data for {type['refnames'][i]} member")
 
-                        members_order, size_constraints = self._get_members_order(type, underitems_names)
+                        members_order, size_constraints = self._get_members_order(type, subitems_names)
 
                         member_to_name = {}
                         for i in members_order:
@@ -2484,11 +2484,11 @@ class Init:
                                         if entity_name is not None and "[" in entity_name:
                                             entity_name_core = entity_name[:entity_name.find("[")]
 
-                                        is_it_underitem = False
-                                        if underitems_names != None:
+                                        is_it_subitem = False
+                                        if subitems_names != None:
                                             item = self.dbops.init_data[entity_name_core]
-                                            entry_tmp, name_core_tmp = self.find_underitem(f"{tmp_name}{deref_str}{field_name}", item)
-                                            is_it_underitem = (True if entry_tmp != None else False)
+                                            entry_tmp, name_core_tmp = self.find_subitem(f"{tmp_name}{deref_str}{field_name}", item)
+                                            is_it_subitem = (True if entry_tmp != None else False)
 
                                         str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}{deref_str}{field_name}",
                                                                                      tmp_t,
@@ -2498,12 +2498,12 @@ class Init:
                                                                                      known_type_names=known_type_names,
                                                                                      cast_str=cast_str,
                                                                                      new_types=new_types,
-                                                                                     entity_name=(entity_name if is_it_underitem else None),
+                                                                                     entity_name=(entity_name if is_it_subitem else None),
                                                                                      init_obj=obj,
                                                                                      fuse=fuse,
                                                                                      count=count,
                                                                                      data=data['members'][i],
-                                                                                     is_underitem=is_it_underitem)
+                                                                                     is_subitem=is_it_subitem)
                                         #data['members'] = [ m for m in data['members'] ]
                                         if len(data['members'][i]) == 0:
                                             del data['members'][i]
@@ -2558,11 +2558,11 @@ class Init:
                                                 if entity_name is not None and "[" in entity_name:
                                                     entity_name_core = entity_name[:entity_name.find("[")]
 
-                                                is_it_underitem = False
-                                                if underitems_names != None:
+                                                is_it_subitem = False
+                                                if subitems_names != None:
                                                     item = self.dbops.init_data[entity_name_core]
-                                                    entry_tmp, name_core_tmp = self.find_underitem(f"{tmp_name}{deref_str}{field_name}", item)
-                                                    is_it_underitem = (True if entry_tmp != None else False)
+                                                    entry_tmp, name_core_tmp = self.find_subitem(f"{tmp_name}{deref_str}{field_name}", item)
+                                                    is_it_subitem = (True if entry_tmp != None else False)
 
                                                 str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}{deref_str}{field_name}",
                                                                                             dst_t,
@@ -2572,12 +2572,12 @@ class Init:
                                                                                             known_type_names=known_type_names,
                                                                                             cast_str=typename,
                                                                                             new_types=new_types,
-                                                                                            entity_name=(entity_name if is_it_underitem else None),
+                                                                                            entity_name=(entity_name if is_it_subitem else None),
                                                                                             init_obj=obj,
                                                                                             fuse=fuse,
                                                                                             count=count,
                                                                                             data=data['members'][i],
-                                                                                            is_underitem=is_it_underitem)
+                                                                                            is_subitem=is_it_subitem)
                                                 if len(data['members'][i]) == 0:
                                                     del data['members'][i]
                                                 if not single_init:
@@ -2618,7 +2618,7 @@ class Init:
                                                                                 fuse=fuse,
                                                                                 count=count,
                                                                                 data=data['members'][i],
-                                                                                is_underitem=True,
+                                                                                is_subitem=True,
                                                                                 is_hidden=True)
                                 i += 1
                                 str += str_tmp
