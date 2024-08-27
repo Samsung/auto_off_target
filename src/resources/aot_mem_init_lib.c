@@ -5,6 +5,7 @@
 */ 
 
 #include <string.h>
+#include <stdlib.h>
 #include "aot_mem_init_lib.h"
 #include "aot_fuzz_lib.h"
 
@@ -102,8 +103,9 @@ int aot_memory_init(void* ptr, unsigned long long size, int fuzz, const char* na
 
 int aot_memory_init_ptr(void** ptr, unsigned long size, unsigned long count, int fuzz, const char* name) {
 	unsigned total_size = size * count;
-	*ptr = malloc(total_size);
-	if (0 == *ptr)
+	// make UBSAN happy by requesting the allocated pointers to be 64bytes aligned
+	int ret = posix_memalign(ptr, 64, total_size);
+	if (ret)
 		return -1;
 	memset(*ptr, 0, total_size);
 
