@@ -1425,7 +1425,10 @@ class Init:
                             if "value_dep" in entry:
                                 rely_vals = entry["value_dep"][:]
                                 for i in rely_vals:
-                                    value_dep += name_core + i
+                                    if i[0] in ["-", "."]:
+                                        value_dep += name_core + i
+                                    else:
+                                        value_dep += i
 
                             if "min_value" in entry:
                                 min_value = entry["min_value"]
