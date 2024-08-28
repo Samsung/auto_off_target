@@ -828,6 +828,42 @@ class Init:
     
     # -------------------------------------------------------------------------
 
+    # Function extracts part of the given name. If backwards is False then it extracts first 
+    # subname, otherwise it extracts last subname.
+    # {first subname}->{second subname}->...->{last subname}
+    #
+    # Function returns:
+    #   index - index in given name at which we split name
+    #   name_base - part of given name to the left of index
+    #   name_left - part of given name to the right of index
+    #   is_arrow - flag that says if we split at "." or "->"
+    # @belongs: init
+    def get_names_after_extraction(self, name, backwards=False):
+        # breakpoint()
+        index_dot = (name.rfind(".") if backwards else name.find("."))
+        index_arrow = (name.rfind("->") if backwards else name.find("->"))
+        index = -1
+        if index_dot > index_arrow:
+            index = index_dot
+        else:
+            index = index_arrow
+
+        name_base = ""
+        name_left = ""
+        is_arrow = False
+        if index != -1:
+            name_base = name[:index]
+            if index == index_dot:
+                index += 1
+            else:
+                index += 2
+                is_arrow = True
+            name_left = name[index:]
+
+        return index, name_base, name_left, is_arrow
+     
+    # -------------------------------------------------------------------------
+
     # Function goes through init_data and its items and subitems. Its goal is to find user init data 
     # for member, that is specified in pre_name variable.
     # pre_name has a form:
@@ -845,23 +881,10 @@ class Init:
             found_iter = False
 
             # extract name of struct from current level of search
-                # find index at which the name ends
-            index_dot = name_left.find(".")
-            index_arrow = name_left.find("->")
-            index = -1
-            if index_dot > index_arrow:
-                index = index_dot
-            else:
-                index = index_arrow
-
-                # extract name
+            index, name_base_tmp, name_left_tmp, is_arrow = self.get_names_after_extraction(name_left)
             if index != -1:
-                name_base = name_left[:index]
-                if index == index_dot:
-                    index += 1
-                else:
-                    index += 2
-                name_left = name_left[index:]
+                name_base = name_base_tmp
+                name_left = name_left_tmp
             else:
                 name_base = name_left
                 name_left = ""
@@ -922,22 +945,10 @@ class Init:
 
             # extract name of struct from current level of search
                 # find index at which the name ends
-            index_dot = name_left.find(".")
-            index_arrow = name_left.find("->")
-            index = -1
-            if index_dot > index_arrow:
-                index = index_dot
-            else:
-                index = index_arrow
-
-                # extract name
+            index, name_base_tmp, name_left_tmp, is_arrow = self.get_names_after_extraction(name_left)
             if index != -1:
-                name_base = name_left[:index]
-                if index == index_dot:
-                    index += 1
-                else:
-                    index += 2
-                name_left = name_left[index:]
+                name_base = name_base_tmp
+                name_left = name_left_tmp
             else:
                 name_base = name_left
                 name_left = ""
@@ -1151,25 +1162,11 @@ class Init:
         if "pointer" == cl or "const_array" == cl or "incomplete_array" == cl:
 
             # let's find out the last component of the name
-            index_dot = name.rfind(".")
-            index_arrow = name.rfind("->")
-            index = -1
-            if index_dot > index_arrow:
-                index = index_dot
-            else:
-                index = index_arrow
-
-            pointer = False
-            member_name = name
-            name_base = ""
-            if index != -1:
-                name_base = name[:index]
-                if index == index_dot:
-                    index += 1
-                else:
-                    index += 2
-                    pointer = True
-                member_name = name[index:]
+            index, name_base, member_name, is_arrow = self.get_names_after_extraction(name, backwards=True)
+            pointer = is_arrow
+            if index == -1:
+                member_name = name
+                name_base = ""
 
             if "const_array" == cl:
                 dst_type = type["refs"][0]
@@ -2136,15 +2133,7 @@ class Init:
                                 str += f"{name} = {value_dep};\n"
                         else:
                             # extract the name without the index of hidden member at the end
-                            index_dot = name.rfind(".")
-                            index_arrow = name.rfind("->")
-                            index = -1
-                            if index_dot > index_arrow:
-                                index = index_dot
-                            else:
-                                index = index_arrow
-                            name_base = name[:index]
-
+                            index, name_base, name_left, is_arrow = self.get_names_after_extraction(name, backwards=True)
                             str += f"aot_memory_init({name_base} + {fuzz_offset}, {mul}, {fuzz} /* fuzz */, {tagged_var_name});\n"
                     else:
                         str += f"// skipping init for {name}, since it's const\n"
