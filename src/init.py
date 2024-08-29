@@ -994,12 +994,178 @@ class Init:
         return rec_item, out_name_base
 
     # -------------------------------------------------------------------------
+    
+    # Function reads user initialization data (if it exists) for parameter that we want to initialize. It takes a few variables
+    # and returns them updated after reading data.
+    # @belongs: init
+    def read_user_init_data(self, loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, fuzz_offset, user_init, fuzz,
+                            is_hidden, version, entity_name, is_subitem, level, fid, type, name, typename, subitems_names, hidden_members):
+        
+        if not is_hidden and version:
+            fuzz = int(self._to_fuzz_or_not_to_fuzz(type))
+            typename = self.codegen._get_typename_from_type(type)
+            if typename in ["struct", "enum", "union"]:  # annonymous type
+                typename = name
 
+        entity_name_core = entity_name
+        if entity_name is not None and "[" in entity_name:
+            entity_name_core = entity_name[:entity_name.find("[")]
+
+        if self.dbops.init_data is not None and (entity_name_core in self.dbops.init_data) \
+            and (level == 0 or self.dbops.init_data[entity_name_core]["interface"] == "global" or is_subitem):
+
+            if self.args.debug_vars_init:
+                logging.info(
+                    f"Detected that {entity_name} has user-provided init")
+                
+            item = self.dbops.init_data[entity_name_core]
+            for entry in item["items"]:
+                entry_type = "unknown"
+                if "type" in entry:
+                    entry_type = entry["type"]
+                    if " *" not in entry_type:
+                        entry_type = entry_type.replace("*", " *")
+
+                name_core = name
+                if "[" in name:
+                    name_core = name[:name.find("[")]
+
+                # if we want to initialize member (subitem) then we need to swap entity entry with subitem entry
+                if is_subitem:
+                    if not is_hidden:
+                        entry, name_core = self.find_subitem(name, item)
+                    else:
+                        entry, name_core = self.find_hidden_subitem(name, item)
+
+                if is_subitem or name_core in entry["name"] or entry_type == self.codegen._get_typename_from_type(type):
+                    if self.args.debug_vars_init:
+                        logging.info(
+                            f"In {entity_name} we detected that item {name} of type {entry_type} has a user-specified init")
+
+                    if "nullterminated" in entry:
+                        if entry["nullterminated"] == "True":
+                            null_terminate = True
+
+                    if "tagged" in entry:
+                        if entry["tagged"] == "True":
+                            tag = True
+
+                    if "value" in entry:
+                        value = entry["value"]
+
+                    if "value_dep" in entry:
+                        rely_vals = entry["value_dep"][:]
+                        for i in rely_vals:
+                            if i[0] in ["-", "."]:
+                                value_dep += name_core + i
+                            else:
+                                value_dep += i
+
+                    if "min_value" in entry:
+                        min_value = entry["min_value"]
+
+                    if "max_value" in entry:
+                        max_value = entry["max_value"]
+
+                    if "user_name" in entry and not is_subitem:
+                        if name == name_core:
+                            name = entry["user_name"]
+                        else:
+                            name = entry["user_name"] + name[name.find('['):]
+
+                    if "size" in entry:
+                        loop_count = entry["size"]
+                        if "size_dep" in entry:
+                            # check if the dependent param is present (for functions only)
+                            dep_id = entry["size_dep"]["id"]
+                            dep_add = entry["size_dep"]["add"]
+                            dep_names = []
+                            dep_user_name = ""
+                            dep_found = False
+                            iterate = None
+                            if not is_subitem:
+                                iterate = item["items"]
+                            else:
+                                index_tmp = name.rfind("-")
+                                name_tmp = name[:index_tmp]
+                                entry_tmp, name_core_tmp = self.find_subitem(name_tmp, item)
+                                iterate = entry_tmp["subitems"]
+                            
+                            for i in iterate:
+                                if i["id"] == dep_id:
+                                    dep_names = i["name"]
+                                    if "user_name" in i:
+                                        if not is_subitem:
+                                            dep_user_name = i["user_name"]
+                                        else:
+                                            index_tmp = name.rfind("-")
+                                            name_core_tmp = name[:index_tmp]
+                                            dep_user_name = name_core_tmp + "->" + i["user_name"]
+                                    else:
+                                        logging.error(
+                                            "user_name not in data spec and size_dep used")
+                                        sys.exit(1)
+                                    dep_found = True
+                                    break
+
+                            if dep_found and is_subitem:
+                                loop_count = dep_user_name
+                                if dep_add != 0:
+                                    loop_count = f"{loop_count} + {dep_add}"
+                            elif dep_found and fid:
+                                f = self.dbops.fnidmap[fid]
+                                if f is not None and len(dep_names) > 0:
+                                    parms = []
+                                    for l in f["locals"]:
+                                        if l["parm"]:
+                                            parms.append(l)
+                                    parms.sort(key=lambda k: k['id'])
+                                    for p in parms:
+                                        if "name" in p:
+                                            param_name = p["name"]
+                                            if param_name in dep_names:
+                                                loop_count = dep_user_name
+                                                if dep_add != 0:
+                                                    loop_count = f"{loop_count} + {dep_add}"
+
+                    if "pointer" in entry:
+                        if entry["pointer"] == "True":
+                            isPointer = True
+
+                    if "protected" in entry and entry["protected"] == "True":
+                        protected = True
+
+                    if "fuzz" in entry:
+                        if entry["fuzz"] == "True":
+                            fuzz = 1
+                        else:
+                            fuzz = 0
+
+                    if "fuzz_offset" in entry:
+                        fuzz_offset = entry["fuzz_offset"]
+
+                    if "subitems" in entry:
+                        subitems_names = []
+                        for u in entry["subitems"]:
+                            if len(u["name"]) == 0:
+                                if hidden_members == None:
+                                    hidden_members = []
+                                hidden_members.append(u["id"])
+                            else:
+                                subitems_names.append(u["name"][0]) # if it's subitem then there is only one name
+
+                    user_init = True
+                    break  # no need to look further
+
+        return loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, fuzz_offset, user_init, fuzz, is_hidden, \
+            is_subitem, name, typename, subitems_names, hidden_members
+
+    # -------------------------------------------------------------------------
+    
     # Given variable name and type, generate correct variable initialization code.
     # For example:
     # name = var, type = struct A*
     # code: struct A* var = (struct A*)malloc(sizeof(struct A*));
-
     # @belongs: init
     def _generate_var_init(self, name, type, pointers, level=0, skip_init=False, known_type_names=None, cast_str=None, new_types=None,
                            entity_name=None, init_obj=None, fuse=None, fid=None, count=None, data=None, is_subitem=False, subitems_names=None, hidden_members=None,
@@ -1314,149 +1480,24 @@ class Init:
                 else:
                     loop_count = count
 
+                version = False
                 null_terminate = False
-                user_init = False
-                user_fuzz = None
                 tag = False
                 value = None
                 min_value = None
                 max_value = None
                 protected = False
                 value_dep = "" # Does the value of member is set explicitly by other members' values?
-
-                entity_name_core = entity_name
-                if entity_name is not None and "[" in entity_name:
-                    entity_name_core = entity_name[:entity_name.find("[")]
-
-                if self.dbops.init_data is not None and (entity_name_core in self.dbops.init_data) \
-                    and (level == 0 or self.dbops.init_data[entity_name_core]["interface"] == "global" or is_subitem):
-
-                    if self.args.debug_vars_init:
-                        logging.info(
-                            f"Detected that {entity_name} has user-provided init")
-                        
-                    item = self.dbops.init_data[entity_name_core]
-                    for entry in item["items"]:
-                        entry_type = "unknown"
-                        if "type" in entry:
-                            entry_type = entry["type"]
-                            if " *" not in entry_type:
-                                entry_type = entry_type.replace("*", " *")
-
-                        name_core = name
-                        if "[" in name:
-                            name_core = name[:name.find("[")]
-
-                        # if we want to initialize member (subitem) than we need to swap entity entry with subitem entry
-                        if is_subitem:
-                            entry, name_core = self.find_subitem(name, item)
-
-                        if is_subitem or name_core in entry["name"] or entry_type == self.codegen._get_typename_from_type(type):
-                            if self.args.debug_vars_init:
-                                logging.info(
-                                    f"In {entity_name} we detected that item {name} of type {entry_type} has a user-specified init")
-
-                            if "size" in entry:
-                                loop_count = entry["size"]
-                                if "size_dep" in entry:
-                                    # check if the dependent param is present (for functions only)
-                                    dep_id = entry["size_dep"]["id"]
-                                    dep_add = entry["size_dep"]["add"]
-                                    dep_names = []
-                                    dep_user_name = ""
-                                    dep_found = False
-                                    iterate = None
-                                    if not is_subitem:
-                                        iterate = item["items"]
-                                    else:
-                                        index_tmp = name.rfind("-")
-                                        name_tmp = name[:index_tmp]
-                                        entry_tmp, name_core_tmp = self.find_subitem(name_tmp, item)
-                                        iterate = entry_tmp["subitems"]
-                                    
-                                    for i in iterate:
-                                        if i["id"] == dep_id:
-                                            dep_names = i["name"]
-                                            if "user_name" in i:
-                                                if not is_subitem:
-                                                    dep_user_name = i["user_name"]
-                                                else:
-                                                    index_tmp = name.find("-")
-                                                    name_core_tmp = name[:index]
-                                                    dep_user_name = name_core_tmp + "->" + i["user_name"]
-                                            else:
-                                                logging.error(
-                                                    "user_name not in data spec and size_dep used")
-                                                sys.exit(1)
-                                            dep_found = True
-                                            break
-
-                                    if dep_found and is_subitem:
-                                        loop_count = dep_user_name
-                                        if dep_add != 0:
-                                            loop_count = f"{loop_count} + {dep_add}"
-                                    elif dep_found and fid:
-                                        f = self.dbops.fnidmap[fid]
-                                        if f is not None and len(dep_names) > 0:
-                                            parms = []
-                                            for l in f["locals"]:
-                                                if l["parm"]:
-                                                    parms.append(l)
-                                            parms.sort(key=lambda k: k['id'])
-                                            for p in parms:
-                                                if "name" in p:
-                                                    param_name = p["name"]
-                                                    if param_name in dep_names:
-                                                        loop_count = dep_user_name
-                                                        if dep_add != 0:
-                                                            loop_count = f"{loop_count} + {dep_add}"
-
-                            if "nullterminated" in entry:
-                                if entry["nullterminated"] == "True":
-                                    null_terminate = True
-
-                            if "tagged" in entry:
-                                if entry["tagged"] == "True":
-                                    tag = True
-
-                            if "value" in entry:
-                                value = entry["value"]
-
-                            if "value_dep" in entry:
-                                rely_vals = entry["value_dep"][:]
-                                for i in rely_vals:
-                                    if i[0] in ["-", "."]:
-                                        value_dep += name_core + i
-                                    else:
-                                        value_dep += i
-
-                            if "min_value" in entry:
-                                min_value = entry["min_value"]
-
-                            if "max_value" in entry:
-                                max_value = entry["max_value"]
-
-                            if "fuzz" in entry:
-                                if entry["fuzz"] == "True":
-                                    user_fuzz = 1
-                                else:
-                                    user_fuzz = 0
-
-                            if "protected" in entry and entry["protected"] == "True":
-                                protected = True
-
-                            if "subitems" in entry:
-                                subitems_names = []
-                                for u in entry["subitems"]:
-                                    if len(u["name"]) == 0:
-                                        if hidden_members == None:
-                                            hidden_members = []
-                                        hidden_members.append(u["id"])
-                                    else:
-                                        subitems_names.append(u["name"][0]) # if it's subitem then there is only one name
-
-                            user_init = True
-                            break  # no need to look further
+                isPointer = False
+                fuzz_offset = None # If it is unnamed payload, we need offset to know where to fuzz
+                user_init = False
+                fuzz = None
+                
+                loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, fuzz_offset, user_init, fuzz, is_hidden, \
+                is_subitem, name, typename, subitems_names, hidden_members \
+                    = self.read_user_init_data(loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, \
+                                               fuzz_offset, user_init, fuzz, is_hidden, version, entity_name, is_subitem, level, fid, type, name, typename, \
+                                                subitems_names, hidden_members)
 
                 if user_init:
                     entry = None
@@ -1749,10 +1790,8 @@ class Init:
                     if not single_init or force_ptr_init:
                         typename = typename.replace("*", "", 1)
                         typename = typename.strip()
-                        if user_fuzz is None:
+                        if fuzz is None:
                             fuzz = int(self._to_fuzz_or_not_to_fuzz(dst_type))
-                        else:
-                            fuzz = user_fuzz
 
                         extra_padding = None
                         # test for a corner case: a struct with the last member being a const array of size 0
@@ -1960,170 +1999,26 @@ class Init:
                     alloc = True
         else:
             if (level == 0 and skip_init == False) or cl in ["builtin", "enum", "payload"]:
-                fuzz = None
-                if not is_hidden:
-                    fuzz = int(self._to_fuzz_or_not_to_fuzz(type))
-                    typename = self.codegen._get_typename_from_type(type)
-                    if typename in ["struct", "enum", "union"]:  # annonymous type
-                        typename = name
 
+                loop_count = 1
+                version = True
                 null_terminate = False
                 tag = False
                 value = None
                 min_value = None
                 max_value = None
                 protected = False
-                mul = 1
-                isPointer = False
                 value_dep = "" # Does the value of member is set explicitly by other members' values?
-                fuzz_offset = None # It is unnamed payload, we need offset to know where to fuzz
-
-                entity_name_core = entity_name
-                if entity_name is not None and "[" in entity_name:
-                    entity_name_core = entity_name[:entity_name.find("[")]
-
-                if self.dbops.init_data is not None and entity_name_core in self.dbops.init_data \
-                    and (level == 0 or self.dbops.init_data[entity_name_core]["interface"] == "global" or is_subitem):
-                    if self.args.debug_vars_init:
-                        logging.info(
-                            f"Detected that {entity_name} has user-provided init")
-                    item = self.dbops.init_data[entity_name_core]
-                    for entry in item["items"]:
-                        entry_type = "unknown"
-                        if "type" in entry:
-                            entry_type = entry["type"]
-                            if " *" not in entry_type:
-                                entry_type = entry_type.replace("*", " *")
-                        name_core = name
-                        if "[" in name:
-                            name_core = name[:name.find("[")]
-
-                        # if we want to initialize member (subitem) than we need to swap entity entry with subitem entry
-                        if is_subitem:
-                            if not is_hidden:
-                                entry, name_core = self.find_subitem(name, item)
-                            else:
-                                entry, name_core = self.find_hidden_subitem(name, item)
-
-                        if is_subitem or name_core in entry["name"] or entry_type == self.codegen._get_typename_from_type(type):
-                            if self.args.debug_vars_init:
-                                logging.info(
-                                    f"In {entity_name} we detected that item {name} of type {entry_type} has a user-specified init")
-                            
-                            if "nullterminated" in entry:
-                                if entry["nullterminated"] == "True":
-                                    null_terminate = True
-
-                            if "tagged" in entry:
-                                if entry["tagged"] == "True":
-                                    tag = True
-
-                            if "value" in entry:
-                                value = entry["value"]
-
-                            if "value_dep" in entry:
-                                rely_vals = entry["value_dep"][:]
-                                for i in rely_vals:
-                                    if i[0] in ["-", "."]:
-                                        value_dep += name_core + i
-                                    else:
-                                        value_dep += i
-
-                            if "min_value" in entry:
-                                min_value = entry["min_value"]
-
-                            if "max_value" in entry:
-                                max_value = entry["max_value"]
-
-                            if "user_name" in entry and not is_subitem:
-                                if name == name_core:
-                                    name = entry["user_name"]
-                                else:
-                                    name = entry["user_name"] + name[name.find('['):]
-
-                            if "size" in entry:
-                                mul = entry["size"]
-                                if "size_dep" in entry:
-                                    # check if the dependent param is present (for functions only)
-                                    dep_id = entry["size_dep"]["id"]
-                                    dep_add = entry["size_dep"]["add"]
-                                    dep_names = []
-                                    dep_user_name = ""
-                                    dep_found = False
-                                    iterate = None
-                                    if not is_subitem:
-                                        iterate = item["items"]
-                                    else:
-                                        index = name.rfind("-")
-                                        name_tmp = name[:index]
-                                        entry_tmp, name_core_tmp = self.find_subitem(name_tmp, item)
-                                        iterate = entry_tmp["subitems"]
-                                    
-                                    for i in iterate:
-                                        if i["id"] == dep_id:
-                                            dep_names = i["name"]
-                                            if "user_name" in i:
-                                                if not is_subitem:
-                                                    dep_user_name = i["user_name"]
-                                                else:
-                                                    index_tmp = name.find("-")
-                                                    name_core_tmp = name[:index]
-                                                    dep_user_name = name_core_tmp + "->" + i["user_name"]
-                                            else:
-                                                logging.error(
-                                                    "user_name not in data spec and size_dep used")
-                                                sys.exit(1)
-                                            dep_found = True
-                                            break
-                                        
-                                    if dep_found and is_subitem:
-                                        mul = dep_user_name
-                                        if dep_add != 0:
-                                            mul = f"{mul} + {dep_add}"
-                                    elif dep_found and fid:
-                                        f = self.dbops.fnidmap[fid]
-                                        if f is not None and len(dep_names) > 0:
-                                            parms = []
-                                            for l in f["locals"]:
-                                                if l["parm"]:
-                                                    parms.append(l)
-                                            parms.sort(key=lambda k: k['id'])
-                                            for p in parms:
-                                                if "name" in p:
-                                                    param_name = p["name"]
-                                                    if param_name in dep_names:
-                                                        mul = dep_user_name
-                                                        if dep_add != 0:
-                                                            mul = f"{mul} + {dep_add}"
-
-                            if "pointer" in entry:
-                                if entry["pointer"] == "True":
-                                    isPointer = True
-
-                            if "protected" in entry and entry["protected"] == "True":
-                                protected = True
-
-                            if "fuzz" in entry:
-                                if entry["fuzz"] == "True":
-                                    fuzz = 1
-                                else:
-                                    fuzz = 0
-
-                            if "fuzz_offset" in entry:
-                                fuzz_offset = entry["fuzz_offset"]
-
-                            if "subitems" in entry:
-                                subitems_names = []
-                                for u in entry["subitems"]:
-                                    if len(u["name"]) == 0:
-                                        if hidden_members == None:
-                                            hidden_members = []
-                                        hidden_members.append(u["id"])
-                                    else:
-                                        subitems_names.append(u["name"][0]) # if it's subitem then there is only one name
-
-                            user_init = True
-                            break  # no need to look further
+                isPointer = False
+                fuzz_offset = None # If it is unnamed payload, we need offset to know where to fuzz
+                user_init = False
+                fuzz = None
+                
+                loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, fuzz_offset, user_init, fuzz, is_hidden, \
+                is_subitem, name, typename, subitems_names, hidden_members \
+                    = self.read_user_init_data(loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, \
+                                               fuzz_offset, user_init, fuzz, is_hidden, version, entity_name, is_subitem, level, fid, type, name, typename, \
+                                                subitems_names, hidden_members)
 
                 tagged_var_name = 0
                 if tag:
@@ -2137,13 +2032,13 @@ class Init:
                         else:
                             # extract the name without the index of hidden member at the end
                             index, name_base, name_left, is_arrow = self.get_names_after_extraction(name, backwards=True)
-                            str += f"aot_memory_init({name_base} + {fuzz_offset}, {mul}, {fuzz} /* fuzz */, {tagged_var_name});\n"
+                            str += f"aot_memory_init({name_base} + {fuzz_offset}, {loop_count}, {fuzz} /* fuzz */, {tagged_var_name});\n"
                     else:
                         str += f"// skipping init for {name}, since it's const\n"
                 else:
                     # special case: non-pointer value is to be treated as a pointer
                     str += f"{typename}* {name}_ptr;\n"
-                    str += f"aot_memory_init_ptr((void**) &{name}_ptr, sizeof({typename}), {mul}, 1 /* fuzz */, {tagged_var_name});\n"
+                    str += f"aot_memory_init_ptr((void**) &{name}_ptr, sizeof({typename}), {loop_count}, 1 /* fuzz */, {tagged_var_name});\n"
                 if not is_hidden:
                     data['tid'] = type['id']
                 data['size'] = f"sizeof({typename})"
@@ -2151,7 +2046,7 @@ class Init:
                 if not isPointer:
                     data['count'] = 1
                 else:
-                    data['count'] = mul
+                    data['count'] = loop_count
                 if not isPointer:
                     data['name'] = f"&{name}"
                     data['class'] = Init.INIT_CL_NONPTR
@@ -2189,9 +2084,9 @@ class Init:
                         else:
                             index = name.rfind("-")
                             name_tmp = name[:index]
-                            str += f"aot_tag_memory({name_tmp} + {fuzz_offset}, {mul}, 0);\n"
+                            str += f"aot_tag_memory({name_tmp} + {fuzz_offset}, {loop_count}, 0);\n"
                     else:
-                        str += f"aot_tag_memory({name}_ptr, sizeof({typename}) * {mul}, 0);\n"
+                        str += f"aot_tag_memory({name}_ptr, sizeof({typename}) * {loop_count}, 0);\n"
                         str += f"aot_tag_memory(&{name}_ptr, sizeof({name}_ptr), 0);\n"
                 data['tag'] = tag
                 data['tag_name'] = tagged_var_name
