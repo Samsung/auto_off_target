@@ -1127,7 +1127,7 @@ class CodeGen:
             if original_fbody:
                 str += "\t// Function's original body\n//"
                 str += original_fbody.replace("\n", "\n//")
-                str += "\n\t // End of function's orignal body\n"
+                str += "\n\t // End of function's original body\n"
 
         if return_type is not None:
             orig_return_type = return_type
