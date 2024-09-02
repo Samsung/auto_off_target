@@ -839,7 +839,6 @@ class Init:
     #   is_arrow - flag that says if we split at "." or "->"
     # @belongs: init
     def get_names_after_extraction(self, name, backwards=False):
-        # breakpoint()
         index_dot = (name.rfind(".") if backwards else name.find("."))
         index_arrow = (name.rfind("->") if backwards else name.find("->"))
         index = -1
@@ -999,7 +998,8 @@ class Init:
     # and returns them updated after reading data.
     # @belongs: init
     def read_user_init_data(self, loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, fuzz_offset, user_init, fuzz,
-                            is_hidden, version, entity_name, is_subitem, level, fid, type, name, typename, subitems_names, hidden_members):
+                            is_hidden, version, entity_name, is_subitem, level, fid, type, name, typename, subitems_names, hidden_members,
+                            always_init):
         
         if not is_hidden and version:
             fuzz = int(self._to_fuzz_or_not_to_fuzz(type))
@@ -1154,11 +1154,14 @@ class Init:
                             else:
                                 subitems_names.append(u["name"][0]) # if it's subitem then there is only one name
 
+                    if "always_init" in entry:
+                        always_init = entry["always_init"]
+
                     user_init = True
                     break  # no need to look further
 
         return loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, fuzz_offset, user_init, fuzz, is_hidden, \
-            is_subitem, name, typename, subitems_names, hidden_members
+            is_subitem, name, typename, subitems_names, hidden_members, always_init
 
     # -------------------------------------------------------------------------
     
@@ -1169,7 +1172,7 @@ class Init:
     # @belongs: init
     def _generate_var_init(self, name, type, pointers, level=0, skip_init=False, known_type_names=None, cast_str=None, new_types=None,
                            entity_name=None, init_obj=None, fuse=None, fid=None, count=None, data=None, is_subitem=False, subitems_names=None, hidden_members=None,
-                           is_hidden=False):
+                           is_hidden=False, always_init=None):
         """Given variable name and type, generate correct variable initialization code.
         For example:
         name = var, type = struct A*
@@ -1494,10 +1497,10 @@ class Init:
                 fuzz = None
                 
                 loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, fuzz_offset, user_init, fuzz, is_hidden, \
-                is_subitem, name, typename, subitems_names, hidden_members \
+                is_subitem, name, typename, subitems_names, hidden_members, always_init \
                     = self.read_user_init_data(loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, \
                                                fuzz_offset, user_init, fuzz, is_hidden, version, entity_name, is_subitem, level, fid, type, name, typename, \
-                                                subitems_names, hidden_members)
+                                                subitems_names, hidden_members, always_init)
 
                 if user_init:
                     entry = None
@@ -2015,10 +2018,10 @@ class Init:
                 fuzz = None
                 
                 loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, fuzz_offset, user_init, fuzz, is_hidden, \
-                is_subitem, name, typename, subitems_names, hidden_members \
+                is_subitem, name, typename, subitems_names, hidden_members, always_init \
                     = self.read_user_init_data(loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, \
                                                fuzz_offset, user_init, fuzz, is_hidden, version, entity_name, is_subitem, level, fid, type, name, typename, \
-                                                subitems_names, hidden_members)
+                                                subitems_names, hidden_members, always_init)
 
                 tagged_var_name = 0
                 if tag:
@@ -2186,7 +2189,8 @@ class Init:
                                                                       fuse=fuse,
                                                                       data=data,
                                                                       subitems_names=subitems_names,
-                                                                      hidden_members=hidden_members)
+                                                                      hidden_members=hidden_members,
+                                                                      always_init=always_init)
                     if for_loop:
                         data['loop_count'] = loop_count
                     
@@ -2289,10 +2293,9 @@ class Init:
                                 # record definitions can be skipped
                                 continue
 
-                            is_in_use = self._is_member_in_use(
-                                type, tmp_name, i)
+                            is_in_use = self._is_member_in_use(type, tmp_name, i)
 
-                            if is_in_use:
+                            if is_in_use or (always_init != None and field_name in always_init):
                                 tmp_tid = type["refs"][i]
                                 obj = init_obj
                                 if init_obj is not None:
