@@ -479,3 +479,13 @@ struct sk_buff;
 struct gfp_t;
 struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask);
 #endif
+
+#ifdef AOT_DOWN_READ
+struct rw_semaphore;
+void __sched down_read(struct rw_semaphore *sem);
+#endif
+
+#ifdef AOT_UP_READ
+struct rw_semaphore;
+void up_read(struct rw_semaphore *sem);
+#endif

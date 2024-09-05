@@ -108,3 +108,5 @@ __kfree_skb
 __alloc_skb
 device_initialize
 skb_clone
+down_read
+up_read
