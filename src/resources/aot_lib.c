@@ -855,9 +855,9 @@ struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask) {
     n = malloc(sizeof(struct sk_buff));
     if (!n)
         return NULL;
-    n->fclone = SKB_FCLONE_UNAVAILABLE;
 
     memcpy(n, skb, sizeof(struct sk_buff));
+    n->fclone = SKB_FCLONE_UNAVAILABLE;
     n->next = n->prev = NULL;
     n->sk = NULL;
     n->slow_gro = 0;
