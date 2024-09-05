@@ -847,3 +847,58 @@ void ct_nmi_exit(void) {
     return;    
 }
 #endif
+
+#ifdef AOT_SKB_CLONE
+struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask) {
+    struct sk_buff_fclones *fclones = container_of(skb, struct sk_buff_fclones, skb1);
+    struct sk_buff *n;
+    
+    if (skb->fclone == SKB_FCLONE_ORIG && fclones->fclone_ref == 1) {
+        n = &fclones->skb2;
+        fclones->fclone_ref = 2;
+        n->fclone = SKB_FCLONE_CLONE;
+    }
+    else {
+        n = malloc(sizeof(struct sk_buff));
+        if (!n)
+            return NULL;
+        n->fclone = SKB_FCLONE_UNAVAILABLE;
+    }
+
+    n->next = n->prev = NULL;
+    n->sk = NULL;
+    n->tstamp = skb->tstamp;
+    n->dev = skb->dev
+    memcpy(n->cb, skb->cb, sizeof(skb->cb));
+    n->slow_gro |= !!(skb->_skb_refdst);
+    n->_skb_refdst = skb->refdst;
+    n->active_extensions = skb->active_extensions;
+    if (skb->active_extensions) {
+        skb->extensions->refcnt += 1;
+        n->extensions = skb->extensions;
+    }
+    n->queue_mapping = skb->queue_mapping;
+    memcpy(&n->headers, &skb->headers, sizeof(n->headers));
+    n->len = skb->len;
+    n->data_len = skb->data_len;
+    n->mac_len = skb->mac_len;
+    n->hdr_len = skb->nohdr ? (skb->data-skb->head) : skb->hdr_len;
+    n->cloned = 1;
+  	n->nohdr = 0;
+  	n->peeked = 0;
+    n->pfmemalloc = skb->pfmemalloc;
+    n->pp_recycle = skb->pp_recycle;
+    n->destuctor = NULL;
+    n->tail = skb->tail;
+    n->end = skb->end;
+    n->head = skb->head;
+    n->head_frag = skb->head_frag;
+    n->data = skb->data;
+    n->truesize = skb->truesize;
+    n->users += 1
+    (skb->((struct skb_shared_info *)(skb->head + skb->end)))->dataref += 1;
+    skb->cloned = 1;
+
+    return n;
+}
+#endif

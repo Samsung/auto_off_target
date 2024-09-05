@@ -107,3 +107,4 @@ ct_nmi_exit
 __kfree_skb
 __alloc_skb
 device_initialize
+skb_clone
