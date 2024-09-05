@@ -473,3 +473,9 @@ struct sk_buff* __alloc_skb(unsigned int size, unsigned int mask, int flags, int
 struct device;
 void device_initialize(struct device* dev);
 #endif
+
+#ifdef AOT_SKB_CLONE
+struct sk_buff;
+struct gfp_t;
+struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask);
+#endif

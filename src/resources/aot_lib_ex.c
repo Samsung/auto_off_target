@@ -72,3 +72,34 @@ void device_initialize(struct device* dev) {
     return;
 }
 #endif
+
+#ifdef AOT_SKB_CLONE
+struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask) {
+    struct sk_buff *n;
+    
+    n = malloc(sizeof(struct sk_buff));
+    if (!n)
+        return NULL;
+
+    memcpy(n, skb, sizeof(struct sk_buff));
+    n->fclone = SKB_FCLONE_UNAVAILABLE;
+    n->next = n->prev = NULL;
+    n->sk = NULL;
+    n->slow_gro = 0;
+    n->slow_gro |= !!(skb->_skb_refdst);
+    if (skb->active_extensions) {
+        skb->extensions->refcnt += 1;
+        n->extensions = skb->extensions;
+    }
+    n->hdr_len = skb->nohdr ? (skb->data-skb->head) : skb->hdr_len;
+    n->cloned = 1;
+  	n->nohdr = 0;
+  	n->peeked = 0;
+    n->destuctor = NULL;
+    n->users += 1
+    (skb->((struct skb_shared_info *)(skb->head + skb->end)))->dataref += 1;
+    skb->cloned = 1;
+
+    return n;
+}
+#endif
