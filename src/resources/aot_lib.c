@@ -462,7 +462,7 @@ unsigned long long ktime_get_mono_fast_ns(void) {
 #endif
 
 #ifdef AOT_KTIME_GET
-unsigned long long ktime_get(void) {
+long long ktime_get(void) {
     struct timespec tp;
     clock_gettime(CLOCK_REALTIME, &tp);
     return tp.tv_sec + tp.tv_nsec * 1000000000ULL; /* 10e9 */

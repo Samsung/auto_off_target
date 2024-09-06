@@ -207,7 +207,7 @@ unsigned long long ktime_get_mono_fast_ns(void);
 #endif
 
 #ifdef AOT_KTIME_GET
-unsigned long long ktime_get(void);
+long long ktime_get(void);
 #endif
 
 #ifdef AOT_USLEEP_RANGE_STATE
