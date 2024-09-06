@@ -477,6 +477,7 @@ void device_initialize(struct device* dev);
 #ifdef AOT_SKB_CLONE
 struct sk_buff;
 struct gfp_t;
+struct skb_shared_info;
 struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask);
 #endif
 
@@ -488,4 +489,11 @@ void __sched down_read(struct rw_semaphore *sem);
 #ifdef AOT_UP_READ
 struct rw_semaphore;
 void up_read(struct rw_semaphore *sem);
+#endif
+
+#ifdef AOT_NETLINK_RCV_SKB
+struct sk_buff;
+struct nlmsghdr;
+struct netlink_ext_ack;
+int netlink_rcv_skb(struct sk_buff *skb, int (*cb)(struct sk_buff *, struct nlmsghdr *, struct netlink_ext_ack *));
 #endif

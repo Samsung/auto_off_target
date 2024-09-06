@@ -105,15 +105,43 @@ struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask) {
 #endif
 
 #ifdef AOT_DOWN_READ
-struct rw_semaphore;
 void __sched down_read(struct rw_semaphore *sem) {
     return;
 }
 #endif
 
 #ifdef AOT_UP_READ
-struct rw_semaphore;
 void up_read(struct rw_semaphore *sem) {
     return;
+}
+#endif
+
+#ifdef AOT_NETLINK_RCV_SKB
+int netlink_rcv_skb(struct sk_buff *skb, int (*cb)(struct sk_buff *, struct nlmsghdr *, struct netlink_ext_ack *)) {
+    struct netlink_ext_ack extack;
+    struct nlmsghdr *nlh;
+    int err;
+
+    while (skb->len >= 16) {
+        int msglen;
+
+        memset(&extack, 0, sizeof(extack));
+        nlh = (struct nlmsghdr *)skb->data;
+        
+        if (nlh->nlmsg_len < 16 || skb->len < nlh->nlmsg_len)
+  			return 0;
+
+        if (!(nlh->nlmsg_flags & 0x01) || nlh->nlmsg_type < 0x10)
+            return 0;
+
+        err = cb(skb, nlh, &extack);
+
+        msglen = (nlh->nlmsg_len + 3) & ~(3);
+        if (msglen > skb->len)
+            msglen = skb->len;
+        
+        skb->len -= msglen;
+        skb->data += msglen;
+    }
 }
 #endif

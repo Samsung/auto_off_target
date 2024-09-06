@@ -110,3 +110,4 @@ device_initialize
 skb_clone
 down_read
 up_read
+netlink_rcv_skb
