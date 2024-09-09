@@ -991,6 +991,17 @@ class Init:
                 return None, None
             
         return rec_item, out_name_base
+    
+    # -------------------------------------------------------------------------
+
+    # Function takes name of type, iterates through data base with types and returns the type with given name (the one not being const).
+    # @belongs: init
+    def find_type_by_name(self, typename):
+        for type in self.dbops.typemap:
+            tmp_name = self.codegen._get_typename_from_type(type)
+            if tmp_name == typename and ("qualifiers" not in type or 'c' not in type["qualifiers"]):
+                return type
+        return None
 
     # -------------------------------------------------------------------------
     
@@ -999,7 +1010,7 @@ class Init:
     # @belongs: init
     def read_user_init_data(self, loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, fuzz_offset, user_init, fuzz,
                             is_hidden, version, entity_name, is_subitem, level, fid, type, name, typename, subitems_names, hidden_members,
-                            always_init):
+                            always_init, cast_str):
         
         if not is_hidden and version:
             fuzz = int(self._to_fuzz_or_not_to_fuzz(type))
@@ -1157,11 +1168,14 @@ class Init:
                     if "always_init" in entry:
                         always_init = entry["always_init"]
 
+                    if "force_type" in entry:
+                        cast_str = entry["force_type"]
+
                     user_init = True
                     break  # no need to look further
 
         return loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, fuzz_offset, user_init, fuzz, is_hidden, \
-            is_subitem, name, typename, subitems_names, hidden_members, always_init
+            is_subitem, name, typename, subitems_names, hidden_members, always_init, cast_str
 
     # -------------------------------------------------------------------------
     
@@ -1243,6 +1257,15 @@ class Init:
             cl = type["class"]
         else:
             cl = "payload"
+
+        if cast_str != None and "struct" in cast_str and subitems_names != None:
+            typename = cast_str.replace("*", "", 1)
+            typename = typename.strip()
+            type = self.find_type_by_name(typename)
+            if type == None:
+                logging.error("type of given typename not found and force_type used")
+                sys.exit(1)
+            cl = type["class"]
 
         if self.args.debug_vars_init and not is_hidden:
             logging.info(
@@ -1497,10 +1520,10 @@ class Init:
                 fuzz = None
                 
                 loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, fuzz_offset, user_init, fuzz, is_hidden, \
-                is_subitem, name, typename, subitems_names, hidden_members, always_init \
+                is_subitem, name, typename, subitems_names, hidden_members, always_init, cast_str \
                     = self.read_user_init_data(loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, \
                                                fuzz_offset, user_init, fuzz, is_hidden, version, entity_name, is_subitem, level, fid, type, name, typename, \
-                                                subitems_names, hidden_members, always_init)
+                                                subitems_names, hidden_members, always_init, cast_str)
 
                 if user_init:
                     entry = None
@@ -2016,12 +2039,12 @@ class Init:
                 fuzz_offset = None # If it is unnamed payload, we need offset to know where to fuzz
                 user_init = False
                 fuzz = None
-                
+
                 loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, fuzz_offset, user_init, fuzz, is_hidden, \
-                is_subitem, name, typename, subitems_names, hidden_members, always_init \
+                is_subitem, name, typename, subitems_names, hidden_members, always_init, cast_str \
                     = self.read_user_init_data(loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, \
                                                fuzz_offset, user_init, fuzz, is_hidden, version, entity_name, is_subitem, level, fid, type, name, typename, \
-                                                subitems_names, hidden_members, always_init)
+                                                subitems_names, hidden_members, always_init, cast_str)
 
                 tagged_var_name = 0
                 if tag:
