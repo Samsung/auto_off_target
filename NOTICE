@@ -4,7 +4,13 @@ Copyright 2023 Samsung Electronics
 This product includes software developed at
 Mobile Security Group, Samsung Research R&D Warsaw (https://www.samsung.com/).
 
-The Initial Developer of some parts of src/aot_lib.c, 
+The Initial Developer of some parts of src/resources/aot_lib.c, 
 is Todd C. Miller.
 Copyright 1998 Todd C. Miller <Todd.Miller@courtesan.com>.
 
+The Initial Developers of some parts of src/resources/aot_lib_ex.c,
+are Alan Cox, Florian La Roche, Alexey Kuznetsov and Patrick McHardy.
+Licensed under GPL-2.0 or later.
+
+Project includes scripts from "symcc" project (https://github.com/eurecom-s3/symcc).
+Licensed under GPL-3.0 and LGPL-3.0.
