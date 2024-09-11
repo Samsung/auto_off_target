@@ -1325,6 +1325,7 @@ class Init:
         is_array = False
         loop_count = 0
         name_change = False
+        stop_recurrence = False
 
         dst_type = type
 
@@ -1946,6 +1947,7 @@ class Init:
 
                         if protected:
                             str += f"aot_protect_ptr(&{name});\n"
+                            stop_recurrence = True
                         data['protected'] = protected
 
                     if not skip_init and entry is not None:
@@ -2061,6 +2063,7 @@ class Init:
                             str += f"aot_memory_init({name_base} + {fuzz_offset}, {loop_count}, {fuzz} /* fuzz */, {tagged_var_name});\n"
                     else:
                         str += f"// skipping init for {name}, since it's const\n"
+                        stop_recurrence = True
                 else:
                     # special case: non-pointer value is to be treated as a pointer
                     str += f"{typename}* {name}_ptr;\n"
@@ -2119,6 +2122,7 @@ class Init:
 
                 if protected and isPointer:
                     str += f"aot_protect_ptr(&{name}_ptr);\n"
+                    stop_recurrence = True
                 data['protected'] = protected
 
                 if isPointer:
@@ -2161,8 +2165,8 @@ class Init:
                         if u != -1:
                             go_deeper = True
                             break
-
-            if go_deeper:
+            
+            if go_deeper and not stop_recurrence:
                 alloc_tmp = False
                 if is_array:
                     # in case of arrays we have to initialize each member separately
