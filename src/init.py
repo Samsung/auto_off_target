@@ -2183,6 +2183,8 @@ class Init:
                         # please note that the loop_count could only be > 0 for an incomplete array if it
                         # was artificially increased in AoT; normally the size of such array in db.json would be 0
                         str += f"for (int {index} = 0; {index} < {loop_count}; {index}++) ""{\n"
+                        if cast_str is not None and "[" in cast_str:
+                            cast_str = cast_str[:cast_str.find('[')]
                     skip = False
                     if member_type["class"] == "const_array":
                         # const arrays are initialized with enough space already;
