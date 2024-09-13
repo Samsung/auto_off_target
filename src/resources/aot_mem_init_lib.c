@@ -153,6 +153,10 @@ void aot_memory_setptr(void** dst, void* src) {
 	*dst = src;
 }
 
+void aot_memory_setint(void* ptr, int val) {
+	*((int*)ptr) = val;
+}
+
 int aot_check_init_status(char* name, int status) {
 	if (0 != status) {
 		printf("Init failed for %s with status %d\n", name, status);

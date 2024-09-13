@@ -273,7 +273,7 @@ class Init:
             str += f"#ifndef KLEE\n"
             
             str += f"if ({var_name} < {size_constraints['min_val']})" + "{\n"
-            str += f"\t{var_name} = {size_constraints['min_val']};\n"
+            str += f"\taot_memory_setint(&{var_name}, {size_constraints['min_val']});\n"
             str += "}\n"
             
             str += "#else\n"
@@ -287,10 +287,9 @@ class Init:
             str += f"if ({var_name} > {size_constraints['max_val']})" + "{\n"
             max_val_int = int(size_constraints['max_val'])            
             if max_val_int != 0:
-                str += f"\t{var_name} %= {size_constraints['max_val']};\n"
-                str += f"\t{var_name} += 1;\n"
+                str += f"\taot_memory_setint(&{var_name}, ({var_name} % {size_constraints['max_val']}) + 1);\n"
             else:
-                str += f"\t{var_name} = 0;\n"
+                str += f"\taot_memory_setint(&{var_name}, 0);\n"
             str += "}\n"
 
             str += "#else\n"

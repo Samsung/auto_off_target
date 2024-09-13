@@ -23,6 +23,7 @@ void aot_ptrs_append(void* ptr);
 int aot_ptrs_remove(void* ptr);
 void aot_GC();
 void aot_memory_setptr(void** dst, void* src);
+void aot_memory_setint(void* ptr, int val);
 int aot_check_init_status(char* name, int status);
 
 #endif
