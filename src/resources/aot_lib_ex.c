@@ -86,12 +86,12 @@ struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask) {
     
     n = malloc(sizeof(struct sk_buff));
     if (!n)
-        return NULL;
+        return 0;
 
     memcpy(n, skb, sizeof(struct sk_buff));
     n->fclone = SKB_FCLONE_UNAVAILABLE;
-    n->next = n->prev = NULL;
-    n->sk = NULL;
+    n->next = n->prev = 0;
+    n->sk = 0;
     n->slow_gro = 0;
     n->slow_gro |= !!(skb->_skb_refdst);
     if (skb->active_extensions) {
@@ -102,7 +102,7 @@ struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask) {
     n->cloned = 1;
   	n->nohdr = 0;
   	n->peeked = 0;
-    n->destructor = NULL;
+    n->destructor = 0;
     refcount_inc(&n->users);
     (skb_shinfo(skb)->dataref).counter++;
     skb->cloned = 1;

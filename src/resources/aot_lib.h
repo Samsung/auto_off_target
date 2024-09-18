@@ -5,7 +5,6 @@
 */ 
 
 #include <stdarg.h>
-#include <stddef.h>
 #include "aot_log.h"
 
 #ifdef AOT_GET_CURRENT
