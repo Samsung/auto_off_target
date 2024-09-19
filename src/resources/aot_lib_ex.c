@@ -112,7 +112,7 @@ struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask) {
 #endif
 
 #ifdef AOT_DOWN_READ
-void __sched down_read(struct rw_semaphore *sem) {
+void down_read(struct rw_semaphore *sem) {
     return;
 }
 #endif
