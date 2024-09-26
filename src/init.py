@@ -2178,6 +2178,14 @@ class Init:
                         or cl == "const_array"
                         or cl == "incomplete_array"
                     )
+                    if for_loop is True and member_type["class"] == "builtin":
+                        # in case we have an array of builtins, there is no need to initialize them
+                        # one by one in a loop; instead we should initialize the entire array 
+                        str_tmp = f"aot_memory_init_ptr((void**) &{name}, sizeof({member_type['str']}), {loop_count} /* count */, 1 /* fuzz */, 0);\n"
+                        data['loop_count'] = loop_count
+                        str += str_tmp
+                        return str, False, False
+
                     if for_loop:
                         # please note that the loop_count could only be > 0 for an incomplete array if it
                         # was artificially increased in AoT; normally the size of such array in db.json would be 0
@@ -2203,7 +2211,7 @@ class Init:
                     if self.args.debug_vars_init:
                         logging.info(
                             f"variant E, my type is {type['id']}, loop_count is {loop_count}, cl is {cl}: {tmp_name}")
-                    
+
                     str_tmp, alloc_tmp, brk = self._generate_var_init(f"{tmp_name}",
                                                                       member_type,
                                                                       pointers[:],

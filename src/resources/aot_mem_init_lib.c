@@ -94,8 +94,10 @@ void aot_GC() {
 /* Memory init function */
 /* ----------------------------- */
 int aot_memory_init(void* ptr, unsigned long long size, int fuzz, const char* name) {
-	memset(ptr, 0, size);
-    if (fuzz) {
+    if (!fuzz) {
+        memset(ptr, 0, size);
+    }
+    else {
         return fuzz_that_data(ptr, 0, size, name);
     }
 	return 0;
@@ -107,12 +109,14 @@ int aot_memory_init_ptr(void** ptr, unsigned long size, unsigned long count, int
 	int ret = posix_memalign(ptr, 64, total_size);
 	if (ret)
 		return -1;
-	memset(*ptr, 0, total_size);
 
     // add the allocated pointer to the list
 	aot_ptrs_append(*ptr);
 
-    if (fuzz) {
+    if (!fuzz) {
+        memset(*ptr, 0, total_size);
+    }
+    else {
         return fuzz_that_data(*ptr, 0, total_size, name);
     }
 	return 0;
