@@ -89,7 +89,7 @@ struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask) {
         return 0;
 
     memcpy(n, skb, sizeof(struct sk_buff));
-    n->fclone = SKB_FCLONE_UNAVAILABLE;
+    n->fclone = AOT_SKB_FCLONE_UNAVAILABLE;
     n->next = n->prev = 0;
     n->sk = 0;
     n->slow_gro = 0;
