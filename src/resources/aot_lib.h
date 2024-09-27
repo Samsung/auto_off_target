@@ -479,11 +479,11 @@ struct sk_buff;
 typedef unsigned int gfp_t;
 struct skb_shared_info;
 enum {
-	SKB_FCLONE_UNAVAILABLE,	/* skb has no fclone (from head_cache) */
-	SKB_FCLONE_ORIG,	/* orig skb (from fclone_cache) */
-	SKB_FCLONE_CLONE,	/* companion fclone skb (from fclone_cache) */
+	AOT_SKB_FCLONE_UNAVAILABLE,	/* skb has no fclone (from head_cache) */
+	AOT_SKB_FCLONE_ORIG,	/* orig skb (from fclone_cache) */
+	AOT_SKB_FCLONE_CLONE,	/* companion fclone skb (from fclone_cache) */
 };
-#define skb_shinfo(SKB)	((struct skb_shared_info *)(skb_end_pointer(SKB)))
+#define skb_shinfo(SKB)	((struct skb_shared_info *)(aot_skb_end_pointer(SKB)))
 struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask);
 #endif
 
