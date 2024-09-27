@@ -74,11 +74,11 @@ void device_initialize(struct device* dev) {
 #endif
 
 #ifdef AOT_SKB_CLONE
-static inline unsigned char *skb_end_pointer(const struct sk_buff *skb)
+static inline unsigned char *aot_skb_end_pointer(const struct sk_buff *skb)
 {
 	return skb->head + skb->end;
 }
-static void refcount_inc(refcount_t *t) {
+static void aot_refcount_inc(refcount_t *t) {
     t->refs.counter++;
 }
 struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask) {
@@ -95,7 +95,7 @@ struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask) {
     n->slow_gro = 0;
     n->slow_gro |= !!(skb->_skb_refdst);
     if (skb->active_extensions) {
-        refcount_inc(&skb->extensions->refcnt);
+        aot_refcount_inc(&skb->extensions->refcnt);
         n->extensions = skb->extensions;
     }
     n->hdr_len = skb->nohdr ? (skb->data-skb->head) : skb->hdr_len;
@@ -103,8 +103,8 @@ struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask) {
   	n->nohdr = 0;
   	n->peeked = 0;
     n->destructor = 0;
-    refcount_inc(&n->users);
-    (skb_shinfo(skb)->dataref).counter++;
+    aot_refcount_inc(&n->users);
+    (((struct skb_shared_info*)aot_skb_end_pointer(skb))->dataref).counter++;
     skb->cloned = 1;
 
     return n;
