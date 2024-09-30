@@ -2178,7 +2178,8 @@ class Init:
                         or cl == "const_array"
                         or cl == "incomplete_array"
                     )
-                    if for_loop is True and member_type["class"] == "builtin":
+                    final_cl = self.dbops._get_typedef_dst(member_type)['class']
+                    if for_loop is True and final_cl == "builtin":
                         # in case we have an array of builtins, there is no need to initialize them
                         # one by one in a loop; instead we should initialize the entire array 
                         str_tmp = f"aot_memory_init({name}, sizeof({member_type['str']}) * {loop_count} /* count */, 1 /* fuzz */, 0);\n"
