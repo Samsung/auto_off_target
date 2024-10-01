@@ -1177,7 +1177,21 @@ class Init:
             is_subitem, name, typename, subitems_names, hidden_members, always_init, cast_str
 
     # -------------------------------------------------------------------------
-    
+
+    def _could_be_an_index_var(self, name, type):
+        index_names = [ "cnt", "count", "index", "ind", "idx", "size", "num", "number" ]
+        
+        t = self.dbops._get_typedef_dst(type)
+        
+        if t["class"] != "builtin":
+            return False
+         
+        for n in index_names:
+            if n in name:
+                return True
+
+        return False
+
     # Given variable name and type, generate correct variable initialization code.
     # For example:
     # name = var, type = struct A*
@@ -2053,9 +2067,14 @@ class Init:
                 if not isPointer:
                     if is_hidden or 'c' not in type["qualifiers"] and 'c' not in base_type['qualifiers']:
                         if not is_hidden:
-                            str += f"aot_memory_init(&{name}, sizeof({typename}), {fuzz} /* fuzz */, {tagged_var_name});\n"
                             if value_dep != "":
                                 str += f"{name} = {value_dep};\n"
+                            else:
+                                str += f"aot_memory_init(&{name}, sizeof({typename}), {fuzz} /* fuzz */, {tagged_var_name});\n"
+                                if fuzz != 0 and self._could_be_an_index_var(name, type) is True:
+                                    str += f"// this var is likely an index / size -> limiting to avoid FPs\n"
+                                    str += f"{name} = {name} % 2;\n"
+
                         else:
                             # extract the name without the index of hidden member at the end
                             index, name_base, name_left, is_arrow = self.get_names_after_extraction(name, backwards=True)
