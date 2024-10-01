@@ -24,9 +24,12 @@ class AotDbFrontend:
     def create(self, json_file, product, version,
                build_type, drop_on_import, cache_size):
         self.json_file = json_file
-        self.product = product.replace(".", "_")
-        self.version = version.replace(".", "_")
-        self.build_type = build_type
+        if product and version:
+            self.product = product.replace(".", "_")
+            self.version = version.replace(".", "_")
+            self.build_type = build_type
+        else:
+            self.product = self.version = self.build_type = None
         self.drop_on_import = drop_on_import
 
         self.db_name = ''
@@ -44,14 +47,6 @@ class AotDbFrontend:
     def sanity_check(self):
         if self.json_file and not os.path.isfile(self.json_file):
             logging.error("JSON file {} not found".format(self.json_file))
-            return False
-
-        if not self.product:
-            logging.error("Product string must be provided")
-            return False
-
-        if not self.version:
-            logging.error("Version string must be provided")
             return False
 
         return True

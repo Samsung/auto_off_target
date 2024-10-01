@@ -200,8 +200,11 @@ class FtdbFrontend(AotDbFrontend):
 
     def connect(self):
         # The DB name is created based on product, version and build type
-        self.db_name = "compilation_db_{}-{}-{}".format(
-            self.product, self.version, self.build_type)
+        if all([self.product, self.version, self.build_type]):
+            self.db_name = "compilation_db_{}-{}-{}".format(
+                self.product, self.version, self.build_type)
+        else:
+            self.db_name = "compilation_db"
 
         self.db = libftdb.ftdb()
 

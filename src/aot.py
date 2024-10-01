@@ -130,6 +130,10 @@ class Engine:
         self.codegen.set_otgen(self.otgen)
         if args.import_json:
             logging.info("Importing JSON, off-target will not be generated")
+            if not all([args.product, args.version, args.build_type]):
+                logging.error("Importing JSON requires the following parameters: --product, --version, --build-type")
+                exit(1)
+            
             self.dbops.import_aot_db(args.import_json, args.lib_funcs_file,
                                      args.always_inc_funcs_file, args.known_funcs_file, args.init_file,
                                      args.rdm_file)
@@ -1322,17 +1326,11 @@ def prepare_parser(*db_frontends):
                         default=None,
                         help='The path to config file')
     parser.add_argument('--product',
-                        default=None,
-                        required=True,
                         help='Product name, e.g. kernel')
     parser.add_argument('--version',
-                        default=None,
-                        required=True,
                         help='Product version, e.g. 5.18')
     parser.add_argument('--build-type',
-                        default='eng',
                         choices=['eng', 'user', 'engdebug', 'userdebug'],
-                        required=True,
                         help='Product version, e.g. eng')
 
     parser.add_argument('--db',

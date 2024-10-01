@@ -43,7 +43,7 @@ class AotDbOps:
     # #db: AotDBFrontend instance
     def __init__(self, db, deps, args):
         self.deps = deps
-        self.version = f"{args.product}_{args.version}_{args.build_type}"
+        self.version = f"{args.product}_{args.version}_{args.build_type}" if args.product else ""
         self.include_asm = args.include_asm
         self.fptr_analysis = args.fptr_analysis
         self.db_type = args.db_type
@@ -389,7 +389,12 @@ class AotDbOps:
 
         # try to get what we can from the db
         known_data = self.db.create_local_index("known_data", "version")
-        known_data = known_data[self.version]
+        if not self.version:
+            # Convert .get_all() result to list as FTDB backend implementation of __getitem__
+            #  searches for field `id` in known_data and fails with Python exception
+            known_data = list(known_data.get_all())[0]
+        else:
+            known_data = known_data[self.version]
 
         if known_data is None:
             logging.error(
@@ -414,7 +419,6 @@ class AotDbOps:
             self.lib_funcs = known_data['lib_funcs']
             self.lib_funcs_ids = known_data['lib_funcs_ids']
             self.always_inc_funcs_ids = set(known_data['always_inc_funcs_ids'])
-        logging.info(f"Version is {self.version}")
 
         # load recursive caches from the database
         logging.info("Create indices for recursive query caches")
