@@ -52,6 +52,7 @@ class Engine:
     def __init__(self):
         self.functions = set()
         self.out_dir = Engine.DEFAULT_OUTPUT_DIR
+        self.db_frontend = None
 
         # to create
         self.sources_to_types = {}
@@ -178,7 +179,8 @@ class Engine:
     # -------------------------------------------------------------------------
 
     def deinit(self):
-        self.db_frontend.close_db_connection()
+        if self.db_frontend is not None:
+            self.db_frontend.close_db_connection()
 
     # -------------------------------------------------------------------------
 
