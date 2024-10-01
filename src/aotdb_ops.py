@@ -446,16 +446,15 @@ class AotDbOps:
         # self._get_called_functions(self.always_inc_funcs_ids)
         # logging.info(f"Recursively we have {len(self.always_inc_funcs_ids)} functions to include")
 
-        if self.fptr_analysis:
-            if self.db_type == aotdb.DbType.FTDB:
-                # if we're using db.img
-                logging.info(
-                    "Will be using preprocessed function pointers information")                            
-                self.fpointer_map = self.db.create_local_index('func_fptrs', '_id')
-            else:
-                logging.error(
-                    f"Option --fptr-analysis requires db.json imported with function pointers analysis enabled")
-                exit(1)
+        if self.db_type == aotdb.DbType.FTDB and 'func_fptrs' in self.db.db:
+            # if we're using db.img
+            logging.info(
+                "Will be using preprocessed function pointers information")                            
+            self.fpointer_map = self.db.create_local_index('func_fptrs', '_id')
+        elif self.fptr_analysis:
+            logging.error(
+                f"Option --fptr-analysis requires db.json imported with function pointers analysis enabled")
+            exit(1)
 
         self.init_data = self.db.create_local_index("init_data", "name")
         self.rdm_data = self.db.create_local_index(
