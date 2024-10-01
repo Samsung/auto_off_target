@@ -1385,7 +1385,7 @@ def prepare_parser(*db_frontends):
     # and some of the "first external" functions either don't pull in any others or pull in just a few functions
     # in these cases it might be better to include them in the off-target rather than to treat as external and
     # therefore introduce the necessity to implement stubs for them
-    parser.add_argument('--external-inclusion-margin', type=int, default=0,
+    parser.add_argument('--external-inclusion-margin', type=int, default=100,
                         help='If a function treated as external recursively pulls in less than this number ' +
                              'of functions, treat this function and the functions pulled it as internal')
     parser.add_argument("--debug-bas", action='store_true',
