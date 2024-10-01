@@ -1255,7 +1255,7 @@ class Init:
                 with open(self.args.output_dir + "/aot_recursion_error.txt", "w") as file:
                     file.write(
                         f"Max recursion depth reached while generating var init\n")
-                if self.args.ignore_recursion_errors:
+                if not self.args.panic_on_recursion_errors:
                     return "// Recursion loop ignored on an attempt to initialize this variable. Manual init required.\n", False, True 
                 else:
                     raise Exception("Breaking execution due to error")

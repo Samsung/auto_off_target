@@ -1438,7 +1438,9 @@ def prepare_parser(*db_frontends):
     parser.add_argument("--dump-ids", action="store_true",
                         help="When used, dump ids of types functions and globals used in the OT code to a file named ids.json")
     parser.add_argument("--ignore-recursion-errors", action="store_true",
-                        help="When the 'max recursion depth is reached, ignore that error and continue.")
+                        help="[DEPRECATED] When the 'max recursion depth is reached, ignore that error and continue.")
+    parser.add_argument("--panic-on-recursion-errors", action="store_true",
+                        help="When the 'max recursion depth' is reached, throw an error for debugging purposes.")
     parser.add_argument("--single-init-only", action="store_true",
                         help="When the smart init mechanism finds more than one way to initialize, do not generate other options.")
     parser.add_argument("--unroll-macro-defs", action="store_true",
