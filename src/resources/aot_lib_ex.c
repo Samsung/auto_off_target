@@ -104,7 +104,10 @@ struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask) {
   	n->peeked = 0;
     n->destructor = 0;
     aot_refcount_inc(&n->users);
-    (skb_shinfo(skb)->dataref).counter++;
+    void *skb_shared = aot_skb_end_pointer(skb);
+    int *counter_ptr = &skb_shared;
+    counter_ptr += (32 / sizeof(int)); // 32 = offsetof(struct skb_shared_info, dataref)
+    (*counter_ptr)++;
     skb->cloned = 1;
 
     return n;

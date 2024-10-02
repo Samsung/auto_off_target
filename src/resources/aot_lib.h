@@ -483,7 +483,6 @@ enum {
 	AOT_SKB_FCLONE_ORIG,	/* orig skb (from fclone_cache) */
 	AOT_SKB_FCLONE_CLONE,	/* companion fclone skb (from fclone_cache) */
 };
-#define skb_shinfo(SKB)	((struct skb_shared_info *)(aot_skb_end_pointer(SKB)))
 struct sk_buff *skb_clone(struct sk_buff *skb, gfp_t gfp_mask);
 #endif
 
