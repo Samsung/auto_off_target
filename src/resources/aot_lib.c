@@ -80,7 +80,7 @@ void* krealloc(const void* p, unsigned long new_size, unsigned long flags) {
     if(new_size == 0){
 
 #ifdef UNFLATTEN_MARK_FREED
-        aot_kflat_mark_freed(ptr);
+        aot_kflat_mark_freed(p);
 #endif /* UNFLATTEN_MARK_FREED */
         aot_ptrs_remove(p);
         free(p);
@@ -236,7 +236,7 @@ void kvfree(const void *addr) {
         return;
 
 #ifdef UNFLATTEN_MARK_FREED
-    aot_kflat_mark_freed(ptr);
+    aot_kflat_mark_freed(addr);
 #endif /* UNFLATTEN_MARK_FREED */
     aot_ptrs_remove(addr);
     free(addr);
