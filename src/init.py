@@ -2073,7 +2073,7 @@ class Init:
                                 str += f"aot_memory_init(&{name}, sizeof({typename}), {fuzz} /* fuzz */, {tagged_var_name});\n"
                                 if fuzz != 0 and self._could_be_an_index_var(name, type) is True:
                                     str += f"// this var is likely an index / size -> limiting to avoid FPs\n"
-                                    str += f"{name} = {name} % 2;\n"
+                                    str += f"aot_memory_setint(&{name}, ({typename}){name} % 2);\n"
 
                         else:
                             # extract the name without the index of hidden member at the end
