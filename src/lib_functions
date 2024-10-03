@@ -4,6 +4,7 @@ copy_to_user
 __copy_to_user
 __range_ok
 access_ok
+strncpy_from_user
 kmalloc
 __kmalloc
 kzalloc

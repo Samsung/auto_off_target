@@ -82,6 +82,10 @@ unsigned long copy_to_user(void *to, const void *from, unsigned long n);
 unsigned long __copy_to_user(void *to, const void *from, unsigned long n);
 #endif
 
+#ifdef AOT_STRNCPY_FROM_USER
+long strncpy_from_user(char* dst, const char* src, long count);
+#endif
+
 #ifdef AOT_KMALLOC
 void* kmalloc(unsigned long size, unsigned flags);
 #endif
