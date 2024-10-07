@@ -2068,6 +2068,7 @@ class Init:
                     if is_hidden or 'c' not in type["qualifiers"] and 'c' not in base_type['qualifiers']:
                         if not is_hidden:
                             if value_dep != "":
+                                str += f"aot_memory_init(&{name}, sizeof({typename}), {fuzz} /* fuzz */, {tagged_var_name});\n"
                                 str += f"{name} = {value_dep};\n"
                             else:
                                 str += f"aot_memory_init(&{name}, sizeof({typename}), {fuzz} /* fuzz */, {tagged_var_name});\n"
