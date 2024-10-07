@@ -1271,6 +1271,9 @@ class Init:
         else:
             cl = "payload"
 
+        #if "data" in name:
+        #    breakpoint()
+
         if cast_str != None and "struct" in cast_str and subitems_names != None:
             typename = cast_str.replace("*", "", 1)
             typename = typename.strip()
@@ -2147,7 +2150,7 @@ class Init:
                 if isPointer:
                     str += f"{name} = ({typename}){name}_ptr;\n"
 
-        if cl == "record" and t_id not in self.used_types_data and level > 1:
+        if cl == "record" and t_id not in self.used_types_data and level > 1 and subitems_names == None:
             typename = self.codegen._get_typename_from_type(
                 self.dbops.typemap[t_id])
             return f"// {name} of type {typename} is not used anywhere\n", False, False
@@ -2184,7 +2187,9 @@ class Init:
                         if u != -1:
                             go_deeper = True
                             break
-            
+            #if "data" in name:
+            #    breakpoint()
+
             if go_deeper and not stop_recurrence:
                 alloc_tmp = False
                 if is_array:
