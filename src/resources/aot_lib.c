@@ -132,12 +132,9 @@ unsigned long aot_copy_to_user(void* to, const void* from, unsigned long n) {
     unsigned long offset = 0;
 
 #ifdef KLEE
-    unsigned long size = klee_get_obj_size(from);
-    if (n > size) { // the copy size overflows the "from" buffer
-        // cause a crash to mark the overflow
-        int* p = 0;
-        p = 0;
-    }
+    // in order to avoid a potentially costly call to memcpy, let's just check
+    // if 'from' overflows by using this one simple trick
+    char c = ((char*)from)[n - 1]; // if we overflow 'from', this should trigger a KLEE error
 #else
     while(n > 0) {
         unsigned long copy_size = n < sizeof(largebuffer) ? n : sizeof(largebuffer);
