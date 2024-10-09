@@ -126,7 +126,7 @@ ubsan: $(obj) $(lib)
 # aot_dsan.c.lib contains the callbacks which can't be instrumented with dfsan and is compiled separately
 .PHONY: dfsan
 dfsan: CFLAGSDFSAN=-fno-sanitize=dataflow -MD -mllvm -dfsan-event-callbacks -g -DDFSAN -fPIE -w
-dfsan: CFLAGS=-fsanitize=dataflow -MD -mllvm -dfsan-event-callbacks -g -w -DDFSAN -I${KFLAT_LIB_PATH} -fsanitize-ignorelist=dfsan_ignore_list.txt
+dfsan: CFLAGS=-fsanitize=dataflow -MD -mllvm -dfsan-event-callbacks -g -w -DDFSAN -I${KFLAT_LIB_INCLUDE_PATH} -fsanitize-ignorelist=dfsan_ignore_list.txt
 dfsan: COMP=clang-18
 dfsan: $(obj) $(lib)	
 	cp aot_dfsan.c.lib aot_dfsan.c

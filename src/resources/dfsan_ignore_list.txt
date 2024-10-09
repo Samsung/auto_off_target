@@ -31,3 +31,6 @@ fun:unflatten_root_pointer_named=discard
 
 fun:unflatten_replace_variable=uninstrumented
 fun:unflatten_replace_variable=discard
+
+fun:unflatten_mark_freed=uninstrumented
+fun:unflatten_mark_freed=discard
