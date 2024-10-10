@@ -134,7 +134,9 @@ unsigned long aot_copy_to_user(void* to, const void* from, unsigned long n) {
 #ifdef KLEE
     // in order to avoid a potentially costly call to memcpy, let's just check
     // if 'from' overflows by using this one simple trick
-    char c = ((char*)from)[n - 1]; // if we overflow 'from', this should trigger a KLEE error
+    if (n) {
+        volatile char c = ((char*)from)[n - 1]; // if we overflow 'from', this should trigger a KLEE error
+    }
 #else
     while(n > 0) {
         unsigned long copy_size = n < sizeof(largebuffer) ? n : sizeof(largebuffer);
