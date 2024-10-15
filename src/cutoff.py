@@ -89,11 +89,10 @@ class CutOff:
         funrefs |= self.deps._get_funcs_from_globals(global_refs)
 
         # gather func pointers
-        if self.args.fptr_analysis:
-            fptrs = self._get_infer_function(base_fid)
-            if fptrs is not None:
-                for expr in fptrs:
-                    funrefs.update([f_id for f_id in expr[1]])
+        fptrs = self._get_infer_function(base_fid)
+        if fptrs is not None:
+            for expr in fptrs:
+                funrefs.update([f_id for f_id in expr[1]])
 
         for fid in funrefs:
             logging.debug("checking funref {} ".format(fid))
