@@ -322,8 +322,9 @@ class OTGenerator:
             else:
                 str += "\n\taot_kflat_init(\"%s\");\n" % OTGenerator.KFLAT_IMAGE_NAME
 
-        str += "\n\n\t".join([self.codegen._generate_function_call(x, static=(x in static_functions), known_type_names=known_type_names, new_types=new_types).replace("\n", "\n\t")
-                              for x in entry_points]) + "\n"
+        if not self.args.no_main_function_calls:
+            str += "\n\n\t".join([self.codegen._generate_function_call(x, static=(x in static_functions), known_type_names=known_type_names, new_types=new_types).replace("\n", "\n\t")
+                                  for x in entry_points]) + "\n"
 
         if self.args.dynamic_init:
             str += "\taot_kflat_fini();\n\n"

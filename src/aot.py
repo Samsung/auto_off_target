@@ -1406,6 +1406,8 @@ def prepare_parser(*db_frontends):
                         help="When generating function code unroll all expanded code that comes from macro invocations")
     parser.add_argument("--use-real-filenames", action="store_true",
                         help="When generating OT code use real file names rather than the file_<ID> scheme.")
+    parser.add_argument("--no-main-function-calls", action="store_true",
+                        help="Do not generate function calls in aot.c")
     return parser
 
 
