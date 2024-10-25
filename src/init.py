@@ -273,7 +273,7 @@ class Init:
             str += f"#ifndef KLEE\n"
             
             str += f"if ({var_name} < {size_constraints['min_val']})" + "{\n"
-            str += f"\taot_memory_setint(&{var_name}, {size_constraints['min_val']});\n"
+            str += f"\taot_memory_setint(&{var_name}, {size_constraints['min_val']}, sizeof({var_name}));\n"
             str += "}\n"
             
             str += "#else\n"
@@ -287,9 +287,9 @@ class Init:
             str += f"if ({var_name} > {size_constraints['max_val']})" + "{\n"
             max_val_int = int(size_constraints['max_val'])            
             if max_val_int != 0:
-                str += f"\taot_memory_setint(&{var_name}, ({var_name} % {size_constraints['max_val']}) + 1);\n"
+                str += f"\taot_memory_setint(&{var_name}, ({var_name} % {size_constraints['max_val']}) + 1, sizeof({var_name}));\n"
             else:
-                str += f"\taot_memory_setint(&{var_name}, 0);\n"
+                str += f"\taot_memory_setint(&{var_name}, 0, sizeof({var_name}));\n"
             str += "}\n"
 
             str += "#else\n"
@@ -2077,7 +2077,7 @@ class Init:
                                 str += f"aot_memory_init(&{name}, sizeof({typename}), {fuzz} /* fuzz */, {tagged_var_name});\n"
                                 if user_init is False and fuzz != 0 and self._could_be_an_index_var(name, type) is True:
                                     str += f"// this var is likely an index / size -> limiting to avoid FPs\n"
-                                    str += f"aot_memory_setint(&{name}, ({typename}){name} % 2);\n"
+                                    str += f"aot_memory_setint(&{name}, ({typename}){name} % 2, sizeof({name}));\n"
 
                         else:
                             # extract the name without the index of hidden member at the end

@@ -157,8 +157,23 @@ void aot_memory_setptr(void** dst, void* src) {
 	*dst = src;
 }
 
-void aot_memory_setint(void* ptr, int val) {
-	*((int*)ptr) = val;
+void aot_memory_setint(void* ptr, int val, unsigned size) {
+	switch (size) {
+		case sizeof(char):
+			*((char*)ptr) = val;
+
+		case sizeof(short):
+			*((short*)ptr) = val;
+
+		case sizeof(int):
+			*((int*)ptr) = val;
+	
+		case sizeof(long int):
+			*((long int*)ptr) = val;
+
+		default:
+			printf("Unhandled size in aot_memory_setint: %d\n", size);
+	}
 }
 
 int aot_check_init_status(char* name, int status) {
