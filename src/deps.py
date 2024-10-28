@@ -16,6 +16,7 @@ import struct
 import re
 import sys
 import difflib
+import hashlib
 
 from typing import Dict, List, Tuple, Optional
 
@@ -404,6 +405,14 @@ class Deps:
             else:
                 hash_to_ids[h].append(tid)
 
+            # workaround: include also types which might have a different hash but have 
+            # identical definitions
+            if t["class"] == "record":
+                h = hashlib.md5(t["def"].encode()).hexdigest()
+                if h not in hash_to_ids:
+                    hash_to_ids[h] = []
+                hash_to_ids[h].append(tid)
+
             if "implicit" in t:
                 if t["implicit"]:
                     self.implicit_types.add(tid)
@@ -421,7 +430,12 @@ class Deps:
 
         for h in hash_to_ids:
             for id in hash_to_ids[h]:
-                self.dup_types[id] = hash_to_ids[h]
+                if id not in self.dup_types:
+                    self.dup_types[id] = hash_to_ids[h]
+                else:
+                    for _id in hash_to_ids[h]:
+                        if _id not in self.dup_types[id]:
+                            self.dup_types[id].append(_id)
         cnt = 0
         for tid in self.identical_typedefs:
             if len(self.identical_typedefs[tid]) > 1:
