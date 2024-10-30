@@ -166,7 +166,7 @@ klee: CFLAGS+=-emit-llvm -DKLEE -MD -w
 klee: COMP=clang-13
 klee: LD=llvm-link-13
 klee: $(obj)
-	$(LD) -o $@.bc $^ $(extra_bc)
+	$(LD) -o $@.bc $^ $(patsubst %, --override=%, $(extra_bc))
 
 # SYMCC
 .PHONY: symcc
