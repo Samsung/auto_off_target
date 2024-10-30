@@ -1121,7 +1121,10 @@ class Init:
                             if dep_found and is_subitem:
                                 loop_count = dep_user_name
                                 if dep_add != 0:
-                                    loop_count = f"{loop_count} + {dep_add}"
+                                    if dep_add < 0:
+                                        loop_count = f"{loop_count} >= -({dep_add}) ? {loop_count} + {dep_add} : 0"
+                                    else:
+                                        loop_count = f"{loop_count} + {dep_add}"
                             elif dep_found and fid:
                                 f = self.dbops.fnidmap[fid]
                                 if f is not None and len(dep_names) > 0:
@@ -1136,7 +1139,10 @@ class Init:
                                             if param_name in dep_names:
                                                 loop_count = dep_user_name
                                                 if dep_add != 0:
-                                                    loop_count = f"{loop_count} + {dep_add}"
+                                                    if dep_add < 0:
+                                                        loop_count = f"{loop_count} >= -({dep_add}) ? {loop_count} + {dep_add} : 0"
+                                                    else:
+                                                        loop_count = f"{loop_count} + {dep_add}"
 
                     if "pointer" in entry:
                         if entry["pointer"] == "True":
