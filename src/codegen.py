@@ -1021,6 +1021,15 @@ class CodeGen:
                     raise Exception("Breaking exection due to error")
 
                 # after the name, we have the function type
+                if "typeof" in tmp[index:]:
+                    t_id = function["types"][0]
+                    real_tid = self.dbops._get_real_type(t_id)
+                    func_type = self.dbops.typemap[real_tid]["str"]
+                    if t_id != real_tid and t_id["class"] == "pointer":
+                        func_type += "*"
+                        
+                    tmp = tmp[:end_index] + " " + func_type + "()"
+                
                 end_index = tmp[index:].find("(") + index
                 func_type = tmp[index:end_index]
                 index = end_index
