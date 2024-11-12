@@ -418,7 +418,7 @@ class Engine:
 
             # TODO: for now I will also filter out as external all the functions with inline assembly
             # perhaps in the future there is a better way to handle those
-            # removed = set()
+            removed = set()
             for f_id in self.cutoff.internal_funcs:
                 f = self.dbops.fnidmap[f_id]
                 if f is not None:
@@ -426,6 +426,9 @@ class Engine:
                         self.cutoff.external_funcs.add(f_id)
                         logging.info(
                             f'Function {f["name"]} contains inline assembly - will treat it as external')
+                        removed.add(f_id)
+            self.cutoff.internal_funcs.difference_update(removed)
+
             self.globals = set()
             self.internal_defs = set()
             for f in function_ids:
