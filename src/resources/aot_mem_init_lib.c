@@ -16,8 +16,10 @@ int printf(const char* format, ...);
 
 struct aot_ptr_node* aot_ptrs_head = 0; // points to the beginning of the aot pointers list
 struct aot_ptr_node* aot_ptrs_tail = 0; // points to the current tail of the aot pointers list
+struct aot_ptr_node* aot_init_vars_head = 0;
+struct aot_ptr_node* aot_init_vars_tail = 0;
 
-void aot_ptrs_append(void* ptr) {
+void aot_ptrs_append(void* ptr, struct aot_ptr_node* head, struct aot_ptr_node* tail, char* name) {
 	if (!ptr) {
 		return;
 	}
@@ -25,35 +27,36 @@ void aot_ptrs_append(void* ptr) {
 	struct aot_ptr_node* new_node = (struct aot_ptr_node*)malloc(sizeof(struct aot_ptr_node));
 	new_node->ptr = ptr;
     new_node->next = 0;
+	new_node->name = name;
 
-	if (!aot_ptrs_head) { // this is the first item in the list
-		aot_ptrs_head = new_node;
-		aot_ptrs_tail = new_node;
+	if (!head) { // this is the first item in the list
+		head = new_node;
+		tail = new_node;
 	} else {
-		aot_ptrs_tail->next = new_node;
-		aot_ptrs_tail = new_node;
+		tail->next = new_node;
+		tail = new_node;
 	}
 }
 
-int aot_ptrs_remove(void* ptr){
+int aot_ptrs_remove(void* ptr, struct aot_ptr_node* head, struct aot_ptr_node* tail){
 	if (!ptr) {
 		return 0;
 	}
 
-	if (!aot_ptrs_head) {
+	if (!head) {
 		// the list is empty
 		return 0;
 	}
-	struct aot_ptr_node* tmp = aot_ptrs_head;
+	struct aot_ptr_node* tmp = head;
 	struct aot_ptr_node* prev_tmp = 0;
 	while (tmp) {
 		if (tmp->ptr == ptr) {
-			if (tmp == aot_ptrs_head) {
-				aot_ptrs_head = tmp->next;
+			if (tmp == head) {
+				head = tmp->next;
 			}
-			else if (tmp == aot_ptrs_tail) {
-				aot_ptrs_tail = prev_tmp;
-				aot_ptrs_tail->next = 0;
+			else if (tmp == tail) {
+				tail = prev_tmp;
+				tail->next = 0;
 			}
 			else {
 				prev_tmp->next = tmp->next;
@@ -70,12 +73,6 @@ int aot_ptrs_remove(void* ptr){
 
 void aot_GC() {
 	// iterate through the pointers list and free the memory
-	struct aot_ptr_node* node = aot_ptrs_head;
-
-	if (!aot_ptrs_head) {
-		// the list is empty
-		return;
-	}
 	while (aot_ptrs_head) {
 		// free the pointer
 		if (aot_ptrs_head->ptr) {
@@ -88,6 +85,14 @@ void aot_GC() {
 	}
 	aot_ptrs_head = 0;
 	aot_ptrs_tail = 0;
+	while (aot_init_vars_head) {
+		// free the node
+		struct aot_ptr_node* tmp = aot_init_vars_head;
+		aot_init_vars_head = tmp->next;
+		free(tmp);		
+	}
+	aot_init_vars_head = 0;
+	aot_init_vars_tail = 0;
 }
 
 /* ----------------------------- */
@@ -111,7 +116,7 @@ int aot_memory_init_ptr(void** ptr, unsigned long size, unsigned long count, int
 		return -1;
 
     // add the allocated pointer to the list
-	aot_ptrs_append(*ptr);
+	aot_ptrs_append(*ptr, aot_ptrs_head, aot_ptrs_tail, 0);
 
     if (!fuzz) {
         memset(*ptr, 0, total_size);
@@ -166,5 +171,25 @@ int aot_check_init_status(char* name, int status) {
 		printf("Init failed for %s with status %d\n", name, status);
 	}
 	return status;
+}
+
+void aot_register_init_var(void* ptr, const char* name) {
+	aot_ptrs_append(ptr, aot_init_vars_head, aot_init_vars_tail, name);
+}
+
+void* aot_fetch_init_var(const char* name) {
+	// iterate through the pointers list and find the pointer by name
+	struct aot_ptr_node* node = aot_init_vars_head;
+
+	if (!node) {
+		// the list is empty
+		return 0;
+	}
+	while (node) {
+		if (node->name && !strcmp(node->name, name)) {
+			return node->ptr;
+		}
+		node = node->next;
+	}
 }
 

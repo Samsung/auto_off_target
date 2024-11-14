@@ -631,7 +631,7 @@ class CodeGen:
     # original param names, e.g.
     # int foo ( int x ) -> foo (x)
     # @belongs: codegen
-    def _generate_function_call(self, function_id, static=False, create_params=True, param_names=None, known_type_names=None, new_types=None):
+    def _generate_function_call(self, function_id, static=False, create_params=True, param_names=None, known_type_names=None, new_types=None, init_vars=None):
         # in order to generate a correct call we need to know:
         # - returned type
         # - types of function parameters
@@ -863,11 +863,21 @@ class CodeGen:
                             param_tid, init_obj = init_data[i - 1]
                         init_data = {}
                         init_data['param_num'] = orig_i - 1
-                        init_data['init_ord'] = i - 1
-                        tmp, alloc, brk = self.init._generate_var_init(
-                            varname, type, pointers, known_type_names=known_type_names, new_types=new_types, entity_name=name,
-                            init_obj=init_obj, fuse=0, fid=function_id, data=init_data)
-                        func_init_data[function_id]['params'].append(init_data)
+                        init_data['init_ord'] = i - 1                            
+                        var_init = False                
+                        if user_init is False and init_vars is not None and varname in init_vars:
+                            tmp = f'{varname} = aot_fetch_init_var("{varname}");'
+                            func_init_data[function_id]['params'].append(init_vars[varname])
+                            var_init = True
+                        if var_init is False:
+                            tmp, alloc, brk = self.init._generate_var_init(
+                                varname, type, pointers, known_type_names=known_type_names, new_types=new_types, entity_name=name,
+                                init_obj=init_obj, fuse=0, fid=function_id, data=init_data)
+                            func_init_data[function_id]['params'].append(init_data)
+                        if user_init is False and var_init is False and init_vars is not None:
+                            tmp += "\n";
+                            tmp += f'aot_register_init_var({varname}, "{varname}");'
+                            init_vars[varname] = init_data
 
                     elif not dyn_init_present and not is_used:
                         tmp = f"// Detected that the argument {varname} is not used - skipping init\n"
@@ -883,8 +893,13 @@ class CodeGen:
                         # Replace the initialized variable with the image from kflat
                         vartype = " ".join(self._generate_var_def(
                             type, varname).split()[:-1])
-                        str += CodeGen.DYNAMIC_INIT_FUNCTION_VARIABLE_TEMPLATE.format(
-                            varname, "flatten", f"_func_arg_{i}", vartype)+"\n\n"
+                        if init_vars is None or varname not in init_vars:
+                            str += CodeGen.DYNAMIC_INIT_FUNCTION_VARIABLE_TEMPLATE.format(
+                                varname, "flatten", f"_func_arg_{i}", vartype)+"\n\n"
+                            if init_vars is not None:
+                                init_vars[varname] = None
+                        else:
+                            str += f'{varname} = aot_fetch_init_var("{varname}");\n'
                 i = saved_i
                 i += 1
 
@@ -895,7 +910,7 @@ class CodeGen:
 
             # Handle AoT Recall mode
             interface = None
-            interface_types = ["read", "write", "show", "store", "ioctl"]
+            interface_types = ["read", "write", "show", "store", "ioctl", "classic_netlink"]
             if name in self.dbops.init_data:
                 if "interface" in self.dbops.init_data[name]:
                     interface = self.dbops.init_data[name]["interface"]

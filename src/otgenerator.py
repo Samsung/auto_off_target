@@ -326,9 +326,15 @@ class OTGenerator:
             else:
                 str += "\n\taot_kflat_init(\"%s\");\n" % OTGenerator.KFLAT_IMAGE_NAME
 
-        if not self.args.no_main_function_calls:
-            str += "\n\n\t".join([self.codegen._generate_function_call(x, static=(x in static_functions), known_type_names=known_type_names, new_types=new_types).replace("\n", "\n\t")
-                                  for x in entry_points]) + "\n"
+        # that is the place we generate function call sites
+        # if generate_params is true (default), the function call site is enclosed within braces -> this has to change for the multi-function mode;
+        # perhaps we need to add a prefix/suffix to the variables that we would like to initialize
+        # actually we will need to have the prefix-suffix thing since in mutli function scenario we will have to have init for user-provided params (e.g. buf, count, etc.)
+        # idea: pass a set that will store the names of variables which should remain untouched across function inits
+        init_vars = {}
+        if not self.args.no_main_function_calls: 
+	        str += "\n\n\t".join([self.codegen._generate_function_call(x, static=(x in static_functions), known_type_names=known_type_names, new_types=new_types, init_vars=init_vars).replace("\n", "\n\t")
+                              for x in entry_points]) + "\n"
 
         if self.args.dynamic_init:
             str += "\taot_kflat_fini();\n\n"
