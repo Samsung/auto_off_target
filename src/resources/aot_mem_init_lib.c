@@ -19,7 +19,7 @@ struct aot_ptr_node* aot_ptrs_tail = 0; // points to the current tail of the aot
 struct aot_ptr_node* aot_init_vars_head = 0;
 struct aot_ptr_node* aot_init_vars_tail = 0;
 
-void aot_ptrs_append(void* ptr, struct aot_ptr_node* head, struct aot_ptr_node* tail, char* name) {
+void _aot_ptrs_append(void* ptr, struct aot_ptr_node* head, struct aot_ptr_node* tail, char* name) {
 	if (!ptr) {
 		return;
 	}
@@ -38,7 +38,7 @@ void aot_ptrs_append(void* ptr, struct aot_ptr_node* head, struct aot_ptr_node* 
 	}
 }
 
-int aot_ptrs_remove(void* ptr, struct aot_ptr_node* head, struct aot_ptr_node* tail){
+int _aot_ptrs_remove(void* ptr, struct aot_ptr_node* head, struct aot_ptr_node* tail){
 	if (!ptr) {
 		return 0;
 	}
@@ -69,6 +69,15 @@ int aot_ptrs_remove(void* ptr, struct aot_ptr_node* head, struct aot_ptr_node* t
 		tmp = tmp->next;
 	}
 	return 1;
+}
+
+
+void aot_ptrs_append(void* ptr) {
+	_aot_ptrs_append(ptr, aot_ptrs_head, aot_ptrs_tail, 0);
+}
+
+int aot_ptrs_remove(void* ptr) {
+	return _aot_ptrs_remove(ptr, aot_ptrs_head, aot_ptrs_tail);
 }
 
 void aot_GC() {
@@ -116,7 +125,7 @@ int aot_memory_init_ptr(void** ptr, unsigned long size, unsigned long count, int
 		return -1;
 
     // add the allocated pointer to the list
-	aot_ptrs_append(*ptr, aot_ptrs_head, aot_ptrs_tail, 0);
+	aot_ptrs_append(*ptr);
 
     if (!fuzz) {
         memset(*ptr, 0, total_size);
@@ -174,7 +183,7 @@ int aot_check_init_status(char* name, int status) {
 }
 
 void aot_register_init_var(void* ptr, const char* name) {
-	aot_ptrs_append(ptr, aot_init_vars_head, aot_init_vars_tail, name);
+	_aot_ptrs_append(ptr, aot_init_vars_head, aot_init_vars_tail, name);
 }
 
 void* aot_fetch_init_var(const char* name) {
