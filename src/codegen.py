@@ -865,7 +865,7 @@ class CodeGen:
                         init_data['param_num'] = orig_i - 1
                         init_data['init_ord'] = i - 1                            
                         var_init = False
-                        var_type = self.dbops._get_typedef_dst(type['id'])
+                        var_type = self.dbops._get_typedef_dst(type)
                         is_ptr_var = False
                         if var_type['class'] == 'pointer':
                             is_ptr_var = True
