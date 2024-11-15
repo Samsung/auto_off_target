@@ -864,8 +864,12 @@ class CodeGen:
                         init_data = {}
                         init_data['param_num'] = orig_i - 1
                         init_data['init_ord'] = i - 1                            
-                        var_init = False                
-                        if user_init is False and init_vars is not None and varname in init_vars:
+                        var_init = False
+                        var_type = self.dbops._get_typedef_dst(type['id'])
+                        is_ptr_var = False
+                        if var_type['class'] == 'pointer':
+                            is_ptr_var = True
+                        if is_ptr_var is True and user_init is False and init_vars is not None and varname in init_vars:
                             tmp = f'{varname} = aot_fetch_init_var("{varname}");'
                             func_init_data[function_id]['params'].append(init_vars[varname])
                             var_init = True
@@ -874,7 +878,7 @@ class CodeGen:
                                 varname, type, pointers, known_type_names=known_type_names, new_types=new_types, entity_name=name,
                                 init_obj=init_obj, fuse=0, fid=function_id, data=init_data)
                             func_init_data[function_id]['params'].append(init_data)
-                        if user_init is False and var_init is False and init_vars is not None:
+                        if is_ptr_var is True and user_init is False and var_init is False and init_vars is not None:
                             tmp += "\n";
                             tmp += f'aot_register_init_var({varname}, "{varname}");'
                             init_vars[varname] = init_data
