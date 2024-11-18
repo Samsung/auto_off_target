@@ -19,7 +19,7 @@ struct aot_ptr_node* aot_ptrs_tail = 0; // points to the current tail of the aot
 struct aot_ptr_node* aot_init_vars_head = 0;
 struct aot_ptr_node* aot_init_vars_tail = 0;
 
-void _aot_ptrs_append(void* ptr, struct aot_ptr_node* head, struct aot_ptr_node* tail, char* name) {
+void _aot_ptrs_append(void* ptr, struct aot_ptr_node** head, struct aot_ptr_node** tail, char* name) {
 	if (!ptr) {
 		return;
 	}
@@ -29,34 +29,34 @@ void _aot_ptrs_append(void* ptr, struct aot_ptr_node* head, struct aot_ptr_node*
     new_node->next = 0;
 	new_node->name = name;
 
-	if (!head) { // this is the first item in the list
-		head = new_node;
-		tail = new_node;
+	if (!(*head)) { // this is the first item in the list
+		*head = new_node;
+		*tail = new_node;
 	} else {
-		tail->next = new_node;
-		tail = new_node;
+		(*tail)->next = new_node;
+		*tail = new_node;
 	}
 }
 
-int _aot_ptrs_remove(void* ptr, struct aot_ptr_node* head, struct aot_ptr_node* tail){
+int _aot_ptrs_remove(void* ptr, struct aot_ptr_node** head, struct aot_ptr_node** tail){
 	if (!ptr) {
 		return 0;
 	}
 
-	if (!head) {
+	if (!(*head)) {
 		// the list is empty
 		return 0;
 	}
-	struct aot_ptr_node* tmp = head;
+	struct aot_ptr_node* tmp = *head;
 	struct aot_ptr_node* prev_tmp = 0;
 	while (tmp) {
 		if (tmp->ptr == ptr) {
-			if (tmp == head) {
-				head = tmp->next;
+			if (tmp == *head) {
+				*head = tmp->next;
 			}
-			else if (tmp == tail) {
-				tail = prev_tmp;
-				tail->next = 0;
+			else if (tmp == *tail) {
+				*tail = prev_tmp;
+				(*tail)->next = 0;
 			}
 			else {
 				prev_tmp->next = tmp->next;
