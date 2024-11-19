@@ -73,7 +73,7 @@ int _aot_ptrs_remove(void* ptr, struct aot_ptr_node** head, struct aot_ptr_node*
 
 
 void aot_ptrs_append(void* ptr) {
-	_aot_ptrs_append(ptr, aot_ptrs_head, aot_ptrs_tail, 0);
+	_aot_ptrs_append(ptr, &aot_ptrs_head, &aot_ptrs_tail, 0);
 }
 
 int aot_ptrs_remove(void* ptr) {
