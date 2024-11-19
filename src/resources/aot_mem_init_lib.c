@@ -77,7 +77,7 @@ void aot_ptrs_append(void* ptr) {
 }
 
 int aot_ptrs_remove(void* ptr) {
-	return _aot_ptrs_remove(ptr, aot_ptrs_head, aot_ptrs_tail);
+	return _aot_ptrs_remove(ptr, &aot_ptrs_head, &aot_ptrs_tail);
 }
 
 void aot_GC() {
@@ -183,7 +183,7 @@ int aot_check_init_status(char* name, int status) {
 }
 
 void aot_register_init_var(void* ptr, const char* name) {
-	_aot_ptrs_append(ptr, aot_init_vars_head, aot_init_vars_tail, name);
+	_aot_ptrs_append(ptr, &aot_init_vars_head, &aot_init_vars_tail, name);
 }
 
 void* aot_fetch_init_var(const char* name) {
