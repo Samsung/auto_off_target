@@ -2301,18 +2301,18 @@ class Init:
                             if ("usedrefs" in type) and (-1 != type["usedrefs"][index]):
                                 bitfields[index] = bitcount
 
-                        # since bitfields are initialized by assignment, we have to use struct initializer
-                        # this is necessary in order to avoid issues with const pointer members
-                        # because the initializer construct zero-initializes all non-specified members,
-                        # we initialize all the used bit fields first, then the rest of the struct members
+                        ## [NOTE]: I left the old comment and code in case it's useful in the future (marked with ##)
+                        ## since bitfields are initialized by assignment, we have to use struct initializer
+                        ## this is necessary in order to avoid issues with const pointer members
+                        ## because the initializer construct zero-initializes all non-specified members,
+                        ## we initialize all the used bit fields first, then the rest of the struct members
                         str_tmp = ""
                         base_tmp_name = tmp_name;
                         if len(bitfields) != 0:
-                            #str_tmp += f"{tmp_name} = ({typename})" + "{"
+                            ##str_tmp += f"{tmp_name} = ({typename})" + "{"
                             if skip_init and (False == name_change):
-                                #str_tmp = f"*({typename}*){tmp_name}"
+                                ##str_tmp = f"*({typename}*){tmp_name}"
                                 base_tmp_name = f"(*({typename}*){tmp_name})"
-                                #base_tmp_name = str_tmp;
                             data['bitfields'] = []
                             data['tid'] = _t_id
                             data['fuzz'] = 1
@@ -2327,9 +2327,9 @@ class Init:
                             data['bitfields'].append({"name": field_name, "bitcount": bitcount})
 
                         if len(bitfields) != 0:
-                            # remove last comma and space
-                            # str_tmp = str_tmp[:-2]
-                            # str_tmp += "};\n"
+                            ## remove last comma and space
+                            ## str_tmp = str_tmp[:-2]
+                            ## str_tmp += "};\n"
                             str += str_tmp
 
                         # if _t_id in self.member_usage_info:
