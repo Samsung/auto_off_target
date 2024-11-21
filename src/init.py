@@ -2306,10 +2306,12 @@ class Init:
                         # because the initializer construct zero-initializes all non-specified members,
                         # we initialize all the used bit fields first, then the rest of the struct members
                         str_tmp = ""
+                        base_tmp_name = tmp_name;
                         if len(bitfields) != 0:
-                            str_tmp += f"{tmp_name} = ({typename})" + "{"
+                            #str_tmp += f"{tmp_name} = ({typename})" + "{"
                             if skip_init and (False == name_change):
                                 str_tmp = f"*({typename}*){str_tmp}"
+                                base_tmp_name = str_tmp;
                             data['bitfields'] = []
                             data['tid'] = _t_id
                             data['fuzz'] = 1
@@ -2320,13 +2322,13 @@ class Init:
                             tmp_t = self.dbops._get_typedef_dst(
                                 self.dbops.typemap[tmp_tid])
                             # we can generate bitfield init straight away as bitfields are integral types, therefore builtin
-                            str_tmp += f".{field_name} = aot_memory_init_bitfield({bitcount}, 1 /* fuzz */, 0), "
+                            str_tmp += f"{base_tmp_name}.{field_name} = aot_memory_init_bitfield({bitcount}, 1 /* fuzz */, 0);\n"
                             data['bitfields'].append({"name": field_name, "bitcount": bitcount})
 
                         if len(bitfields) != 0:
                             # remove last comma and space
-                            str_tmp = str_tmp[:-2]
-                            str_tmp += "};\n"
+                            # str_tmp = str_tmp[:-2]
+                            # str_tmp += "};\n"
                             str += str_tmp
 
                         # if _t_id in self.member_usage_info:
