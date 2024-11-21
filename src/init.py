@@ -2310,8 +2310,9 @@ class Init:
                         if len(bitfields) != 0:
                             #str_tmp += f"{tmp_name} = ({typename})" + "{"
                             if skip_init and (False == name_change):
-                                str_tmp = f"*({typename}*){str_tmp}"
-                                base_tmp_name = str_tmp;
+                                #str_tmp = f"*({typename}*){tmp_name}"
+                                base_tmp_name = f"(*({typename}*){tmp_name})"
+                                #base_tmp_name = str_tmp;
                             data['bitfields'] = []
                             data['tid'] = _t_id
                             data['fuzz'] = 1
