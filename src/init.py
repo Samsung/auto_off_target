@@ -2212,8 +2212,27 @@ class Init:
                     final_cl = self.dbops._get_typedef_dst(member_type)['class']
                     if for_loop is True and final_cl == "builtin":
                         # in case we have an array of builtins, there is no need to initialize them
-                        # one by one in a loop; instead we should initialize the entire array 
-                        str_tmp = f"aot_memory_init({name}, sizeof({member_type['str']}) * {loop_count} /* count */, 1 /* fuzz */, 0);\n"
+                        # one by one in a loop; instead we should initialize the entire array
+                        version = True
+                        null_terminate = False
+                        tag = False
+                        value = None
+                        min_value = None
+                        max_value = None
+                        protected = False
+                        value_dep = "" # Does the value of member is set explicitly by other members' values?
+                        isPointer = False
+                        fuzz_offset = None # If it is unnamed payload, we need offset to know where to fuzz
+                        user_init = False
+                        fuzz = None
+
+                        loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, fuzz_offset, user_init, fuzz, is_hidden, \
+                        is_subitem, name, typename, subitems_names, hidden_members, always_init, cast_str \
+                            = self.read_user_init_data(loop_count, null_terminate, tag, value, min_value, max_value, protected, value_dep, isPointer, \
+                                                       fuzz_offset, user_init, fuzz, is_hidden, version, entity_name, is_subitem, level, fid, member_type, name, member_type['str'], \
+                                                       subitems_names, hidden_members, always_init, cast_str)
+
+                        str_tmp = f"aot_memory_init({name}, sizeof({member_type['str']}) * {loop_count} /* count */, {fuzz} /* fuzz */, 0);\n"
                         data['loop_count'] = loop_count
                         str += str_tmp
                         return str, False, False
